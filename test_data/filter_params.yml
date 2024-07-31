@@ -1,0 +1,13 @@
+parameters:
+  min_depth: 5.0
+  min_qual: 20.0
+  min_strand_bias: 0.01
+  strand_mismatch_threshold: 2.0
+  min_frs: 0.9
+  min_mq: 30.0
+snp_parameters:
+  min_hq_depth: 5.0
+  min_qual: 25.0
+  min_vdb: 0.00001
+indel_parameters:
+  min_qual: 50.0
