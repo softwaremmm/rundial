@@ -10,3 +10,4 @@ phf = { version = "0.11.2", features = ["macros"]}
 phf_macros = "0.11.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
+vcf = "0.6.1"

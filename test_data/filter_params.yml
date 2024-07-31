@@ -1,4 +1,6 @@
 parameters:
+  low_qual: 50
+  low_depth: 30
   min_depth: 5.0
   min_qual: 20.0
   min_strand_bias: 0.01
