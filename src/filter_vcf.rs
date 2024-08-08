@@ -6,23 +6,23 @@ use std::path::PathBuf;
 
 use crate::vcf::variant_record::Genotype;
 use crate::vcf::vcf_header::{FilterHeader, HeaderLine};
-use crate::vcf::{RecordValue, VCFError, VCFHeader, VCFReader, VCFWriter, VariantRecord};
+use crate::vcf::{RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
 
 use phf::phf_map;
 
 use crate::parameter_structs::FilterParams;
 
-const MIN_DP: &'static str = "MIN_DP";
-const MIN_HQ_DP: &'static str = "MIN_HQ_DP";
-const MIN_QUAL: &'static str = "MIN_QUAL";
-const INVALID_INDEL: &'static str = "INVALID_INDEL";
-const STRAND_BIAS: &'static str = "STRAND_BIAS";
-const STRAND_MISMATCH: &'static str = "STRAND_MISMATCH";
-const MIN_FRS: &'static str = "MIN_FRS";
-const MIN_MQ: &'static str = "MIN_MQ";
-const MIN_VDB: &'static str = "MIN_VDB";
-const MIN_IDV: &'static str = "MIN_IDV";
-const MIN_IMF: &'static str = "MIN_IMF";
+const MIN_DP: &str = "MIN_DP";
+const MIN_HQ_DP: &str = "MIN_HQ_DP";
+const MIN_QUAL: &str = "MIN_QUAL";
+const INVALID_INDEL: &str = "INVALID_INDEL";
+const STRAND_BIAS: &str = "STRAND_BIAS";
+const STRAND_MISMATCH: &str = "STRAND_MISMATCH";
+const MIN_FRS: &str = "MIN_FRS";
+const MIN_MQ: &str = "MIN_MQ";
+const MIN_VDB: &str = "MIN_VDB";
+const MIN_IDV: &str = "MIN_IDV";
+const MIN_IMF: &str = "MIN_IMF";
 
 static DESCRIPTIONS: phf::Map<&'static str, &'static str> = phf_map! {
     "MIN_DP" => "Basic read depth is less than ?",
@@ -99,8 +99,7 @@ impl Filterer {
     pub fn filter(&self, record: &VariantRecord) -> HashSet<String> {
         self.filters
             .iter()
-            .map(|f| f(record))
-            .flatten()
+            .filter_map(|f| f(record))
             .collect::<HashSet<String>>()
     }
 }
@@ -167,7 +166,7 @@ fn is_low_support(record: &VariantRecord, threshold: f32) -> Option<String> {
     return None;
 }
 
-fn is_invalid_indel(record: &VariantRecord, threshold: f32) -> Option<String> {
+fn is_invalid_indel(record: &VariantRecord, _threshold: f32) -> Option<String> {
     let has_indel_label =
         record.info.contains_key("INDEL") || record.ref_bases.chars().count() != 1;
     if has_indel_label && record.alt.is_empty() {
@@ -228,7 +227,7 @@ fn is_strand_mismatch(record: &VariantRecord, threshold: f32) -> Option<String> 
 // End of filter functions
 
 fn set_gt_to_highest_depth(record: &mut VariantRecord) {
-    if record.alt.len() == 0 {
+    if record.alt.is_empty() {
         return;
     }
 
@@ -259,7 +258,7 @@ fn add_filters_to_header(header: &mut VCFHeader, params: &FilterParams) {
         params.indel_parameters.clone(),
     ]
     .into_iter()
-    .filter_map(|x| x)
+    .flatten()
     .collect();
 
     let all_keys = all_params
@@ -279,7 +278,7 @@ fn add_filters_to_header(header: &mut VCFHeader, params: &FilterParams) {
             .get(key)
             .map(|&desc| desc.to_string())
             .unwrap_or_else(|| format!("{} - thresholds: ?", key))
-            .replace("?", &thresholds);
+            .replace('?', &thresholds);
 
         add_filter_to_header(header, key, &desc);
     }

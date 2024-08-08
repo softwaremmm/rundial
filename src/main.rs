@@ -9,7 +9,7 @@ mod filter_vcf;
 pub mod vcf;
 use filter_vcf::filter_vcf;
 
-use regex::Regex;
+
 
 #[derive(Parser)]
 #[command(name = "VCF-filtering")]

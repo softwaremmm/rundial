@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{collections::HashMap};
+
 use indexmap::IndexMap;
 use std::error::Error;
 
@@ -43,6 +43,12 @@ pub struct Genotype {
     pub allele1: i32,
     pub allele2: i32,
 }
+impl Default for Genotype {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Genotype {
     pub fn new() -> Self {
         Self {
@@ -72,8 +78,8 @@ impl Genotype {
     pub fn to_string(&self) -> String {
         match (self.allele1, self.allele2) {
             (-1, -1) => return String::from("./."),
-            (a1, -1) => return format!("{}/.", a1.to_string()),
-            (-1, a2) => return format!("./{}", a2.to_string()),
+            (a1, -1) => return format!("{}/.", a1),
+            (-1, a2) => return format!("./{}", a2),
             (a1, a2) => return format!("{a1}/{a2}"),
         }
     }
@@ -157,18 +163,18 @@ impl VariantRecord {
         let mut record: Self = Self {
             chrom: fields[0].to_string(),
             pos: fields[1].parse()?,
-            id: if fields[2] == "" {
+            id: if fields[2].is_empty() {
                 None
             } else {
                 Some(fields[2].to_string())
             },
             ref_bases: fields[3].to_string(),
-            alt: if fields[4] == "." || fields[4] == "" {
+            alt: if fields[4] == "." || fields[4].is_empty() {
                 Vec::new()
             } else {
                 fields[4].split(',').map(|s| s.to_string()).collect()
             },
-            qual: if fields[5] == "." || fields[5] == "" {
+            qual: if fields[5] == "." || fields[5].is_empty() {
                 None
             } else {
                 match fields[5].parse::<f32>() {
@@ -206,9 +212,9 @@ impl VariantRecord {
         let dot = String::from(".");
 
         let pos_str: String = self.pos.to_string();
-        let id_str: &str = if let Some(id) = &self.id { &id } else { &dot };
+        let id_str: &str = if let Some(id) = &self.id { id } else { &dot };
 
-        let alt_str: String = if self.alt.len() == 0 {
+        let alt_str: String = if self.alt.is_empty() {
             String::from(".")
         } else {
             self.alt.join(",")
@@ -220,7 +226,7 @@ impl VariantRecord {
             String::from(".")
         };
 
-        let filter_str: String = if self.filter.len() == 0 {
+        let filter_str: String = if self.filter.is_empty() {
             String::from("PASS")
         } else {
             self.filter.join(";")
@@ -246,8 +252,7 @@ impl VariantRecord {
         let key_str: String = keys.join(":");
         let fmt_value_str: String = values.join(":");
 
-        return vec![
-            &self.chrom,
+        return [&self.chrom,
             &pos_str,
             id_str,
             &self.ref_bases,
@@ -256,8 +261,7 @@ impl VariantRecord {
             &filter_str,
             &info_str,
             &key_str,
-            &fmt_value_str,
-        ]
+            &fmt_value_str]
         .join("\t");
     }
 
@@ -323,11 +327,9 @@ impl VariantRecord {
                 _ => {},
             };
         }
-        else {
-            if let Some((forward, reverse)) = &self.strand_depths {
-                let depths: Vec<i32> = forward.iter().zip(reverse.iter()).map(|(f, r)| f + r).collect();
-                self.allele_depths = Some(depths);
-            }
+        else if let Some((forward, reverse)) = &self.strand_depths {
+            let depths: Vec<i32> = forward.iter().zip(reverse.iter()).map(|(f, r)| f + r).collect();
+            self.allele_depths = Some(depths);
         }
     }
 
@@ -338,7 +340,7 @@ fn str_to_info(
     line: &str,
 ) -> Result<IndexMap<String, RecordValue>, Box<dyn Error>> {
     let mut info: IndexMap<String, RecordValue> = IndexMap::new();
-    if line == "." || line == "" {
+    if line == "." || line.is_empty() {
         return Ok(info);
     }
     for field in line.split(';') {
@@ -363,8 +365,8 @@ fn str_to_format(
     keys_str: &str,
     values_str: &str,
 ) -> Result<IndexMap<String, RecordValue>, Box<dyn Error>> {
-    let keys: Vec<String> = keys_str.split(":").map(|s| s.to_string()).collect();
-    let values: Vec<&str> = values_str.split(":").collect();
+    let keys: Vec<String> = keys_str.split(':').map(|s| s.to_string()).collect();
+    let values: Vec<&str> = values_str.split(':').collect();
     if keys.len() != values.len() {
         return Err(VCFError::InvalidRecord(format!("Mismatching number of keys and values: {keys:?}, {values:?}")).into());
     }
@@ -373,6 +375,6 @@ fn str_to_format(
         .collect::<Result<_, _>>()?;
 
     let format: IndexMap<String, RecordValue> =
-        IndexMap::from_iter(std::iter::zip(keys.into_iter(), parsed_values.into_iter()));
+        IndexMap::from_iter(std::iter::zip(keys, parsed_values));
     return Ok(format);
 }

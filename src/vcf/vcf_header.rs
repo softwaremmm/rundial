@@ -1,7 +1,7 @@
 use crate::vcf::{RecordValue, VCFError};
 use regex::Regex;
 use std::{collections::HashMap, error::Error};
-use std::{fmt, vec};
+use std::{fmt};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HeaderNumber {
@@ -152,7 +152,7 @@ impl HeaderLine {
                 return format!("##FILTER=<ID={},Description=\"{}\">", h.id, h.desc);
             }
             HeaderLine::MiscHeader(h) => {
-                return format!("{}", h.line);
+                return h.line.to_string();
             }
         }
     }
@@ -193,11 +193,17 @@ impl fmt::Display for VCFHeader {
     }
 }
 
-fn get_capture<'a, 'b>(re: &'a Regex, s: &'b str) -> Option<&'b str> {
+fn get_capture<'b>(re: &Regex, s: &'b str) -> Option<&'b str> {
     if let Some(cap) = re.captures(s) {
         return Some(cap.get(1).unwrap().as_str());
     } else {
         return None;
+    }
+}
+
+impl Default for VCFHeader {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -274,7 +280,7 @@ impl VCFHeader {
                     if line.starts_with("##INFO") {
                         let h = InfoHeader {
                             id: id.to_string(),
-                            number: HeaderNumber::from_string(&number),
+                            number: HeaderNumber::from_string(number),
                             header_type: HeaderType::from_string(t),
                             desc: desc.to_string(),
                         };
@@ -282,7 +288,7 @@ impl VCFHeader {
                     } else {
                         let h = FormatHeader {
                             id: id.to_string(),
-                            number: HeaderNumber::from_string(&number),
+                            number: HeaderNumber::from_string(number),
                             header_type: HeaderType::from_string(t),
                             desc: desc.to_string(),
                         };
