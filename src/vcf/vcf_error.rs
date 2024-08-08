@@ -1,6 +1,7 @@
 use core::fmt;
 use std::error::Error;
 
+/// Common Error types for VCF parsing
 #[derive(Debug, Clone)]
 pub enum VCFError {
     InvalidRecord(String),

@@ -47,12 +47,15 @@ static RELEVANT_INFO_TAGS: phf::Map<&'static str, &'static str> = phf_map! {
 
 type FilterFunction = Box<dyn Fn(&VariantRecord) -> Option<String>>;
 
+/// A struct that filters a VariantRecord based on provided parameters
 struct Filterer {
-    // The list of filter functions to apply
     filters: Vec<FilterFunction>,
 }
 
 impl Filterer {
+    /// Create a new Filterer from a set of parameters
+    /// 
+    /// The params hashmap should contain the flags as the key and the thresholds as the value
     pub fn create_from_params(params: &Option<HashMap<String, f32>>) -> Self {
         let mut filterer = Self {
             filters: Vec::new(),
@@ -106,6 +109,7 @@ impl Filterer {
 
 // Filter functions
 
+/// Check if a record has a low value for a specific tag in INFO
 fn is_low_tag(record: &VariantRecord, threshold: f32, tag: &str, flag: &str) -> Option<String> {
     if let Some(value) = record.info.get(tag) {
         match value {
@@ -125,6 +129,7 @@ fn is_low_tag(record: &VariantRecord, threshold: f32, tag: &str, flag: &str) -> 
     return None;
 }
 
+/// Check if a record has a low quality score.
 fn is_low_qual(record: &VariantRecord, threshold: f32) -> Option<String> {
     if let Some(quality_score) = record.qual {
         if quality_score < threshold {
@@ -134,17 +139,19 @@ fn is_low_qual(record: &VariantRecord, threshold: f32) -> Option<String> {
     return None;
 }
 
+/// Check if a record has a low depth.
 fn is_low_depth(record: &VariantRecord, threshold: f32) -> Option<String> {
-    if let Some(depth) = record.depth {
-        if depth < threshold as i32 {
+    if let Some(depth) = record.depth() {
+        if *depth < threshold as i32 {
             return Some(MIN_DP.to_string());
         }
     }
     return None;
 }
 
+/// Check if a record has a low high quality depth, based on AD or, ADF and ADR.
 fn is_low_hq_depth(record: &VariantRecord, threshold: f32) -> Option<String> {
-    if let Some(depths) = &record.allele_depths {
+    if let Some(depths) = record.allele_depths() {
         if depths.iter().sum::<i32>() < threshold as i32 {
             return Some(MIN_HQ_DP.to_string());
         }
@@ -152,9 +159,10 @@ fn is_low_hq_depth(record: &VariantRecord, threshold: f32) -> Option<String> {
     return None;
 }
 
+/// Check if a record has low fraction of support for the main allele.
 fn is_low_support(record: &VariantRecord, threshold: f32) -> Option<String> {
     let main_allele = record.main_allele() as usize;
-    if let Some(depths) = &record.allele_depths {
+    if let Some(depths) = record.allele_depths() {
         let total_depth = depths.iter().sum::<i32>();
         if total_depth == 0 {
             return None;
@@ -166,6 +174,8 @@ fn is_low_support(record: &VariantRecord, threshold: f32) -> Option<String> {
     return None;
 }
 
+
+/// Check if a record claims to be an indel but has no alternate alleles.
 fn is_invalid_indel(record: &VariantRecord, _threshold: f32) -> Option<String> {
     let has_indel_label =
         record.info.contains_key("INDEL") || record.ref_bases.chars().count() != 1;
@@ -175,13 +185,14 @@ fn is_invalid_indel(record: &VariantRecord, _threshold: f32) -> Option<String> {
     return None;
 }
 
+/// Check if a record has many more reads on one strand than the other.
 fn is_strand_bias(record: &VariantRecord, threshold: f32) -> Option<String> {
     let main_allele = record.main_allele();
     if main_allele == -1 {
         return None;
     }
     let main_allele = main_allele as usize;
-    if let Some((forward, reverse)) = &record.strand_depths {
+    if let Some((forward, reverse)) = record.strand_depths() {
         let forward_depth = max(1, forward[main_allele]) as f32;
         let reverse_depth = max(1, reverse[main_allele]) as f32;
 
@@ -192,9 +203,13 @@ fn is_strand_bias(record: &VariantRecord, threshold: f32) -> Option<String> {
     return None;
 }
 
+/// Check if a record has different top alleles on forward and reverse strands.
+/// 
+/// Top alleles are defined as the alleles with depth within `threshold` of the max depth
+/// on each strand.
 fn is_strand_mismatch(record: &VariantRecord, threshold: f32) -> Option<String> {
     // This checks if the two strands support different alleles
-    if let Some((forward, reverse)) = &record.strand_depths {
+    if let Some((forward, reverse)) = record.strand_depths() {
         // unwrap should be fine as ref should always be present
         let max_forward: &i32 = forward.iter().max().unwrap();
         let max_reverse: &i32 = reverse.iter().max().unwrap();
@@ -226,12 +241,13 @@ fn is_strand_mismatch(record: &VariantRecord, threshold: f32) -> Option<String> 
 
 // End of filter functions
 
+/// Set the genotype to be the allele with the highest depth (x/x).
 fn set_gt_to_highest_depth(record: &mut VariantRecord) {
     if record.alt.is_empty() {
         return;
     }
 
-    if let Some(depths) = &record.allele_depths {
+    if let Some(depths) = record.allele_depths() {
         let max_depth = depths.iter().max().unwrap();
         let max_index = depths.iter().position(|x| x == max_depth).unwrap();
 
@@ -247,9 +263,12 @@ fn add_filter_to_header(header: &mut VCFHeader, key: &str, desc: &str) {
         id: key.to_string(),
         desc: desc.to_string(),
     };
-    header.add_header_line(HeaderLine::FilterHeader(filter));
+    header.add_header_line(HeaderLine::Filter(filter));
 }
 
+/// Add all filters to the header.
+/// 
+/// Filters which are in multiple parameter sets will have their thresholds listed in the description.
 fn add_filters_to_header(header: &mut VCFHeader, params: &FilterParams) {
     let all_params: Vec<HashMap<String, f32>> = vec![
         params.parameters.clone(),
@@ -284,6 +303,7 @@ fn add_filters_to_header(header: &mut VCFHeader, params: &FilterParams) {
     }
 }
 
+/// Filter a VCF file based on a set of parameters.
 pub fn filter_vcf(
     in_vcf: PathBuf,
     out_vcf: PathBuf,
@@ -300,14 +320,15 @@ pub fn filter_vcf(
     add_filters_to_header(&mut new_header, &params);
     let mut vcf_writer = VCFWriter::new(BufWriter::new(File::create(out_vcf)?), &new_header)?;
 
-    println!("Filtering VCF file");
-    println!("{:?}", params);
     let std_filterer = Filterer::create_from_params(&params.parameters);
     let ref_filterer = Filterer::create_from_params(&params.ref_parameters);
     let snp_filterer = Filterer::create_from_params(&params.snp_parameters);
     let indel_filterer = Filterer::create_from_params(&params.indel_parameters);
     let fix_gt: bool = params.fix_gt.unwrap_or(false);
-
+    
+    if verbose {
+        println!("Filtering VCF file");
+    }
     let mut filter_counter: HashMap<String, i32> = HashMap::new();
     for (count, record) in vcf_reader.enumerate() {
         if verbose && count % 100000 == 0 {

@@ -3,15 +3,24 @@ use regex::Regex;
 use std::fmt;
 use std::{collections::HashMap, error::Error};
 
+/// Possible Number values for INFO and FORMAT fields
+/// 
+/// A: One for each alternative allele
+/// G: one for each genotype
+/// R: One for each allele including ref
+/// One: One value always
+/// Flag: so 0 values
+/// Multiple: Multiple values
+/// Unknown: When there is a "." in the header
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HeaderNumber {
-    A, // One for each alternative allele
-    G, // one for each genotype
-    R, // One for each allele including ref
+    A,
+    G,
+    R,
     One,
-    Flag, // so 0
+    Flag,
     Multiple(i32),
-    Unknown, // Not seen this case before. Should have a "." in the header
+    Unknown,
 }
 
 impl HeaderNumber {
@@ -47,6 +56,7 @@ impl fmt::Display for HeaderNumber {
     }
 }
 
+/// Possible types for INFO and FORMAT fields
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HeaderType {
     Flag,
@@ -104,68 +114,55 @@ pub struct FormatHeader {
     pub desc: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MiscHeader {
     pub line: String,
 }
-impl PartialEq for MiscHeader {
-    fn eq(&self, _other: &Self) -> bool {
-        return true;
-    }
-}
-impl Eq for MiscHeader {}
-impl PartialOrd for MiscHeader {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-impl Ord for MiscHeader {
-    fn cmp(&self, _other: &Self) -> std::cmp::Ordering {
-        return std::cmp::Ordering::Equal;
-    }
-}
 
+/// Possible types of header lines in a VCF file
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HeaderLine {
-    MiscHeader(MiscHeader),
-    InfoHeader(InfoHeader),
-    FormatHeader(FormatHeader),
-    FilterHeader(FilterHeader),
+    Misc(MiscHeader),
+    Info(InfoHeader),
+    Format(FormatHeader),
+    Filter(FilterHeader),
 }
 
 impl fmt::Display for HeaderLine {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            HeaderLine::InfoHeader(h) => {
+            HeaderLine::Info(h) => {
                 write!(
                     f,
                     "##INFO=<ID={},Number={},Type={},Description=\"{}\">",
                     h.id, h.number, h.header_type, h.desc
                 )
             }
-            HeaderLine::FormatHeader(h) => {
+            HeaderLine::Format(h) => {
                 write!(
                     f,
                     "##FORMAT=<ID={},Number={},Type={},Description=\"{}\">",
                     h.id, h.number, h.header_type, h.desc
                 )
             }
-            HeaderLine::FilterHeader(h) => {
+            HeaderLine::Filter(h) => {
                 write!(f, "##FILTER=<ID={},Description=\"{}\">", h.id, h.desc)
             }
-            HeaderLine::MiscHeader(h) => {
+            HeaderLine::Misc(h) => {
                 write!(f, "{}", h.line)
             }
         }
     }
 }
 
-
+/// VCFHeader struct
+///
+/// Contains the header lines of a VCF file as a vector of [HeaderLine]'s.
+/// The vcf specification line, and the column headers are stored separately.
 #[derive(Debug, Clone)]
 pub struct VCFHeader {
     pub lines: Vec<HeaderLine>,
-    pub vcf_spec: Option<HeaderLine>,
-    pub column_headers: Option<HeaderLine>,
+    pub samples: Vec<String>,
     filters: HashMap<String, FilterHeader>,
     infos: HashMap<String, InfoHeader>,
     formats: HashMap<String, FormatHeader>,
@@ -175,10 +172,6 @@ impl fmt::Display for VCFHeader {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut header_strings: Vec<String> = Vec::new();
 
-        if let Some(vcf_spec) = &self.vcf_spec {
-            header_strings.push(vcf_spec.to_string());
-        }
-
         header_strings.extend(
             self.lines
                 .iter()
@@ -186,8 +179,15 @@ impl fmt::Display for VCFHeader {
                 .collect::<Vec<String>>(),
         );
 
-        if let Some(column_headers) = &self.column_headers {
-            header_strings.push(column_headers.to_string());
+        if self.samples.is_empty() {
+            header_strings.push("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO".to_string());
+        } else {
+            let mut columns_str = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT".to_string();
+            for s in self.samples.iter() {
+                columns_str.push('\t');
+                columns_str.push_str(s);
+            }
+            header_strings.push(columns_str);
         }
 
         let mut header_string = header_strings.join("\n");
@@ -214,46 +214,50 @@ impl VCFHeader {
     pub fn new() -> Self {
         return VCFHeader {
             lines: Vec::new(),
-            vcf_spec: None,
-            column_headers: None,
+            samples: Vec::new(),
             filters: HashMap::new(),
             infos: HashMap::new(),
             formats: HashMap::new(),
         };
     }
 
+    /// Returns a map from ID to FilterHeader
     pub fn filters(&self) -> &HashMap<String, FilterHeader> {
         return &self.filters;
     }
 
+    /// Returns a map from ID to InfoHeader
     pub fn infos(&self) -> &HashMap<String, InfoHeader> {
         return &self.infos;
     }
 
+    /// Returns a map from ID to FormatHeader
     pub fn formats(&self) -> &HashMap<String, FormatHeader> {
         return &self.formats;
     }
 
+    /// When changes are made to the VCFHeader, the hashmaps should be updated
     fn update_hashmaps(&mut self) {
         self.filters.clear();
         self.infos.clear();
         self.formats.clear();
         for h in self.lines.iter() {
             match h {
-                HeaderLine::FilterHeader(h) => {
+                HeaderLine::Filter(h) => {
                     self.filters.insert(h.id.clone(), h.clone());
                 }
-                HeaderLine::InfoHeader(h) => {
+                HeaderLine::Info(h) => {
                     self.infos.insert(h.id.clone(), h.clone());
                 }
-                HeaderLine::FormatHeader(h) => {
+                HeaderLine::Format(h) => {
                     self.formats.insert(h.id.clone(), h.clone());
                 }
-                HeaderLine::MiscHeader(_) => {}
+                HeaderLine::Misc(_) => {}
             }
         }
     }
 
+    /// Creates a VCFHeader from a vector of strings
     pub fn from_lines(lines: Vec<String>) -> Self {
         let id_re = Regex::new(r"ID=([^,]+)").unwrap();
         let number_re = Regex::new(r"Number=([^,]+)").unwrap();
@@ -271,7 +275,7 @@ impl VCFHeader {
                         id: id.to_string(),
                         desc: desc.to_string(),
                     };
-                    header.lines.push(HeaderLine::FilterHeader(h));
+                    header.lines.push(HeaderLine::Filter(h));
                 }
             } else if line.starts_with("##INFO") || line.starts_with("##FORMAT") {
                 if let (Some(id), Some(number), Some(t), Some(desc)) = (
@@ -287,7 +291,7 @@ impl VCFHeader {
                             header_type: HeaderType::from_string(t),
                             desc: desc.to_string(),
                         };
-                        header.lines.push(HeaderLine::InfoHeader(h));
+                        header.lines.push(HeaderLine::Info(h));
                     } else {
                         let h = FormatHeader {
                             id: id.to_string(),
@@ -295,21 +299,19 @@ impl VCFHeader {
                             header_type: HeaderType::from_string(t),
                             desc: desc.to_string(),
                         };
-                        header.lines.push(HeaderLine::FormatHeader(h));
+                        header.lines.push(HeaderLine::Format(h));
                     }
                 }
-            } else if line.starts_with("##fileformat") {
-                let h = HeaderLine::MiscHeader(MiscHeader {
-                    line: line.trim().to_string(),
-                });
-                header.vcf_spec = Some(h);
             } else if line.starts_with("#CHROM") {
-                let h = HeaderLine::MiscHeader(MiscHeader {
-                    line: line.trim().to_string(),
-                });
-                header.column_headers = Some(h);
+                if line.contains("FORMAT") {
+                    header.samples = line
+                        .split('\t')
+                        .skip(9)
+                        .map(|s| s.to_string())
+                        .collect();
+                }
             } else if line.starts_with("##") {
-                let h = HeaderLine::MiscHeader(MiscHeader {
+                let h = HeaderLine::Misc(MiscHeader {
                     line: line.trim().to_string(),
                 });
                 header.lines.push(h);
@@ -323,62 +325,87 @@ impl VCFHeader {
         return header;
     }
 
+    /// Add a new header line to the VCFHeader
+    ///
+    /// Will return true if an existing Filter, Info, or Format header was replaced
     pub fn add_header_line(&mut self, new_line: HeaderLine) -> bool {
-        // Adds new line to header, if key not already present.
-        // Returns false if key is already present
         match &new_line {
-            HeaderLine::FilterHeader(h) => {
-                if self.filters.contains_key(&h.id) {
-                    return false;
-                }
-            }
-            HeaderLine::InfoHeader(h) => {
-                if self.infos.contains_key(&h.id) {
-                    return false;
-                }
-            }
-            HeaderLine::FormatHeader(h) => {
-                if self.formats.contains_key(&h.id) {
-                    return false;
-                }
-            }
-            HeaderLine::MiscHeader(h) => {
+            HeaderLine::Misc(h) => {
                 if h.line.starts_with("##FILTER")
                     || h.line.starts_with("##INFO")
                     || h.line.starts_with("##FORMAT")
                 {
-                    panic!("Misc header line must not start with ##FILTER, ##INFO or ##FORMAT");
+                    panic!("Misc header line must not start with ##FILTER, ##INFO, ##FORMAT");
                 }
-                if h.line.starts_with("##fileformat") {
-                    if self.vcf_spec.is_some() {
-                        return false;
-                    }
-                    self.vcf_spec = Some(new_line);
-                    return true;
+                else if h.line.starts_with("#CHROM") {
+                    panic!("Misc header line must not start with #CHROM. Instead set header.samples");
                 }
-                if h.line.starts_with("#CHROM") {
-                    if self.column_headers.is_some() {
-                        return false;
-                    }
-                    self.column_headers = Some(new_line);
-                    return true;
-                }
+                self.lines.push(new_line);
+                return false;
+            }
+            HeaderLine::Filter(h) => {
+                let is_present = self.filters.contains_key(&h.id);
+                self.filters.insert(h.id.clone(), h.clone());
+                self.lines.retain(|l| match l {
+                    HeaderLine::Filter(f) => f.id != h.id,
+                    _ => true,
+                });
+                self.lines.push(new_line);
+                return is_present;
+            }
+            HeaderLine::Info(h) => {
+                let is_present = self.infos.contains_key(&h.id);
+                self.infos.insert(h.id.clone(), h.clone());
+                self.lines.retain(|l| match l {
+                    HeaderLine::Filter(f) => f.id != h.id,
+                    _ => true,
+                });
+                self.lines.push(new_line);
+                return is_present;
+            }
+            HeaderLine::Format(h) => {
+                let is_present = self.formats.contains_key(&h.id);
+                self.formats.insert(h.id.clone(), h.clone());
+                self.lines.retain(|l| match l {
+                    HeaderLine::Filter(f) => f.id != h.id,
+                    _ => true,
+                });
+                self.lines.push(new_line);
+                return is_present;
             }
         }
-        self.lines.push(new_line);
-        return true;
     }
 
+
+    /// Set all the lines in the VCFHeader
+    ///
+    /// Will recalculate the hashmaps
     pub fn set_all_lines(&mut self, new_lines: Vec<HeaderLine>) {
         self.lines = new_lines;
         self.update_hashmaps();
     }
 
+    /// Sorts the header lines
+    ///
+    /// Will keep misc headers in order, and then sort the rest (infos, formats, filters)
     pub fn sort_header(&mut self) {
         // Will keep misc headers in order (sort in stable), and then sort the rest
-        self.lines.sort();
+        let mut misc_lines: Vec<HeaderLine> = self
+            .lines
+            .iter()
+            .filter(|l| matches!(l, HeaderLine::Misc(_))).cloned()
+            .collect();
+        let mut other_lines: Vec<HeaderLine> = self
+            .lines
+            .iter()
+            .filter(|l| !matches!(l, HeaderLine::Misc(_))).cloned()
+            .collect();
+        other_lines.sort();
+        misc_lines.extend(other_lines);
+        self.lines = misc_lines;
     }
 
+    /// Parse a value based on the header number and type
     fn parse_value(
         number: &HeaderNumber,
         value_type: &HeaderType,
@@ -429,6 +456,7 @@ impl VCFHeader {
         }
     }
 
+    /// Parse an INFO value given the key
     pub fn parse_info_value(&self, key: &str, value: &str) -> Result<RecordValue, Box<dyn Error>> {
         let header_line: &InfoHeader = match self.infos.get(key) {
             None => {
@@ -444,6 +472,7 @@ impl VCFHeader {
         })
     }
 
+    /// Parse a FORMAT value given the key
     pub fn parse_format_value(
         &self,
         key: &str,

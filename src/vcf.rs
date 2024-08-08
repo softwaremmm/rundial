@@ -3,11 +3,13 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 
 pub mod variant_record;
-pub use variant_record::{VariantRecord, RecordValue};
+pub use variant_record::{VariantRecord};
 pub mod vcf_header;
 pub use vcf_header::VCFHeader;
 pub mod vcf_error;
 pub use vcf_error::VCFError;
+pub mod record_value;
+pub use record_value::RecordValue;
 
 pub struct VCFReader {
     pub reader: BufReader<File>,
