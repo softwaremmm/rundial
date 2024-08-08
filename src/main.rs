@@ -1,20 +1,15 @@
-use std::io::{self, BufWriter};
+#![allow(clippy::needless_return)]
+
 use std::path::PathBuf;
-use std::fs::File;
-use std::io::Read;
 
 use clap::Parser;
 
-use noodles::vcf;
-use noodles::vcf::header::record::value::{map::Filter, Map};
-
 mod parameter_structs;
-use parameter_structs::FilterParams;
-
 mod filter_vcf;
+pub mod vcf;
 use filter_vcf::filter_vcf;
 
-
+use regex::Regex;
 
 #[derive(Parser)]
 #[command(name = "VCF-filtering")]
@@ -37,7 +32,13 @@ struct Cli {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    filter_vcf(cli.in_vcf, cli.out_vcf, cli.config, cli.overwrite, cli.verbose)?;
+    filter_vcf(
+        cli.in_vcf,
+        cli.out_vcf,
+        cli.config,
+        cli.overwrite,
+        cli.verbose,
+    )?;
 
     Ok(())
 }
