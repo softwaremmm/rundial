@@ -3,7 +3,7 @@ use core::fmt;
 use indexmap::IndexMap;
 use std::error::Error;
 
-use crate::vcf::{VCFHeader, VCFError};
+use crate::vcf::{VCFError, VCFHeader};
 
 pub enum RecordValue {
     Flag,
@@ -16,26 +16,30 @@ pub enum RecordValue {
     Missing, // This is a . in the VCF file
 }
 
-impl RecordValue {
-    pub fn to_string(&self) -> String {
-        return match self {
-            RecordValue::Integer(i) => i.to_string(),
-            RecordValue::Float(fl) => format!("{:?}", fl),
-            RecordValue::Flag => String::from(""),
-            RecordValue::IntegerArray(arr) => arr
-                .iter()
-                .map(|i| i.to_string())
-                .collect::<Vec<String>>()
-                .join(","),
-            RecordValue::FloatArray(arr) => arr
-                .iter()
-                .map(|f| f.to_string())
-                .collect::<Vec<String>>()
-                .join(","),
-            RecordValue::String(s) => s.to_string(),
-            RecordValue::StringArray(arr) => arr.join(","),
-            RecordValue::Missing => String::from("."),
-        };
+impl fmt::Display for RecordValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                RecordValue::Integer(i) => i.to_string(),
+                RecordValue::Float(fl) => format!("{:?}", fl),
+                RecordValue::Flag => String::from(""),
+                RecordValue::IntegerArray(arr) => arr
+                    .iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<String>>()
+                    .join(","),
+                RecordValue::FloatArray(arr) => arr
+                    .iter()
+                    .map(|f| f.to_string())
+                    .collect::<Vec<String>>()
+                    .join(","),
+                RecordValue::String(s) => s.to_string(),
+                RecordValue::StringArray(arr) => arr.join(","),
+                RecordValue::Missing => String::from("."),
+            }
+        )
     }
 }
 
@@ -48,7 +52,16 @@ impl Default for Genotype {
         Self::new()
     }
 }
-
+impl fmt::Display for Genotype {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match (self.allele1, self.allele2) {
+            (-1, -1) => return write!(f, "./."),
+            (a1, -1) => return write!(f, "{}/.", a1),
+            (-1, a2) => return write!(f, "./{}", a2),
+            (a1, a2) => return write!(f, "{a1}/{a2}"),
+        }
+    }
+}
 impl Genotype {
     pub fn new() -> Self {
         Self {
@@ -75,37 +88,36 @@ impl Genotype {
         return self.allele1 == 0 && self.allele2 == 0;
     }
 
-    pub fn to_string(&self) -> String {
-        match (self.allele1, self.allele2) {
-            (-1, -1) => return String::from("./."),
-            (a1, -1) => return format!("{}/.", a1),
-            (-1, a2) => return format!("./{}", a2),
-            (a1, a2) => return format!("{a1}/{a2}"),
-        }
-    }
-
     pub fn from_string(s: &str) -> Result<Self, Box<dyn Error>> {
         let alleles: Vec<&str> = s.split('/').collect();
         if alleles.len() != 2 {
-            return Err(VCFError::InvalidField(format!("Genotype field {s} could not be parsed")).into());
+            return Err(
+                VCFError::InvalidField(format!("Genotype field {s} could not be parsed")).into(),
+            );
         }
         let allele1: i32 = match (alleles[0], alleles[0].parse::<i32>()) {
             (".", _) => -1,
             (_, Ok(i)) if i >= -1 => i,
-            _ => return Err(VCFError::InvalidField(format!("Genotype field {s} could not be parsed")).into()),
+            _ => {
+                return Err(VCFError::InvalidField(format!(
+                    "Genotype field {s} could not be parsed"
+                ))
+                .into())
+            }
         };
         let allele2: i32 = match (alleles[1], alleles[1].parse::<i32>()) {
             (".", _) => -1,
             (_, Ok(i)) if i >= -1 => i,
-            _ => return Err(VCFError::InvalidField(format!("Genotype field {s} could not be parsed")).into()),
+            _ => {
+                return Err(VCFError::InvalidField(format!(
+                    "Genotype field {s} could not be parsed"
+                ))
+                .into())
+            }
         };
-        return Ok(Self {
-            allele1,
-            allele2,
-        });
+        return Ok(Self { allele1, allele2 });
     }
 }
-
 
 pub struct VariantRecord {
     // Core values
@@ -118,7 +130,7 @@ pub struct VariantRecord {
     pub filter: Vec<String>,
     pub info: IndexMap<String, RecordValue>,
     pub format: IndexMap<String, RecordValue>,
-    
+
     // Derived Values
     genotype: Option<Genotype>,
     pub depth: Option<i32>,
@@ -126,89 +138,8 @@ pub struct VariantRecord {
     pub strand_depths: Option<(Vec<i32>, Vec<i32>)>,
 }
 
-impl fmt::Debug for VariantRecord {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Record: {}", self.to_string())
-    }
-}
-
-
-
-impl VariantRecord {
-    pub fn empty_record() -> Self {
-        Self {
-            chrom: String::new(),
-            pos: 0,
-            id: None,
-            ref_bases: String::new(),
-            alt: Vec::new(),
-            qual: None,
-            filter: Vec::new(),
-            info: IndexMap::new(),
-            format: IndexMap::new(),
-            genotype: None,
-            depth: None,
-            allele_depths: None,
-            strand_depths: None,
-        }
-    }
-
-    pub fn from_string(header: &VCFHeader, line: &str) -> Result<Self, Box<dyn Error>> {
-        // split line by \t
-        let fields: Vec<&str> = line.trim().split('\t').collect();
-        if fields.len() != 10 {
-            return Err(VCFError::InvalidRecord(format!("VCF row should have 10 fields. Row: {line}")).into());
-        }
-
-        let mut record: Self = Self {
-            chrom: fields[0].to_string(),
-            pos: fields[1].parse()?,
-            id: if fields[2].is_empty() {
-                None
-            } else {
-                Some(fields[2].to_string())
-            },
-            ref_bases: fields[3].to_string(),
-            alt: if fields[4] == "." || fields[4].is_empty() {
-                Vec::new()
-            } else {
-                fields[4].split(',').map(|s| s.to_string()).collect()
-            },
-            qual: if fields[5] == "." || fields[5].is_empty() {
-                None
-            } else {
-                match fields[5].parse::<f32>() {
-                    Err(e) => return Err(VCFError::InvalidField(format!("Could not parse QUAL={}.\nError: {e:?}", fields[5])).into()),
-                    Ok(f) => Some(f),
-                }
-            },
-            filter: match fields[6] {
-                "." | "" | "PASS" => Vec::new(),
-                _ => fields[6].split(';').map(|s| s.to_string()).collect(),
-            },
-            info: str_to_info(header, fields[7])?,
-            format: str_to_format(header, fields[8], fields[9])?,
-            genotype: None,
-            depth: None,
-            allele_depths: None,
-            strand_depths: None,
-        };
-
-        // find genotypes
-        if let Some(RecordValue::String(genotype_str)) = record.format.get("GT") {
-            record.genotype = Some(Genotype::from_string(genotype_str)?);
-        }
-        else {
-            return Err(VCFError::InvalidRecord(format!("Genotype field not found in VCF row: {line}")).into());
-        }
-
-        // Calculate depths
-        record.update_depths();
-
-        return Ok(record);
-    }
-
-    pub fn to_string(&self) -> String {
+impl fmt::Display for VariantRecord {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let dot = String::from(".");
 
         let pos_str: String = self.pos.to_string();
@@ -239,7 +170,7 @@ impl VariantRecord {
                 if let RecordValue::Flag = v {
                     return k.to_string();
                 }
-                format!("{}={}", k, v.to_string())
+                format!("{}={}", k, v)
             })
             .collect::<Vec<String>>()
             .join(";");
@@ -252,17 +183,115 @@ impl VariantRecord {
         let key_str: String = keys.join(":");
         let fmt_value_str: String = values.join(":");
 
-        return [&self.chrom,
-            &pos_str,
-            id_str,
-            &self.ref_bases,
-            &alt_str,
-            &qual_str,
-            &filter_str,
-            &info_str,
-            &key_str,
-            &fmt_value_str]
-        .join("\t");
+        write!(
+            f,
+            "{}",
+            [
+                &self.chrom,
+                &pos_str,
+                id_str,
+                &self.ref_bases,
+                &alt_str,
+                &qual_str,
+                &filter_str,
+                &info_str,
+                &key_str,
+                &fmt_value_str,
+            ]
+            .join("\t")
+        )
+    }
+}
+
+impl fmt::Debug for VariantRecord {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Record: {}", self)
+    }
+}
+
+impl VariantRecord {
+    pub fn empty_record() -> Self {
+        Self {
+            chrom: String::new(),
+            pos: 0,
+            id: None,
+            ref_bases: String::new(),
+            alt: Vec::new(),
+            qual: None,
+            filter: Vec::new(),
+            info: IndexMap::new(),
+            format: IndexMap::new(),
+            genotype: None,
+            depth: None,
+            allele_depths: None,
+            strand_depths: None,
+        }
+    }
+
+    pub fn from_string(header: &VCFHeader, line: &str) -> Result<Self, Box<dyn Error>> {
+        // split line by \t
+        let fields: Vec<&str> = line.trim().split('\t').collect();
+        if fields.len() != 10 {
+            return Err(VCFError::InvalidRecord(format!(
+                "VCF row should have 10 fields. Row: {line}"
+            ))
+            .into());
+        }
+
+        let mut record: Self = Self {
+            chrom: fields[0].to_string(),
+            pos: fields[1].parse()?,
+            id: if fields[2].is_empty() {
+                None
+            } else {
+                Some(fields[2].to_string())
+            },
+            ref_bases: fields[3].to_string(),
+            alt: if fields[4] == "." || fields[4].is_empty() {
+                Vec::new()
+            } else {
+                fields[4].split(',').map(|s| s.to_string()).collect()
+            },
+            qual: if fields[5] == "." || fields[5].is_empty() {
+                None
+            } else {
+                match fields[5].parse::<f32>() {
+                    Err(e) => {
+                        return Err(VCFError::InvalidField(format!(
+                            "Could not parse QUAL={}.\nError: {e:?}",
+                            fields[5]
+                        ))
+                        .into())
+                    }
+                    Ok(f) => Some(f),
+                }
+            },
+            filter: match fields[6] {
+                "." | "" | "PASS" => Vec::new(),
+                _ => fields[6].split(';').map(|s| s.to_string()).collect(),
+            },
+            info: str_to_info(header, fields[7])?,
+            format: str_to_format(header, fields[8], fields[9])?,
+            genotype: None,
+            depth: None,
+            allele_depths: None,
+            strand_depths: None,
+        };
+
+        // find genotypes
+        if let Some(RecordValue::String(genotype_str)) = record.format.get("GT") {
+            record.genotype = Some(Genotype::from_string(genotype_str)?);
+        } else {
+            return Err(VCFError::InvalidRecord(format!(
+                "Genotype field not found in VCF row: {line}"
+            ))
+            .into());
+        }
+
+        // Calculate depths
+        record.update_depths();
+
+        return Ok(record);
     }
 
     pub fn genotype(&self) -> Option<&Genotype> {
@@ -285,7 +314,11 @@ impl VariantRecord {
             if let Some(depths) = &self.allele_depths {
                 let dp1 = depths[genotype.allele1 as usize];
                 let dp2 = depths[genotype.allele2 as usize];
-                return if dp1 > dp2 { genotype.allele1 } else { genotype.allele2 };
+                return if dp1 > dp2 {
+                    genotype.allele1
+                } else {
+                    genotype.allele2
+                };
             }
             return genotype.allele1;
         }
@@ -301,38 +334,35 @@ impl VariantRecord {
         return !self.alt.is_empty() && !self.is_indel();
     }
 
-
-
     pub fn update_depths(&mut self) {
         // Calculate depths
-        if let Some(depth) = self.info.get("DP") {
-            match depth {
-                RecordValue::Integer(i) => self.depth = Some(*i),
-                _ => {},
-            };
+        if let Some(RecordValue::Integer(dp)) = self.info.get("DP") {
+            self.depth = Some(*dp);
         }
 
         if let Some(forward) = self.info.get("ADF") {
             if let Some(reverse) = self.info.get("ADR") {
-                match (forward, reverse) {
-                    (RecordValue::IntegerArray(f), RecordValue::IntegerArray(r)) => self.strand_depths = Some((f.clone(), r.clone())),
-                    _ => {},
-                };
+                if let (RecordValue::IntegerArray(f), RecordValue::IntegerArray(r)) =
+                    (forward, reverse)
+                {
+                    self.strand_depths = Some((f.clone(), r.clone()));
+                }
             }
         }
 
         if let Some(depths) = self.format.get("AD") {
-            match depths {
-                RecordValue::IntegerArray(arr) => self.allele_depths = Some(arr.clone()),
-                _ => {},
-            };
-        }
-        else if let Some((forward, reverse)) = &self.strand_depths {
-            let depths: Vec<i32> = forward.iter().zip(reverse.iter()).map(|(f, r)| f + r).collect();
+            if let RecordValue::IntegerArray(arr) = depths {
+                self.allele_depths = Some(arr.clone())
+            }
+        } else if let Some((forward, reverse)) = &self.strand_depths {
+            let depths: Vec<i32> = forward
+                .iter()
+                .zip(reverse.iter())
+                .map(|(f, r)| f + r)
+                .collect();
             self.allele_depths = Some(depths);
         }
     }
-
 }
 
 fn str_to_info(
@@ -368,7 +398,10 @@ fn str_to_format(
     let keys: Vec<String> = keys_str.split(':').map(|s| s.to_string()).collect();
     let values: Vec<&str> = values_str.split(':').collect();
     if keys.len() != values.len() {
-        return Err(VCFError::InvalidRecord(format!("Mismatching number of keys and values: {keys:?}, {values:?}")).into());
+        return Err(VCFError::InvalidRecord(format!(
+            "Mismatching number of keys and values: {keys:?}, {values:?}"
+        ))
+        .into());
     }
     let parsed_values: Vec<RecordValue> = std::iter::zip(keys.iter(), values)
         .map(|(k, v)| header.parse_format_value(k, v))

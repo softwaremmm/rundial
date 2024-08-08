@@ -309,12 +309,10 @@ pub fn filter_vcf(
     let fix_gt: bool = params.fix_gt.unwrap_or(false);
 
     let mut filter_counter: HashMap<String, i32> = HashMap::new();
-    let mut count = 0;
-    for record in vcf_reader {
-        if count % 10000 == 0 {
+    for (count, record) in vcf_reader.enumerate() {
+        if verbose && count % 100000 == 0 {
             println!("Processed {} records", count);
         }
-        count += 1;
         let mut record = record?;
         if fix_gt {
             set_gt_to_highest_depth(&mut record);

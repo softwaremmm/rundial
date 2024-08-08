@@ -1,7 +1,7 @@
 use crate::vcf::{RecordValue, VCFError};
 use regex::Regex;
+use std::fmt;
 use std::{collections::HashMap, error::Error};
-use std::{fmt};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HeaderNumber {
@@ -115,8 +115,8 @@ impl PartialEq for MiscHeader {
 }
 impl Eq for MiscHeader {}
 impl PartialOrd for MiscHeader {
-    fn partial_cmp(&self, _other: &Self) -> Option<std::cmp::Ordering> {
-        return Some(std::cmp::Ordering::Equal);
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 impl Ord for MiscHeader {
@@ -133,30 +133,33 @@ pub enum HeaderLine {
     FilterHeader(FilterHeader),
 }
 
-impl HeaderLine {
-    pub fn to_string(&self) -> String {
+impl fmt::Display for HeaderLine {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             HeaderLine::InfoHeader(h) => {
-                return format!(
+                write!(
+                    f,
                     "##INFO=<ID={},Number={},Type={},Description=\"{}\">",
                     h.id, h.number, h.header_type, h.desc
-                );
+                )
             }
             HeaderLine::FormatHeader(h) => {
-                return format!(
+                write!(
+                    f,
                     "##FORMAT=<ID={},Number={},Type={},Description=\"{}\">",
                     h.id, h.number, h.header_type, h.desc
-                );
+                )
             }
             HeaderLine::FilterHeader(h) => {
-                return format!("##FILTER=<ID={},Description=\"{}\">", h.id, h.desc);
+                write!(f, "##FILTER=<ID={},Description=\"{}\">", h.id, h.desc)
             }
             HeaderLine::MiscHeader(h) => {
-                return h.line.to_string();
+                write!(f, "{}", h.line)
             }
         }
     }
 }
+
 
 #[derive(Debug, Clone)]
 pub struct VCFHeader {
