@@ -40,7 +40,7 @@
 ##FILTER=<ID=STRAND_BIAS,Description="Require proportion of hq reads on each strand to be 0.01, for called allele">
 ##FILTER=<ID=LOW_VDB,Description="Variant Distance Bias. VDB is less than 1e-05">
 ##FILTER=<ID=STRAND_MISMATCH,Description="Flagged when each strand calls a different base.">
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	ERR9030326_aligned.sorted.sam
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample
 ref	1	.	T	.	244.589	PASS	DP=28;ADF=10;ADR=8;SCR=11;MQSBZ=0;FS=0;MQ0F=0;AN=2;DP4=10,8,0,0;MQ=53	GT:SP:AD	0/0:0:18
 ref	2	.	T	A	225.417	PASS	DP=30;ADF=0,13;ADR=0,9;SCR=21;VDB=0.0421783;SGB=-0.692562;FS=0;MQ0F=0;AC=2;AN=2;DP4=0,0,13,9;MQ=60	GT:PL:SP:AD	1/1:255,66,0:0:0,22
 ref	3	.	T	A,G	225.417	PASS	DP=30;ADF=0,0,13;ADR=0,0,9;SCR=21;VDB=0.0421783;SGB=-0.692562;FS=0;MQ0F=0;AC=2;AN=2;DP4=0,0,13,9;MQ=60	GT:PL:SP:AD	2/2:255,66,0:0:0,0,22
