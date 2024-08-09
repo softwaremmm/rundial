@@ -1,3 +1,5 @@
+//! This is the data structure required for the parameters yaml file
+
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -7,16 +9,6 @@ enum FilterValue {
     Int(u32),
     Float(f32),
 }
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct FilterParams {
-    pub parameters: Option<HashMap<String, f32>>,
-    pub ref_parameters: Option<HashMap<String, f32>>,
-    pub snp_parameters: Option<HashMap<String, f32>>,
-    pub indel_parameters: Option<HashMap<String, f32>>,
-    pub fix_gt: Option<bool>,
-}
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 struct FilterParamsUnit {
@@ -32,4 +24,13 @@ struct FilterParamsUnit {
     pub min_idv: Option<i32>,
     pub min_imf: Option<f32>,
     pub invalid_indel: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FilterParams {
+    pub parameters: Option<HashMap<String, f32>>,
+    pub ref_parameters: Option<HashMap<String, f32>>,
+    pub snp_parameters: Option<HashMap<String, f32>>,
+    pub indel_parameters: Option<HashMap<String, f32>>,
+    pub fix_gt: Option<bool>,
 }

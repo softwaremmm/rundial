@@ -4,7 +4,7 @@ use std::fmt;
 use std::{collections::HashMap, error::Error};
 
 /// Possible Number values for INFO and FORMAT fields
-/// 
+///
 /// A: One for each alternative allele
 /// G: one for each genotype
 /// R: One for each allele including ref
@@ -97,6 +97,11 @@ pub struct FilterHeader {
     pub id: String,
     pub desc: String,
 }
+impl fmt::Display for FilterHeader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        return write!(f, "##FILTER=<ID={},Description=\"{}\">", self.id, self.desc);
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct InfoHeader {
@@ -104,6 +109,15 @@ pub struct InfoHeader {
     pub number: HeaderNumber,
     pub header_type: HeaderType,
     pub desc: String,
+}
+impl fmt::Display for InfoHeader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        return write!(
+            f,
+            "##INFO=<ID={},Number={},Type={},Description=\"{}\">",
+            self.id, self.number, self.header_type, self.desc
+        );
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -113,10 +127,24 @@ pub struct FormatHeader {
     pub header_type: HeaderType,
     pub desc: String,
 }
+impl fmt::Display for FormatHeader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        return write!(
+            f,
+            "##FORMAT=<ID={},Number={},Type={},Description=\"{}\">",
+            self.id, self.number, self.header_type, self.desc
+        );
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MiscHeader {
     pub line: String,
+}
+impl fmt::Display for MiscHeader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        return write!(f, "{}", self.line);
+    }
 }
 
 /// Possible types of header lines in a VCF file
@@ -132,24 +160,16 @@ impl fmt::Display for HeaderLine {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             HeaderLine::Info(h) => {
-                write!(
-                    f,
-                    "##INFO=<ID={},Number={},Type={},Description=\"{}\">",
-                    h.id, h.number, h.header_type, h.desc
-                )
+                write!(f, "{}", h)
             }
             HeaderLine::Format(h) => {
-                write!(
-                    f,
-                    "##FORMAT=<ID={},Number={},Type={},Description=\"{}\">",
-                    h.id, h.number, h.header_type, h.desc
-                )
+                write!(f, "{}", h)
             }
             HeaderLine::Filter(h) => {
-                write!(f, "##FILTER=<ID={},Description=\"{}\">", h.id, h.desc)
+                write!(f, "{}", h)
             }
             HeaderLine::Misc(h) => {
-                write!(f, "{}", h.line)
+                write!(f, "{}", h)
             }
         }
     }
@@ -182,7 +202,8 @@ impl fmt::Display for VCFHeader {
         if self.samples.is_empty() {
             header_strings.push("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO".to_string());
         } else {
-            let mut columns_str = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT".to_string();
+            let mut columns_str =
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT".to_string();
             for s in self.samples.iter() {
                 columns_str.push('\t');
                 columns_str.push_str(s);
@@ -304,11 +325,7 @@ impl VCFHeader {
                 }
             } else if line.starts_with("#CHROM") {
                 if line.contains("FORMAT") {
-                    header.samples = line
-                        .split('\t')
-                        .skip(9)
-                        .map(|s| s.to_string())
-                        .collect();
+                    header.samples = line.split('\t').skip(9).map(|s| s.to_string()).collect();
                 }
             } else if line.starts_with("##") {
                 let h = HeaderLine::Misc(MiscHeader {
@@ -336,9 +353,10 @@ impl VCFHeader {
                     || h.line.starts_with("##FORMAT")
                 {
                     panic!("Misc header line must not start with ##FILTER, ##INFO, ##FORMAT");
-                }
-                else if h.line.starts_with("#CHROM") {
-                    panic!("Misc header line must not start with #CHROM. Instead set header.samples");
+                } else if h.line.starts_with("#CHROM") {
+                    panic!(
+                        "Misc header line must not start with #CHROM. Instead set header.samples"
+                    );
                 }
                 self.lines.push(new_line);
                 return false;
@@ -376,7 +394,6 @@ impl VCFHeader {
         }
     }
 
-
     /// Set all the lines in the VCFHeader
     ///
     /// Will recalculate the hashmaps
@@ -388,17 +405,19 @@ impl VCFHeader {
     /// Sorts the header lines
     ///
     /// Will keep misc headers in order, and then sort the rest (infos, formats, filters)
-    pub fn sort_header(&mut self) {
+    pub fn sort(&mut self) {
         // Will keep misc headers in order (sort in stable), and then sort the rest
         let mut misc_lines: Vec<HeaderLine> = self
             .lines
             .iter()
-            .filter(|l| matches!(l, HeaderLine::Misc(_))).cloned()
+            .filter(|l| matches!(l, HeaderLine::Misc(_)))
+            .cloned()
             .collect();
         let mut other_lines: Vec<HeaderLine> = self
             .lines
             .iter()
-            .filter(|l| !matches!(l, HeaderLine::Misc(_))).cloned()
+            .filter(|l| !matches!(l, HeaderLine::Misc(_)))
+            .cloned()
             .collect();
         other_lines.sort();
         misc_lines.extend(other_lines);
@@ -447,11 +466,17 @@ impl VCFHeader {
                 }
             }
         } else {
-            match value_type {
-                HeaderType::Flag => return Ok(RecordValue::Flag),
-                HeaderType::Integer => return Ok(RecordValue::Integer(value.parse::<i32>()?)),
-                HeaderType::Float => return Ok(RecordValue::Float(value.parse::<f32>()?)),
-                HeaderType::String => return Ok(RecordValue::String(value.to_string())),
+            match (value_type, value) {
+                (HeaderType::Flag, "") => return Ok(RecordValue::Flag),
+                (HeaderType::Flag, _) => {
+                    return Err(VCFError::InvalidHeader(
+                        "Flag type but value is not empty.".to_string(),
+                    )
+                    .into())
+                }
+                (HeaderType::Integer, _) => return Ok(RecordValue::Integer(value.parse::<i32>()?)),
+                (HeaderType::Float, _) => return Ok(RecordValue::Float(value.parse::<f32>()?)),
+                (HeaderType::String, _) => return Ok(RecordValue::String(value.to_string())),
             }
         }
     }
@@ -490,5 +515,318 @@ impl VCFHeader {
         Self::parse_value(&header_line.number, &header_line.header_type, value).map_err(|_| {
             VCFError::InvalidField(format!("Failed to parse {value}.\nIt has key {key}")).into()
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_header_number_from_string() {
+        assert_eq!(HeaderNumber::from_string("A"), HeaderNumber::A);
+        assert_eq!(HeaderNumber::from_string("G"), HeaderNumber::G);
+        assert_eq!(HeaderNumber::from_string("R"), HeaderNumber::R);
+        assert_eq!(HeaderNumber::from_string("1"), HeaderNumber::One);
+        assert_eq!(HeaderNumber::from_string("0"), HeaderNumber::Flag);
+        assert_eq!(HeaderNumber::from_string("42"), HeaderNumber::Multiple(42));
+        assert_eq!(HeaderNumber::from_string("42.0"), HeaderNumber::Unknown);
+        assert_eq!(HeaderNumber::from_string("K"), HeaderNumber::Unknown);
+    }
+
+    #[test]
+    fn test_header_number_display() {
+        assert_eq!(HeaderNumber::A.to_string(), "A");
+        assert_eq!(HeaderNumber::G.to_string(), "G");
+        assert_eq!(HeaderNumber::R.to_string(), "R");
+        assert_eq!(HeaderNumber::One.to_string(), "1");
+        assert_eq!(HeaderNumber::Flag.to_string(), "0");
+        assert_eq!(HeaderNumber::Multiple(42).to_string(), "42");
+        assert_eq!(HeaderNumber::Unknown.to_string(), ".");
+    }
+
+    #[test]
+    fn test_header_type_from_string() {
+        assert_eq!(HeaderType::from_string("Flag"), HeaderType::Flag);
+        assert_eq!(HeaderType::from_string("Integer"), HeaderType::Integer);
+        assert_eq!(HeaderType::from_string("Float"), HeaderType::Float);
+        assert_eq!(HeaderType::from_string("String"), HeaderType::String);
+        assert_eq!(HeaderType::from_string("42.0"), HeaderType::String);
+        assert_eq!(HeaderType::from_string("Other"), HeaderType::String);
+    }
+
+    #[test]
+    fn test_header_type_display() {
+        assert_eq!(HeaderType::Flag.to_string(), "Flag");
+        assert_eq!(HeaderType::Integer.to_string(), "Integer");
+        assert_eq!(HeaderType::Float.to_string(), "Float");
+        assert_eq!(HeaderType::String.to_string(), "String");
+    }
+
+    fn example_filter_header() -> FilterHeader {
+        FilterHeader {
+            id: "PASS".to_string(),
+            desc: "All filters passed".to_string(),
+        }
+    }
+
+    fn example_info_header() -> InfoHeader {
+        InfoHeader {
+            id: "DP".to_string(),
+            number: HeaderNumber::One,
+            header_type: HeaderType::Integer,
+            desc: "Total Depth".to_string(),
+        }
+    }
+
+    fn example_format_header() -> FormatHeader {
+        FormatHeader {
+            id: "GT".to_string(),
+            number: HeaderNumber::One,
+            header_type: HeaderType::String,
+            desc: "Genotype".to_string(),
+        }
+    }
+
+    fn example_misc_header() -> MiscHeader {
+        MiscHeader {
+            line: "##fileformat=VCFv4.2".to_string(),
+        }
+    }
+
+    fn example_column_header() -> String {
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample".to_string()
+    }
+
+    #[test]
+    fn test_header_display() {
+        assert_eq!(
+            example_filter_header().to_string(),
+            "##FILTER=<ID=PASS,Description=\"All filters passed\">"
+        );
+
+        assert_eq!(
+            example_info_header().to_string(),
+            "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">"
+        );
+
+        assert_eq!(
+            example_format_header().to_string(),
+            "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">"
+        );
+
+        assert_eq!(example_misc_header().to_string(), "##fileformat=VCFv4.2");
+    }
+
+    #[test]
+    fn test_header_from_lines() {
+        let lines = vec![
+            example_misc_header().to_string(),
+            example_filter_header().to_string(),
+            example_info_header().to_string(),
+            example_format_header().to_string(),
+            example_column_header(),
+        ];
+
+        let header = VCFHeader::from_lines(lines.clone());
+
+        assert_eq!(header.to_string(), lines.join("\n") + "\n");
+
+        assert_eq!(header.lines.len(), 4);
+        assert_eq!(header.filters.contains_key("PASS"), true);
+        assert_eq!(header.infos.contains_key("DP"), true);
+        assert_eq!(header.formats.contains_key("GT"), true);
+        assert_eq!(header.samples, vec!["sample".to_string()]);
+    }
+
+    #[test]
+    fn test_set_all_lines() {
+        let mut header = VCFHeader::new();
+        header.set_all_lines(
+            vec![
+                HeaderLine::Misc(example_misc_header()),
+                HeaderLine::Filter(example_filter_header()),
+                HeaderLine::Info(example_info_header()),
+                HeaderLine::Format(example_format_header()),
+            ]
+            .clone(),
+        );
+        assert_eq!(header.lines.len(), 4);
+        assert_eq!(header.filters.contains_key("PASS"), true);
+        assert_eq!(header.infos.contains_key("DP"), true);
+    }
+
+    #[test]
+    fn test_sort() {
+        let lines = vec![
+            example_format_header().to_string(),
+            example_filter_header().to_string(),
+            example_info_header().to_string(),
+            example_column_header(),
+            example_misc_header().to_string(),
+        ];
+
+        let mut header = VCFHeader::from_lines(lines.clone());
+        header.sort();
+
+        let sorted_lines = vec![
+            example_misc_header().to_string(),
+            example_info_header().to_string(),
+            example_format_header().to_string(),
+            example_filter_header().to_string(),
+            example_column_header(),
+        ];
+        assert_eq!(header.to_string(), sorted_lines.join("\n") + "\n");
+    }
+
+    #[test]
+    fn test_add_header_line() {
+        let mut header = VCFHeader::new();
+
+        assert_eq!(
+            header.add_header_line(HeaderLine::Misc(example_misc_header())),
+            false
+        );
+        assert_eq!(
+            header.add_header_line(HeaderLine::Misc(example_misc_header())),
+            false
+        );
+        assert_eq!(
+            header.add_header_line(HeaderLine::Misc(example_misc_header())),
+            false
+        );
+
+        assert_eq!(
+            header.add_header_line(HeaderLine::Filter(example_filter_header())),
+            false
+        );
+        assert_eq!(
+            header.add_header_line(HeaderLine::Filter(example_filter_header())),
+            true
+        );
+
+        assert_eq!(
+            header.add_header_line(HeaderLine::Info(example_info_header())),
+            false
+        );
+        assert_eq!(
+            header.add_header_line(HeaderLine::Info(example_info_header())),
+            true
+        );
+
+        assert_eq!(
+            header.add_header_line(HeaderLine::Format(example_format_header())),
+            false
+        );
+        assert_eq!(
+            header.add_header_line(HeaderLine::Format(example_format_header())),
+            true
+        );
+
+        let new_info = InfoHeader {
+            id: "INDEL".to_string(),
+            number: HeaderNumber::Flag,
+            header_type: HeaderType::Flag,
+            desc: "Is indel".to_string(),
+        };
+
+        let replace_info = InfoHeader {
+            id: "INDEL".to_string(),
+            number: HeaderNumber::A,
+            header_type: HeaderType::Float,
+            desc: "different".to_string(),
+        };
+
+        assert_eq!(
+            header.add_header_line(HeaderLine::Info(new_info.clone())),
+            false
+        );
+        assert_eq!(
+            header.add_header_line(HeaderLine::Info(replace_info.clone())),
+            true
+        );
+        assert!(header.infos.get("INDEL").unwrap() == &replace_info);
+    }
+
+    #[test]
+    fn test_parse_value() {
+        // test individuals
+        assert_eq!(
+            VCFHeader::parse_value(&HeaderNumber::One, &HeaderType::Flag, "").unwrap(),
+            RecordValue::Flag
+        );
+        assert_eq!(
+            VCFHeader::parse_value(&HeaderNumber::One, &HeaderType::Integer, ".").unwrap(),
+            RecordValue::Missing
+        );
+        assert_eq!(
+            VCFHeader::parse_value(&HeaderNumber::One, &HeaderType::Integer, "42").unwrap(),
+            RecordValue::Integer(42)
+        );
+        assert_eq!(
+            VCFHeader::parse_value(&HeaderNumber::One, &HeaderType::Float, "42.0").unwrap(),
+            RecordValue::Float(42.0)
+        );
+        assert_eq!(
+            VCFHeader::parse_value(&HeaderNumber::One, &HeaderType::String, "hello").unwrap(),
+            RecordValue::String("hello".to_string())
+        );
+        // test lists
+        for number in [
+            HeaderNumber::A,
+            HeaderNumber::G,
+            HeaderNumber::R,
+            HeaderNumber::Multiple(3),
+        ] {
+            assert_eq!(
+                VCFHeader::parse_value(&number, &HeaderType::Integer, "1,2,3").unwrap(),
+                RecordValue::IntegerArray(vec![1, 2, 3])
+            );
+            assert_eq!(
+                VCFHeader::parse_value(&number, &HeaderType::Float, "1.0,2.0,3.0").unwrap(),
+                RecordValue::FloatArray(vec![1.0, 2.0, 3.0])
+            );
+            assert_eq!(
+                VCFHeader::parse_value(&number, &HeaderType::String, "hello,world").unwrap(),
+                RecordValue::StringArray(vec!["hello".to_string(), "world".to_string()])
+            );
+            // Test that a flag type with multiple values is an error
+            assert!(VCFHeader::parse_value(&number, &HeaderType::Flag, "1,2,3").is_err());
+        }
+
+        // Check for some errors if type does not match value
+        assert!(VCFHeader::parse_value(&HeaderNumber::One, &HeaderType::Flag, "42").is_err());
+        assert!(VCFHeader::parse_value(&HeaderNumber::One, &HeaderType::Integer, "42.0").is_err());
+        assert!(VCFHeader::parse_value(&HeaderNumber::One, &HeaderType::Float, "hello").is_err());
+    }
+
+    #[test]
+    fn test_parse_filter_and_info() {
+        let mut header = VCFHeader::new();
+        header.add_header_line(HeaderLine::Info(example_info_header()));
+        header.add_header_line(HeaderLine::Format(example_format_header()));
+
+        assert_eq!(
+            header.parse_info_value("DP", "42").unwrap(),
+            RecordValue::Integer(42)
+        );
+        assert_eq!(
+            header.parse_info_value("DP", ".").unwrap(),
+            RecordValue::Missing
+        );
+        assert!(header.parse_info_value("DP", "42.0").is_err());
+
+        assert_eq!(
+            header.parse_format_value("GT", "0/1").unwrap(),
+            RecordValue::String("0/1".to_string())
+        );
+        assert_eq!(
+            header.parse_format_value("GT", ".").unwrap(),
+            RecordValue::Missing
+        );
+
+        assert!(header
+            .parse_info_value("MISSING", "42.0")
+            .is_err_and(|e| e.to_string().contains("No header found for key MISSING")));
     }
 }

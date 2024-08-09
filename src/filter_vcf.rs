@@ -4,9 +4,8 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 
-use crate::vcf::variant_record::Genotype;
 use crate::vcf::vcf_header::{FilterHeader, HeaderLine};
-use crate::vcf::{RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
+use crate::vcf::{RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord, Genotype};
 
 use phf::phf_map;
 
@@ -318,7 +317,7 @@ pub fn filter_vcf(
 
     let mut new_header = header.clone();
     add_filters_to_header(&mut new_header, &params);
-    let mut vcf_writer = VCFWriter::new(BufWriter::new(File::create(out_vcf)?), &new_header)?;
+    let mut vcf_writer = VCFWriter::new(BufWriter::new(File::create(out_vcf)?), new_header)?;
 
     let std_filterer = Filterer::create_from_params(&params.parameters);
     let ref_filterer = Filterer::create_from_params(&params.ref_parameters);
