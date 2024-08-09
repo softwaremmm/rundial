@@ -35,7 +35,7 @@ impl fmt::Display for VariantRecord {
         let pos_str: String = self.pos.to_string();
         let id_str: &str = if let Some(id) = &self.id { id } else { &dot };
 
-        let ref_str: &str = if self.ref_bases == "" {
+        let ref_str: &str = if self.ref_bases.is_empty() {
             &dot
         } else {
             &self.ref_bases
@@ -70,7 +70,7 @@ impl fmt::Display for VariantRecord {
             })
             .collect::<Vec<String>>()
             .join(";");
-        if info_str == "" {
+        if info_str.is_empty() {
             info_str = dot.clone();
         }
 
@@ -522,8 +522,8 @@ mod tests {
             &snp_string,
         ).unwrap();
 
-        assert_eq!(snp_record.is_snp(), true);
-        assert_eq!(snp_record.is_indel(), false);
+        assert!(snp_record.is_snp());
+        assert!(!snp_record.is_indel());
 
         let indel_string: String = "ref\t1\tid\tT\tGC\t244.589\tF1;F2\tDP=28\tGT\t0/0".to_string();
         let indel_record: VariantRecord = VariantRecord::from_string(
@@ -531,8 +531,8 @@ mod tests {
             &indel_string,
         ).unwrap();
 
-        assert_eq!(indel_record.is_snp(), false);
-        assert_eq!(indel_record.is_indel(), true);
+        assert!(!indel_record.is_snp());
+        assert!(indel_record.is_indel());
 
         let ref_string: String = "ref\t1\tid\tT\t.\t244.589\tF1;F2\tDP=28\tGT\t0/0".to_string();
         let ref_record: VariantRecord = VariantRecord::from_string(
@@ -540,8 +540,8 @@ mod tests {
             &ref_string,
         ).unwrap();
 
-        assert_eq!(ref_record.is_snp(), false);
-        assert_eq!(ref_record.is_indel(), false);
+        assert!(!ref_record.is_snp());
+        assert!(!ref_record.is_indel());
     }
 
     #[test]

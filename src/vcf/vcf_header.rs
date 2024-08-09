@@ -633,9 +633,9 @@ mod tests {
         assert_eq!(header.to_string(), lines.join("\n") + "\n");
 
         assert_eq!(header.lines.len(), 4);
-        assert_eq!(header.filters.contains_key("PASS"), true);
-        assert_eq!(header.infos.contains_key("DP"), true);
-        assert_eq!(header.formats.contains_key("GT"), true);
+        assert!(header.filters.contains_key("PASS"));
+        assert!(header.infos.contains_key("DP"));
+        assert!(header.formats.contains_key("GT"));
         assert_eq!(header.samples, vec!["sample".to_string()]);
     }
 
@@ -652,8 +652,8 @@ mod tests {
             .clone(),
         );
         assert_eq!(header.lines.len(), 4);
-        assert_eq!(header.filters.contains_key("PASS"), true);
-        assert_eq!(header.infos.contains_key("DP"), true);
+        assert!(header.filters.contains_key("PASS"));
+        assert!(header.infos.contains_key("DP"));
     }
 
     #[test]
@@ -683,44 +683,35 @@ mod tests {
     fn test_add_header_line() {
         let mut header = VCFHeader::new();
 
-        assert_eq!(
-            header.add_header_line(HeaderLine::Misc(example_misc_header())),
-            false
+        assert!(
+            !header.add_header_line(HeaderLine::Misc(example_misc_header()))
         );
-        assert_eq!(
-            header.add_header_line(HeaderLine::Misc(example_misc_header())),
-            false
+        assert!(
+            !header.add_header_line(HeaderLine::Misc(example_misc_header()))
         );
-        assert_eq!(
-            header.add_header_line(HeaderLine::Misc(example_misc_header())),
-            false
+        assert!(
+            !header.add_header_line(HeaderLine::Misc(example_misc_header()))
         );
 
-        assert_eq!(
-            header.add_header_line(HeaderLine::Filter(example_filter_header())),
-            false
+        assert!(
+            !header.add_header_line(HeaderLine::Filter(example_filter_header()))
         );
-        assert_eq!(
-            header.add_header_line(HeaderLine::Filter(example_filter_header())),
-            true
+        assert!(
+            header.add_header_line(HeaderLine::Filter(example_filter_header()))
         );
 
-        assert_eq!(
-            header.add_header_line(HeaderLine::Info(example_info_header())),
-            false
+        assert!(
+            !header.add_header_line(HeaderLine::Info(example_info_header()))
         );
-        assert_eq!(
-            header.add_header_line(HeaderLine::Info(example_info_header())),
-            true
+        assert!(
+            header.add_header_line(HeaderLine::Info(example_info_header()))
         );
 
-        assert_eq!(
-            header.add_header_line(HeaderLine::Format(example_format_header())),
-            false
+        assert!(
+            !header.add_header_line(HeaderLine::Format(example_format_header()))
         );
-        assert_eq!(
-            header.add_header_line(HeaderLine::Format(example_format_header())),
-            true
+        assert!(
+            header.add_header_line(HeaderLine::Format(example_format_header()))
         );
 
         let new_info = InfoHeader {
@@ -737,13 +728,11 @@ mod tests {
             desc: "different".to_string(),
         };
 
-        assert_eq!(
-            header.add_header_line(HeaderLine::Info(new_info.clone())),
-            false
+        assert!(
+            !header.add_header_line(HeaderLine::Info(new_info.clone()))
         );
-        assert_eq!(
-            header.add_header_line(HeaderLine::Info(replace_info.clone())),
-            true
+        assert!(
+            header.add_header_line(HeaderLine::Info(replace_info.clone()))
         );
         assert!(header.infos.get("INDEL").unwrap() == &replace_info);
     }
