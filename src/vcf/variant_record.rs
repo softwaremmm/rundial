@@ -376,11 +376,11 @@ fn str_to_format(
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::vcf::vcf_header::*;
 
-    fn standard_header() -> VCFHeader {
+    pub fn standard_header() -> VCFHeader {
         let mut header = VCFHeader::new();
         header.samples.push(String::from("sample"));
         header.add_header_line(HeaderLine::Filter(FilterHeader {

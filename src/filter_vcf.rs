@@ -379,3 +379,27 @@ pub fn filter_vcf(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    use crate::vcf::variant_record::tests::standard_header;
+
+
+    #[test]
+    fn test_is_low_tag() {
+        let std_header = standard_header();
+        let record_string: String = "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=1,2,3;ADR=2,3,4;DP4=10,8,1,5;MQ=53.0\tGT:AD\t0/1:5,6,7".to_string();
+        let record: VariantRecord = VariantRecord::from_string(
+            &std_header, 
+            &record_string,
+        ).unwrap();
+
+        assert!(is_low_tag(&record, 30.0, "DP", "FLAG") == Some("FLAG".to_string()));
+        assert!(is_low_tag(&record, 28.0, "DP", "FLAG").is_none());
+        
+        assert!(is_low_tag(&record, 28.0, "MISSING", "FLAG").is_none());
+    }
+
+}

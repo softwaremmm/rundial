@@ -4,11 +4,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-mod parameter_structs;
-mod filter_vcf;
-pub mod vcf;
-use filter_vcf::filter_vcf;
-
+use rundial::filter_vcf::filter_vcf;
 
 
 #[derive(Parser)]
