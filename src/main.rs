@@ -6,7 +6,6 @@ use clap::Parser;
 
 use rundial::filter_vcf::filter_vcf;
 
-
 #[derive(Parser)]
 #[command(name = "VCF-filtering")]
 #[command(about = "Filters VCF based on yaml file parameters", long_about = None)]

@@ -40,7 +40,6 @@ impl fmt::Display for RecordValue {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -166,11 +166,11 @@ mod tests {
         let new_lines = read_lines(temp_file.path())?;
 
         if initial_lines != new_lines {
-            let mut file = File::create("test_outputs/test_read_and_write_file.vcf")?;
+            let mut file = File::create("tests/test_outputs/test_read_and_write_file.vcf")?;
             for l in new_lines.iter() {
                 write!(file, "{}", l)?;
             }
-            panic!("VCFWriter produced a different file to that read in.\nResult written to \"test_outputs/test_read_and_write_file.vcf\"");
+            panic!("VCFWriter produced a different file to that read in.\nResult written to \"tests/test_outputs/test_read_and_write_file.vcf\"");
         }
 
         Ok(())

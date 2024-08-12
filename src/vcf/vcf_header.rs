@@ -669,13 +669,11 @@ mod tests {
         let mut header = VCFHeader::from_lines(lines.clone());
         header.sort();
 
-        let sorted_lines = vec![
-            example_misc_header().to_string(),
+        let sorted_lines = [example_misc_header().to_string(),
             example_info_header().to_string(),
             example_format_header().to_string(),
             example_filter_header().to_string(),
-            example_column_header(),
-        ];
+            example_column_header()];
         assert_eq!(header.to_string(), sorted_lines.join("\n") + "\n");
     }
 
@@ -683,36 +681,18 @@ mod tests {
     fn test_add_header_line() {
         let mut header = VCFHeader::new();
 
-        assert!(
-            !header.add_header_line(HeaderLine::Misc(example_misc_header()))
-        );
-        assert!(
-            !header.add_header_line(HeaderLine::Misc(example_misc_header()))
-        );
-        assert!(
-            !header.add_header_line(HeaderLine::Misc(example_misc_header()))
-        );
+        assert!(!header.add_header_line(HeaderLine::Misc(example_misc_header())));
+        assert!(!header.add_header_line(HeaderLine::Misc(example_misc_header())));
+        assert!(!header.add_header_line(HeaderLine::Misc(example_misc_header())));
 
-        assert!(
-            !header.add_header_line(HeaderLine::Filter(example_filter_header()))
-        );
-        assert!(
-            header.add_header_line(HeaderLine::Filter(example_filter_header()))
-        );
+        assert!(!header.add_header_line(HeaderLine::Filter(example_filter_header())));
+        assert!(header.add_header_line(HeaderLine::Filter(example_filter_header())));
 
-        assert!(
-            !header.add_header_line(HeaderLine::Info(example_info_header()))
-        );
-        assert!(
-            header.add_header_line(HeaderLine::Info(example_info_header()))
-        );
+        assert!(!header.add_header_line(HeaderLine::Info(example_info_header())));
+        assert!(header.add_header_line(HeaderLine::Info(example_info_header())));
 
-        assert!(
-            !header.add_header_line(HeaderLine::Format(example_format_header()))
-        );
-        assert!(
-            header.add_header_line(HeaderLine::Format(example_format_header()))
-        );
+        assert!(!header.add_header_line(HeaderLine::Format(example_format_header())));
+        assert!(header.add_header_line(HeaderLine::Format(example_format_header())));
 
         let new_info = InfoHeader {
             id: "INDEL".to_string(),
@@ -728,12 +708,8 @@ mod tests {
             desc: "different".to_string(),
         };
 
-        assert!(
-            !header.add_header_line(HeaderLine::Info(new_info.clone()))
-        );
-        assert!(
-            header.add_header_line(HeaderLine::Info(replace_info.clone()))
-        );
+        assert!(!header.add_header_line(HeaderLine::Info(new_info.clone())));
+        assert!(header.add_header_line(HeaderLine::Info(replace_info.clone())));
         assert!(header.infos.get("INDEL").unwrap() == &replace_info);
     }
 

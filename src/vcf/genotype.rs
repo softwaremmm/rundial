@@ -1,9 +1,9 @@
+use crate::vcf::VCFError;
 use core::fmt;
 use std::error::Error;
-use crate::vcf::VCFError;
 
 /// Represents a genotype in a VCF record
-/// 
+///
 /// assumes haploid genotype, and does not support phased genotypes
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Genotype {
@@ -82,26 +82,40 @@ impl Genotype {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_genotype_display() {
-        let gt = Genotype { allele1: 0, allele2: 1 };
+        let gt = Genotype {
+            allele1: 0,
+            allele2: 1,
+        };
         assert_eq!(gt.to_string(), "0/1");
 
-        let gt = Genotype { allele1: 1, allele2: 2 };
+        let gt = Genotype {
+            allele1: 1,
+            allele2: 2,
+        };
         assert_eq!(gt.to_string(), "1/2");
 
-        let gt = Genotype { allele1: 0, allele2: 0 };
+        let gt = Genotype {
+            allele1: 0,
+            allele2: 0,
+        };
         assert_eq!(gt.to_string(), "0/0");
 
-        let gt = Genotype { allele1: -1, allele2: 0 };
+        let gt = Genotype {
+            allele1: -1,
+            allele2: 0,
+        };
         assert_eq!(gt.to_string(), "./0");
 
-        let gt = Genotype { allele1: 0, allele2: -1 };
+        let gt = Genotype {
+            allele1: 0,
+            allele2: -1,
+        };
         assert_eq!(gt.to_string(), "0/.");
     }
 
@@ -147,22 +161,34 @@ mod tests {
 
     #[test]
     fn test_flag_functions() {
-        let gt = Genotype { allele1: 0, allele2: 1 };
+        let gt = Genotype {
+            allele1: 0,
+            allele2: 1,
+        };
         assert!(gt.is_het());
         assert!(!gt.is_hom());
         assert!(!gt.is_hom_ref());
 
-        let gt = Genotype { allele1: 0, allele2: 0 };
+        let gt = Genotype {
+            allele1: 0,
+            allele2: 0,
+        };
         assert!(!gt.is_het());
         assert!(gt.is_hom());
         assert!(gt.is_hom_ref());
 
-        let gt = Genotype { allele1: 1, allele2: 1 };
+        let gt = Genotype {
+            allele1: 1,
+            allele2: 1,
+        };
         assert!(!gt.is_het());
         assert!(gt.is_hom());
         assert!(!gt.is_hom_ref());
 
-        let gt = Genotype { allele1: -1, allele2: 0 };
+        let gt = Genotype {
+            allele1: -1,
+            allele2: 0,
+        };
         assert!(!gt.is_het());
         assert!(!gt.is_hom());
         assert!(!gt.is_hom_ref());

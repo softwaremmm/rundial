@@ -98,7 +98,7 @@ impl fmt::Display for VariantRecord {
                 .unzip();
             let key_str: String = keys.join(":");
             let fmt_value_str: String = values.join(":");
-    
+
             write!(
                 f,
                 "{}",
@@ -117,7 +117,6 @@ impl fmt::Display for VariantRecord {
                 .join("\t")
             )
         }
-
     }
 }
 
@@ -147,7 +146,7 @@ impl VariantRecord {
     }
 
     /// Builds record from line of vcf
-    /// 
+    ///
     /// The header is needed to parse the info and filter values.
     /// Filter values are not checked with the header
     pub fn from_string(header: &VCFHeader, line: &str) -> Result<Self, Box<dyn Error>> {
@@ -209,7 +208,7 @@ impl VariantRecord {
         // Add format is available
         if fields.len() > 8 {
             record.format = str_to_format(header, fields[8], fields[9])?;
-        
+
             // find genotypes
             if let Some(RecordValue::String(genotype_str)) = record.format.get("GT") {
                 record.genotype = Some(Genotype::from_string(genotype_str)?);
@@ -225,7 +224,6 @@ impl VariantRecord {
             }
         }
 
-
         // Calculate depths
         record.update_depths();
 
@@ -233,14 +231,14 @@ impl VariantRecord {
     }
 
     /// Get reference to genotype
-    /// 
+    ///
     /// To change use [VariantRecord::set_genotype]
     pub fn genotype(&self) -> Option<&Genotype> {
         return self.genotype.as_ref();
     }
 
     /// Set variants genotype
-    /// 
+    ///
     /// This also updates the format field
     pub fn set_genotype(&mut self, genotype: Genotype) {
         self.format["GT"] = RecordValue::String(genotype.to_string());
@@ -271,7 +269,7 @@ impl VariantRecord {
     }
 
     /// Returns true if variant represents a potential indel
-    /// 
+    ///
     /// This is not affected by genotype
     pub fn is_indel(&self) -> bool {
         // Indel if any allele is longer than 1. Even if GT = 0/0
@@ -279,7 +277,7 @@ impl VariantRecord {
     }
 
     /// Returns true if variant represents a potential snp, and not an indel
-    /// 
+    ///
     /// This is not affected by genotype
     pub fn is_snp(&self) -> bool {
         return !self.alt.is_empty() && !self.is_indel();
@@ -312,6 +310,10 @@ impl VariantRecord {
                 .map(|(f, r)| f + r)
                 .collect();
             self.allele_depths = Some(depths);
+        }
+
+        if self.depth.is_none() && self.allele_depths.is_some() {
+            self.depth = Some(self.allele_depths.as_ref().unwrap().iter().sum());
         }
     }
 
@@ -447,10 +449,8 @@ pub mod tests {
     fn test_from_string_to_string() {
         let std_header = standard_header();
         let record_string: String = "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=1,2,3;ADR=2,3,4;DP4=10,8,1,5;MQ=53.0\tGT:AD\t0/1:5,6,7".to_string();
-        let record: VariantRecord = VariantRecord::from_string(
-            &std_header, 
-            &record_string,
-        ).unwrap();
+        let record: VariantRecord =
+            VariantRecord::from_string(&std_header, &record_string).unwrap();
 
         assert_eq!(record.to_string(), record_string);
 
@@ -464,26 +464,40 @@ pub mod tests {
         assert_eq!(record.info["DP"], RecordValue::Integer(28));
         assert_eq!(record.info["ADF"], RecordValue::IntegerArray(vec![1, 2, 3]));
         assert_eq!(record.info["ADR"], RecordValue::IntegerArray(vec![2, 3, 4]));
-        assert_eq!(record.info["DP4"], RecordValue::IntegerArray(vec![10, 8, 1, 5]));
+        assert_eq!(
+            record.info["DP4"],
+            RecordValue::IntegerArray(vec![10, 8, 1, 5])
+        );
         assert_eq!(record.info["MQ"], RecordValue::Float(53.0));
         assert_eq!(record.format["GT"], RecordValue::String("0/1".to_string()));
-        assert_eq!(record.format["AD"], RecordValue::IntegerArray(vec![5, 6, 7]));
+        assert_eq!(
+            record.format["AD"],
+            RecordValue::IntegerArray(vec![5, 6, 7])
+        );
 
-        assert_eq!(record.genotype().unwrap(), &Genotype{allele1: 0, allele2: 1});
+        assert_eq!(
+            record.genotype().unwrap(),
+            &Genotype {
+                allele1: 0,
+                allele2: 1
+            }
+        );
         assert_eq!(record.main_allele(), 1);
         assert_eq!(record.depth().unwrap(), 28);
         assert_eq!(record.allele_depths(), &Some(vec![5, 6, 7]));
-        assert_eq!(record.strand_depths(), &Some((vec![1, 2, 3], vec![2, 3, 4])));
+        assert_eq!(
+            record.strand_depths(),
+            &Some((vec![1, 2, 3], vec![2, 3, 4]))
+        );
 
         // If no format values, then should stop earlier
-        let record_string: String = "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=1,2,3;ADR=2,3,4;DP4=10,8,1,5;MQ=53.0".to_string();
-        let record: VariantRecord = VariantRecord::from_string(
-            &std_header, 
-            &record_string,
-        ).unwrap();
+        let record_string: String =
+            "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=1,2,3;ADR=2,3,4;DP4=10,8,1,5;MQ=53.0"
+                .to_string();
+        let record: VariantRecord =
+            VariantRecord::from_string(&std_header, &record_string).unwrap();
 
         assert_eq!(record.to_string(), record_string);
-
     }
 
     #[test]
@@ -497,16 +511,28 @@ pub mod tests {
     fn test_set_genotype() {
         let std_header = standard_header();
         let record_string: String = "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=1,2,3;ADR=2,3,4;DP4=10,8,1,5;MQ=53.0\tGT:AD\t0/1:5,6,7".to_string();
-        let mut record: VariantRecord = VariantRecord::from_string(
-            &std_header, 
-            &record_string,
-        ).unwrap();
-        
-        assert_eq!(record.genotype().unwrap(), &Genotype{allele1: 0, allele2: 1});
-        
-        record.set_genotype(Genotype { allele1: 2, allele2: 5 });
-        assert_eq!(record.genotype().unwrap(), &Genotype{allele1: 2, allele2: 5});
+        let mut record: VariantRecord =
+            VariantRecord::from_string(&std_header, &record_string).unwrap();
 
+        assert_eq!(
+            record.genotype().unwrap(),
+            &Genotype {
+                allele1: 0,
+                allele2: 1
+            }
+        );
+
+        record.set_genotype(Genotype {
+            allele1: 2,
+            allele2: 5,
+        });
+        assert_eq!(
+            record.genotype().unwrap(),
+            &Genotype {
+                allele1: 2,
+                allele2: 5
+            }
+        );
 
         let new_record_string: String = "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=1,2,3;ADR=2,3,4;DP4=10,8,1,5;MQ=53.0\tGT:AD\t2/5:5,6,7".to_string();
         assert_eq!(record.to_string(), new_record_string);
@@ -517,28 +543,22 @@ pub mod tests {
         let std_header = standard_header();
 
         let snp_string: String = "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28\tGT\t0/0".to_string();
-        let snp_record: VariantRecord = VariantRecord::from_string(
-            &std_header, 
-            &snp_string,
-        ).unwrap();
+        let snp_record: VariantRecord =
+            VariantRecord::from_string(&std_header, &snp_string).unwrap();
 
         assert!(snp_record.is_snp());
         assert!(!snp_record.is_indel());
 
         let indel_string: String = "ref\t1\tid\tT\tGC\t244.589\tF1;F2\tDP=28\tGT\t0/0".to_string();
-        let indel_record: VariantRecord = VariantRecord::from_string(
-            &std_header, 
-            &indel_string,
-        ).unwrap();
+        let indel_record: VariantRecord =
+            VariantRecord::from_string(&std_header, &indel_string).unwrap();
 
         assert!(!indel_record.is_snp());
         assert!(indel_record.is_indel());
 
         let ref_string: String = "ref\t1\tid\tT\t.\t244.589\tF1;F2\tDP=28\tGT\t0/0".to_string();
-        let ref_record: VariantRecord = VariantRecord::from_string(
-            &std_header, 
-            &ref_string,
-        ).unwrap();
+        let ref_record: VariantRecord =
+            VariantRecord::from_string(&std_header, &ref_string).unwrap();
 
         assert!(!ref_record.is_snp());
         assert!(!ref_record.is_indel());
@@ -547,7 +567,11 @@ pub mod tests {
     #[test]
     fn test_str_to_info() {
         let std_header = standard_header();
-        let info = str_to_info(&std_header, "DP=28;ADF=1,2,3;ADR=2,3,4;DP4=10,8,1,5;INDEL;MQ=53.0").unwrap();
+        let info = str_to_info(
+            &std_header,
+            "DP=28;ADF=1,2,3;ADR=2,3,4;DP4=10,8,1,5;INDEL;MQ=53.0",
+        )
+        .unwrap();
         assert_eq!(info["MQ"], RecordValue::Float(53.0));
         assert_eq!(info["INDEL"], RecordValue::Flag);
         assert!(info.get("T").is_none());
@@ -560,16 +584,47 @@ pub mod tests {
     #[test]
     fn test_str_to_format() {
         let std_header = standard_header();
-        let format = str_to_format(&std_header,"GT:AD", "0/1:1,2,3").unwrap();
-        assert_eq!(format["AD"], RecordValue::IntegerArray(vec![1,2,3]));
+        let format = str_to_format(&std_header, "GT:AD", "0/1:1,2,3").unwrap();
+        assert_eq!(format["AD"], RecordValue::IntegerArray(vec![1, 2, 3]));
         assert_eq!(format["GT"], RecordValue::String("0/1".to_string()));
 
         // Missing values allowed
         assert!(str_to_format(&std_header, "GT:AD", "0/1:.").is_ok());
 
         // Check some errors
-        assert!(str_to_format(&std_header, "GT:AD", "0/1").is_err_and(|e| e.to_string().contains("Mismatching number of keys and values")));
-        assert!(str_to_format(&std_header, "GT:ADR", "0/1:1,2,3").is_err_and(|e| e.to_string().contains("No header found for key")));
+        assert!(str_to_format(&std_header, "GT:AD", "0/1").is_err_and(|e| e
+            .to_string()
+            .contains("Mismatching number of keys and values")));
+        assert!(str_to_format(&std_header, "GT:ADR", "0/1:1,2,3")
+            .is_err_and(|e| e.to_string().contains("No header found for key")));
     }
 
+    #[test]
+    fn test_depth_calculation() {
+        let std_header = standard_header();
+        let record: VariantRecord = VariantRecord::from_string(
+            &std_header,
+            "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=1,2,3;ADR=2,3,4;DP4=10,8,1,5;MQ=53.0\tGT:AD\t0/1:5,6,7",
+        ).unwrap();
+
+        assert_eq!(record.depth().unwrap(), 28);
+        assert_eq!(record.allele_depths(), &Some(vec![5, 6, 7]));
+        assert_eq!(
+            record.strand_depths(),
+            &Some((vec![1, 2, 3], vec![2, 3, 4]))
+        );
+
+        let record: VariantRecord = VariantRecord::from_string(
+            &std_header,
+            "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tADF=1,2,3;ADR=2,3,4;DP4=10,8,1,5;MQ=53.0\tGT\t0/1",
+        )
+        .unwrap();
+
+        assert_eq!(record.depth().unwrap(), 15);
+        assert_eq!(record.allele_depths(), &Some(vec![3, 5, 7]));
+        assert_eq!(
+            record.strand_depths(),
+            &Some((vec![1, 2, 3], vec![2, 3, 4]))
+        );
+    }
 }
