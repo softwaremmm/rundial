@@ -669,11 +669,13 @@ mod tests {
         let mut header = VCFHeader::from_lines(lines.clone());
         header.sort();
 
-        let sorted_lines = [example_misc_header().to_string(),
+        let sorted_lines = [
+            example_misc_header().to_string(),
             example_info_header().to_string(),
             example_format_header().to_string(),
             example_filter_header().to_string(),
-            example_column_header()];
+            example_column_header(),
+        ];
         assert_eq!(header.to_string(), sorted_lines.join("\n") + "\n");
     }
 
