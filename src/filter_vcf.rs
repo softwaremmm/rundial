@@ -9,7 +9,8 @@ use crate::vcf::{Genotype, RecordValue, VCFHeader, VCFReader, VCFWriter, Variant
 
 use phf::phf_map;
 
-use crate::parameter_structs::FilterParams;
+pub mod parameter_structs;
+pub use parameter_structs::FilterParams;
 
 const MIN_DP: &str = "MIN_DP";
 const MIN_HQ_DP: &str = "MIN_HQ_DP";
