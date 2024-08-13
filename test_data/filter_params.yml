@@ -1,15 +1,29 @@
 parameters:
-  low_qual: 50
-  low_depth: 30
-  min_depth: 5.0
-  min_qual: 20.0
-  min_strand_bias: 0.01
-  strand_mismatch_threshold: 2.0
-  min_frs: 0.9
-  min_mq: 30.0
+  # These apply to all rows
+  MIN_DP: 5
+  MIN_HQ_DP: 2 # min depth of high-quality base calls
+  STRAND_BIAS: 10 # Need at least this proportion of reads on each strand
+  MIN_MQ: 30 # min mapping quality
+  STRAND_MISMATCH: 2
+  # A strand mismatch is when +strand supports one allele, and -strange a different allele.
+
+ref_parameters:
+  # These apply only to non-indel homogenous reference calls
+  MIN_FRS: 0.80 # min fraction of reads supporting variant
+  MIN_QUAL: 20 # minimum QUAL value required
+
 snp_parameters:
-  min_hq_depth: 5.0
-  min_qual: 25.0
-  min_vdb: 0.00001
+  # These apply only for snp calls based on genotype (so GT!=0/0). Het flagged calls also get checked
+  MIN_QUAL: 25
+  MIN_VDB: 0.00001 # This is the variant distance bias, it flags varants that appear in the same place in all reads, and so are likely an artifact
+  MIN_FRS: 0.80 # min fraction of reads supporting variant
+
 indel_parameters:
-  min_qual: 50.0
+  # These apply only to indels
+  MIN_HQ_DP: 5
+  MIN_QUAL: 50
+  MIN_IDV: 5 # min number of reads supporting an indel
+  MIN_IMF: 0.60 # min fraction of reads supporting an indel as bcftools calculates
+  MIN_FRS: 0.65 # min fraction of reads supporting variant
+
+fix_gt: true # If true, will fix GT field to match AD field
