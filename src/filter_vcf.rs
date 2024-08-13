@@ -251,7 +251,7 @@ fn set_gt_to_highest_depth(record: &mut VariantRecord) {
 
     if let Some(depths) = record.allele_depths() {
         let max_depth = depths.iter().max().unwrap();
-        let max_index = depths.iter().position(|x| x == max_depth).unwrap();
+        let max_index = depths.iter().rposition(|x| x == max_depth).unwrap();
 
         record.set_genotype(Genotype {
             allele1: max_index as i32,
@@ -543,7 +543,7 @@ mod tests {
             }
         );
 
-        // With a draw will use the earliest allele
+        // With a draw will use the latest allele
         let mut record: VariantRecord = VariantRecord::from_string(
             &std_header,
             "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tMQ=53.0\tGT:AD\t0/1:7,6,7",
@@ -553,8 +553,8 @@ mod tests {
         assert_eq!(
             record.genotype().unwrap(),
             &Genotype {
-                allele1: 0,
-                allele2: 0
+                allele1: 2,
+                allele2: 2
             }
         );
     }
