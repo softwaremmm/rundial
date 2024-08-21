@@ -3,7 +3,6 @@ use crate::vcf::VariantRecord;
 use super::{Bed, ConsensusParams, HetOption};
 use super::{FILTERED, HET, MASKED, NULL};
 
-
 pub fn repeat_char(c: char, n: usize) -> String {
     std::iter::repeat(c).take(n).collect()
 }

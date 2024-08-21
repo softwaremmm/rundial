@@ -245,11 +245,9 @@ impl VCFHeader {
     /// Returns a VCFHeader with the standard VCFv4.2 specification
     pub fn new_std_spec() -> Self {
         return VCFHeader {
-            lines: vec![
-                HeaderLine::Misc(MiscHeader {
-                    line: "##fileformat=VCFv4.2".to_string(),
-                }),
-            ],
+            lines: vec![HeaderLine::Misc(MiscHeader {
+                line: "##fileformat=VCFv4.2".to_string(),
+            })],
             samples: vec!["sample".to_string()],
             filters: HashMap::new(),
             infos: HashMap::new(),
@@ -410,7 +408,7 @@ impl VCFHeader {
     }
 
     /// Add a new FILTER line to the VCFHeader
-    /// 
+    ///
     /// Will return true if an existing FILTER header was replaced
     pub fn add_filter_line(&mut self, id: String, desc: String) -> bool {
         let h = FilterHeader { id, desc };
@@ -418,7 +416,7 @@ impl VCFHeader {
     }
 
     /// Add a new INFO line to the VCFHeader
-    /// 
+    ///
     /// Will return true if an existing INFO header was replaced
     pub fn add_info_line(
         &mut self,
@@ -437,7 +435,7 @@ impl VCFHeader {
     }
 
     /// Add a new FORMAT line to the VCFHeader
-    /// 
+    ///
     /// Will return true if an existing FORMAT header was replaced
     pub fn add_format_line(
         &mut self,

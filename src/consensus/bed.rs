@@ -1,14 +1,14 @@
 //! Bed file format
-//! 
+//!
 //! Used for specifying genomes regions, particularly for masking
 
 use core::panic;
 use std::collections::{HashMap, HashSet};
-use std::io::{BufRead, BufReader};
 use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 /// Bed file format
-/// 
+///
 /// Browser Extensible Data (BED) format is a simple format for specifying genomic regions.
 /// The start column is inclusive and the end column is exclusive.
 /// Bed files are 0-based normally, meaning the first base is 0. UNLIKE VCF FILES!!
@@ -38,9 +38,7 @@ impl Bed {
                 region.insert(i);
             }
         }
-        Bed {
-            regions,
-        }
+        Bed { regions }
     }
 
     /// Check if a position is in the bed file

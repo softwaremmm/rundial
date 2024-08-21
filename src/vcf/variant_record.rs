@@ -1,7 +1,10 @@
 use core::fmt;
 
 use indexmap::IndexMap;
-use std::{error::Error, hash::{Hash, Hasher}};
+use std::{
+    error::Error,
+    hash::{Hash, Hasher},
+};
 
 use crate::vcf::{Genotype, RecordValue, VCFError, VCFHeader};
 
@@ -227,7 +230,7 @@ impl VariantRecord {
                             .into());
                         }
                         Some(f)
-                    },
+                    }
                 }
             },
             filter: match fields[6] {
@@ -288,7 +291,7 @@ impl VariantRecord {
     }
 
     /// Returns allele with greater depth.
-    /// 
+    ///
     /// Will favour first allele in GT in draws
     pub fn main_allele(&self) -> Option<i32> {
         if let Some(genotype) = &self.genotype {
@@ -301,11 +304,7 @@ impl VariantRecord {
                     if let Some(depths) = &self.allele_depths {
                         let dp1 = depths[a1 as usize];
                         let dp2 = depths[a2 as usize];
-                        return if dp1 >= dp2 {
-                            Some(a1)
-                        } else {
-                            Some(a2)
-                        };
+                        return if dp1 >= dp2 { Some(a1) } else { Some(a2) };
                     }
                     return None;
                 }

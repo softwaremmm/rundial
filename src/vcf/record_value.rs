@@ -24,7 +24,7 @@ impl PartialEq for RecordValue {
                 } else {
                     f1 == f2
                 }
-            },
+            }
             (RecordValue::String(s1), RecordValue::String(s2)) => s1 == s2,
             (RecordValue::IntegerArray(arr1), RecordValue::IntegerArray(arr2)) => arr1 == arr2,
             (RecordValue::FloatArray(arr1), RecordValue::FloatArray(arr2)) => {
@@ -40,7 +40,7 @@ impl PartialEq for RecordValue {
                     }
                 }
                 return true;
-            },
+            }
             (RecordValue::StringArray(arr1), RecordValue::StringArray(arr2)) => arr1 == arr2,
             (RecordValue::Missing, RecordValue::Missing) => true,
             _ => false,

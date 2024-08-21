@@ -229,7 +229,6 @@ fn test_classify_simple() {
             has_indel_form: true,
         }
     );
-
 }
 
 #[test]
@@ -296,7 +295,6 @@ fn test_classify_het() {
     assert_eq!(c.classify(&mut snp_record).is_het, true);
     assert_eq!(c.classify(&mut indel_record).new_bases, "T".to_string());
     assert_eq!(c.classify(&mut indel_record).is_het, true);
-
 }
 
 #[test]
@@ -441,4 +439,3 @@ fn test_classify_minor_population() {
     .unwrap();
     assert!(!c.classify(&mut record).has_minor_population);
 }
-

@@ -7,11 +7,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum HetOption {
     Mask, // Wil set bases to Z
-    Ref, // will use ref if possible, else highest depth
-    Alt, // will use alt if possible, else highest depth
+    Ref,  // will use ref if possible, else highest depth
+    Alt,  // will use alt if possible, else highest depth
     Best, // will use highest depth allele, use first allele if tie
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ConsensusParams {
@@ -51,4 +50,3 @@ pub struct SequencingQuality {
     #[serde(rename = "Deleted calls")]
     pub deleted_calls: i32,
 }
-
