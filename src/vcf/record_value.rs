@@ -1,7 +1,7 @@
 use core::fmt;
 
 /// Represents a value for INFO or FORMAT in a VCF record
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum RecordValue {
     Flag,
     Integer(i32),
@@ -12,6 +12,42 @@ pub enum RecordValue {
     StringArray(Vec<String>),
     Missing, // This is a . in the VCF file
 }
+
+impl PartialEq for RecordValue {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (RecordValue::Flag, RecordValue::Flag) => true,
+            (RecordValue::Integer(i1), RecordValue::Integer(i2)) => i1 == i2,
+            (RecordValue::Float(f1), RecordValue::Float(f2)) => {
+                if f1.is_nan() && f2.is_nan() {
+                    true
+                } else {
+                    f1 == f2
+                }
+            },
+            (RecordValue::String(s1), RecordValue::String(s2)) => s1 == s2,
+            (RecordValue::IntegerArray(arr1), RecordValue::IntegerArray(arr2)) => arr1 == arr2,
+            (RecordValue::FloatArray(arr1), RecordValue::FloatArray(arr2)) => {
+                if arr1.len() != arr2.len() {
+                    return false;
+                }
+                for (f1, f2) in arr1.iter().zip(arr2.iter()) {
+                    if f1.is_nan() && f2.is_nan() {
+                        continue;
+                    }
+                    if f1 != f2 {
+                        return false;
+                    }
+                }
+                return true;
+            },
+            (RecordValue::StringArray(arr1), RecordValue::StringArray(arr2)) => arr1 == arr2,
+            (RecordValue::Missing, RecordValue::Missing) => true,
+            _ => false,
+        }
+    }
+}
+impl Eq for RecordValue {}
 
 impl fmt::Display for RecordValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

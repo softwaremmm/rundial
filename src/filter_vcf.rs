@@ -9,8 +9,8 @@ use crate::vcf::{Genotype, RecordValue, VCFHeader, VCFReader, VCFWriter, Variant
 
 use phf::phf_map;
 
-pub mod parameter_structs;
-pub use parameter_structs::FilterParams;
+pub mod parameter_struct;
+pub use parameter_struct::FilterParams;
 
 const MIN_DP: &str = "MIN_DP";
 const MIN_HQ_DP: &str = "MIN_HQ_DP";
@@ -163,8 +163,8 @@ fn is_low_hq_depth(record: &VariantRecord, threshold: f32) -> Option<String> {
 
 /// Check if a record has low fraction of support for the main allele.
 fn is_low_support(record: &VariantRecord, threshold: f32) -> Option<String> {
-    let main_allele = record.main_allele() as usize;
-    if let Some(depths) = record.allele_depths() {
+    if let (Some(main_allele), Some(depths)) = (record.main_allele(), record.allele_depths()) {
+        let main_allele = main_allele as usize;
         let total_depth = depths.iter().sum::<i32>();
         if total_depth == 0 {
             return None;
@@ -188,18 +188,17 @@ fn is_invalid_indel(record: &VariantRecord, _threshold: f32) -> Option<String> {
 
 /// Check if a record has many more reads on one strand than the other.
 fn is_strand_bias(record: &VariantRecord, threshold: f32) -> Option<String> {
-    let main_allele = record.main_allele();
-    if main_allele == -1 {
-        return None;
-    }
-    let main_allele = main_allele as usize;
-    if let Some((forward, reverse)) = record.strand_depths() {
-        let forward_depth = max(1, forward[main_allele]) as f32;
-        let reverse_depth = max(1, reverse[main_allele]) as f32;
+    if let Some(main_allele) = record.main_allele() {
+        let main_allele = main_allele as usize;
+        if let Some((forward, reverse)) = record.strand_depths() {
+            let forward_depth = max(1, forward[main_allele]) as f32;
+            let reverse_depth = max(1, reverse[main_allele]) as f32;
 
-        if forward_depth / reverse_depth >= threshold || reverse_depth / forward_depth >= threshold
-        {
-            return Some(STRAND_BIAS.to_string());
+            if forward_depth / reverse_depth >= threshold
+                || reverse_depth / forward_depth >= threshold
+            {
+                return Some(STRAND_BIAS.to_string());
+            }
         }
     }
     return None;

@@ -51,6 +51,10 @@ impl Genotype {
         return self.allele1 == 0 && self.allele2 == 0;
     }
 
+    pub fn is_null(&self) -> bool {
+        return self.allele1 == -1 && self.allele2 == -1;
+    }
+
     pub fn from_string(s: &str) -> Result<Self, Box<dyn Error>> {
         let alleles: Vec<&str> = s.split('/').collect();
         if alleles.len() != 2 {
