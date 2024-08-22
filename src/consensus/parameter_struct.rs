@@ -1,7 +1,5 @@
 //! This is the data structure required for the parameters yaml file
 
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -23,6 +21,8 @@ pub struct ConsensusParams {
     pub filter_ignore_list: Option<Vec<String>>, // If set will allow these filters
     pub het_pc_threshold: Option<f32>,
     pub minor_pop_threshold: Option<i32>,
+    pub main_caller: Option<String>, // If set will use this Caller on records from main vcf
+    pub support_caller: Option<String>, // If set will use this Caller on records from support vcf
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

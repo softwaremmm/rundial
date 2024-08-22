@@ -8,6 +8,38 @@ fn test_repeat_char() {
 }
 
 #[test]
+fn test_simplify_ref_alt() {
+    assert_eq!(
+        simplify_ref_alt("A", "N"),
+        (0, "A".to_string(), "N".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("A", "T"),
+        (0, "A".to_string(), "T".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("A", "TCG"),
+        (0, "A".to_string(), "TCG".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("A", "ATCG"),
+        (1, "".to_string(), "TCG".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("AC", "ACTCG"),
+        (2, "".to_string(), "TCG".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("TTAC", "TTG"),
+        (2, "AC".to_string(), "G".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("TTAC", "TTA"),
+        (3, "C".to_string(), "".to_string())
+    );
+}
+
+#[test]
 fn test_change_from_ref_alt() {
     assert_eq!(Change::from_ref_alt("A", "N"), Change::Null);
     assert_eq!(Change::from_ref_alt("A", "AN"), Change::Null);
@@ -29,12 +61,13 @@ fn test_change_from_ref_alt() {
     assert_eq!(Change::from_ref_alt("AGCT", "A"), Change::Del);
     assert_eq!(Change::from_ref_alt("AGCT", "AG"), Change::Del);
 
-    // We don't simplify indels
-    assert_eq!(Change::from_ref_alt("AT", "TT"), Change::ComplexIndel);
+    // We don't simplify indels here
+    assert_eq!(Change::from_ref_alt("AT", "TT"), Change::Mnp);
+    assert_eq!(Change::from_ref_alt("AT", "CG"), Change::Mnp);
+    assert_eq!(Change::from_ref_alt("AT", "AG"), Change::Mnp);
 
-    assert_eq!(Change::from_ref_alt("AT", "CG"), Change::ComplexIndel);
-    assert_eq!(Change::from_ref_alt("AT", "CGA"), Change::ComplexIndel);
-    assert_eq!(Change::from_ref_alt("ATA", "AG"), Change::ComplexIndel);
+    assert_eq!(Change::from_ref_alt("AT", "CGA"), Change::ComplexIns);
+    assert_eq!(Change::from_ref_alt("ATA", "AG"), Change::ComplexDel);
 }
 
 fn make_classifier() -> Classifier {
@@ -48,6 +81,8 @@ fn make_classifier() -> Classifier {
         filter_ignore_list: None,
         het_pc_threshold: None,
         minor_pop_threshold: Some(5),
+        main_caller: None,
+        support_caller: None,
     };
     return Classifier::new(&params);
 }
@@ -110,7 +145,7 @@ fn test_classify_simple() {
             is_het: false,
             has_minor_population: false,
             is_filtered: false,
-            has_indel_form: false,
+            has_indel_alleles: false,
         }
     );
     let mut record = VariantRecord::from_string(
@@ -128,7 +163,7 @@ fn test_classify_simple() {
             is_het: false,
             has_minor_population: false,
             is_filtered: false,
-            has_indel_form: true,
+            has_indel_alleles: true,
         }
     );
 
@@ -148,7 +183,7 @@ fn test_classify_simple() {
             is_het: false,
             has_minor_population: false,
             is_filtered: false,
-            has_indel_form: false,
+            has_indel_alleles: false,
         }
     );
     let mut record = VariantRecord::from_string(
@@ -166,7 +201,7 @@ fn test_classify_simple() {
             is_het: false,
             has_minor_population: false,
             is_filtered: false,
-            has_indel_form: true,
+            has_indel_alleles: true,
         }
     );
 
@@ -186,7 +221,7 @@ fn test_classify_simple() {
             is_het: false,
             has_minor_population: false,
             is_filtered: true,
-            has_indel_form: false,
+            has_indel_alleles: false,
         }
     );
 
@@ -206,7 +241,7 @@ fn test_classify_simple() {
             is_het: false,
             has_minor_population: false,
             is_filtered: false,
-            has_indel_form: false,
+            has_indel_alleles: false,
         }
     );
 
@@ -219,14 +254,33 @@ fn test_classify_simple() {
     assert_eq!(
         c.classify(&mut record),
         Classification {
-            pos: (record.pos - 1) as usize,
-            ref_bases: "T".to_string(),
-            new_bases: "TA".to_string(),
+            pos: 1,
+            ref_bases: "".to_string(),
+            new_bases: "A".to_string(),
             change: Change::Ins,
             is_het: false,
             has_minor_population: false,
             is_filtered: false,
-            has_indel_form: true,
+            has_indel_alleles: true,
+        }
+    );
+
+    let mut record = VariantRecord::from_string(
+        &header,
+        "ref\t1\tid\tTCGA\tTCC\t244.589\t.\tDP=28\tGT:AD\t1/1:1,27",
+    )
+    .unwrap();
+    assert_eq!(
+        c.classify(&mut record),
+        Classification {
+            pos: record.pos_idx() + 2,
+            ref_bases: "GA".to_string(),
+            new_bases: "C".to_string(),
+            change: Change::ComplexDel,
+            is_het: false,
+            has_minor_population: false,
+            is_filtered: false,
+            has_indel_alleles: true,
         }
     );
 }
@@ -252,7 +306,7 @@ fn test_classify_het() {
             is_het: true,
             has_minor_population: false,
             is_filtered: false,
-            has_indel_form: false,
+            has_indel_alleles: false,
         }
     );
 
@@ -271,7 +325,7 @@ fn test_classify_het() {
             is_het: true,
             has_minor_population: false,
             is_filtered: false,
-            has_indel_form: true,
+            has_indel_alleles: true,
         }
     );
 
@@ -286,14 +340,16 @@ fn test_classify_het() {
     c.params.het_indel_option = HetOption::Alt;
     assert_eq!(c.classify(&mut snp_record).new_bases, "A".to_string());
     assert_eq!(c.classify(&mut snp_record).is_het, true);
-    assert_eq!(c.classify(&mut indel_record).new_bases, "T".to_string());
+    assert_eq!(c.classify(&mut indel_record).ref_bases, "AA".to_string());
+    assert_eq!(c.classify(&mut indel_record).new_bases, "".to_string());
     assert_eq!(c.classify(&mut indel_record).is_het, true);
 
     c.params.het_snp_option = HetOption::Best;
     c.params.het_indel_option = HetOption::Best;
     assert_eq!(c.classify(&mut snp_record).new_bases, "A".to_string());
     assert_eq!(c.classify(&mut snp_record).is_het, true);
-    assert_eq!(c.classify(&mut indel_record).new_bases, "T".to_string());
+    assert_eq!(c.classify(&mut indel_record).ref_bases, "AA".to_string());
+    assert_eq!(c.classify(&mut indel_record).new_bases, "".to_string());
     assert_eq!(c.classify(&mut indel_record).is_het, true);
 }
 
@@ -318,7 +374,7 @@ fn test_classify_filtered() {
             is_het: false,
             has_minor_population: false,
             is_filtered: true,
-            has_indel_form: false,
+            has_indel_alleles: false,
         }
     );
 
@@ -338,7 +394,7 @@ fn test_classify_filtered() {
             is_het: false,
             has_minor_population: false,
             is_filtered: true,
-            has_indel_form: true,
+            has_indel_alleles: true,
         }
     );
 
@@ -358,7 +414,7 @@ fn test_classify_filtered() {
             is_het: false,
             has_minor_population: false,
             is_filtered: false,
-            has_indel_form: false,
+            has_indel_alleles: false,
         }
     );
 }

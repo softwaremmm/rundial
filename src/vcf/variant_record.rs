@@ -435,7 +435,13 @@ pub mod tests {
             desc: String::from("All filters passed"),
         }));
 
-        // Add DP, ADF, ADR, DP4, and MQ info headers
+        // Add CALLER, DP, ADF, ADR, DP4, and MQ info headers
+        header.add_header_line(HeaderLine::Info(InfoHeader {
+            id: String::from("CALLER"),
+            number: HeaderNumber::One,
+            header_type: HeaderType::String,
+            desc: String::from("Variant caller used."),
+        }));
         header.add_header_line(HeaderLine::Info(InfoHeader {
             id: String::from("DP"),
             number: HeaderNumber::One,
