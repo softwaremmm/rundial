@@ -1,6 +1,6 @@
 use pretty_assertions::assert_eq;
 use rundial::consensus::make_consensus;
-use std::fs::read_to_string;
+use std::fs::{create_dir_all, read_to_string};
 
 #[test]
 fn test_make_consensus_single() {
@@ -9,6 +9,8 @@ fn test_make_consensus_single() {
     let ref_fasta = "test_data/single_consensus/consensus_ref.fasta";
     let output_root = "tests/test_outputs/single_consensus/output";
     let params = "test_data/single_consensus/consensus_params.yml";
+
+    create_dir_all("tests/test_outputs/single_consensus").unwrap();
 
     make_consensus(main_vcf, support_vcf, ref_fasta, output_root, params, true).unwrap();
 
@@ -32,6 +34,8 @@ fn test_make_consensus_support() {
     let ref_fasta = folder.clone() + "_ref.fasta";
     let params = folder.clone() + "_params.yml";
     let output_root = "tests/test_outputs/support_consensus/output";
+
+    create_dir_all("tests/test_outputs/support_consensus").unwrap();
 
     make_consensus(
         &main_vcf,
