@@ -5,7 +5,7 @@ use pretty_assertions::assert_eq;
 
 fn make_simple_chrom(seq: &str) -> HashMap<String, Vec<char>> {
     let mut chrom_seq: HashMap<String, Vec<char>> = HashMap::new();
-    chrom_seq.insert("chrom".to_string(), seq.chars().into_iter().collect());
+    chrom_seq.insert("chrom".to_string(), seq.chars().collect());
     chrom_seq
 }
 
@@ -112,7 +112,7 @@ fn test_apply_ins_variant() {
 
 #[test]
 fn test_check_indel_ref_matches_seq() {
-    let chrom_seq: Vec<char> = repeat_char('A', 5).chars().into_iter().collect();
+    let chrom_seq: Vec<char> = repeat_char('A', 5).chars().collect();
 
     assert_eq!(
         _check_indel_ref_matches_seq(&chrom_seq, 0, "A", false),
@@ -140,7 +140,7 @@ fn test_check_indel_ref_matches_seq() {
     );
 
     // Nulls are allowed
-    let chrom_seq: Vec<char> = "ANNAA".chars().into_iter().collect();
+    let chrom_seq: Vec<char> = "ANNAA".chars().collect();
     assert_eq!(
         _check_indel_ref_matches_seq(&chrom_seq, 0, "ATA", false),
         true
@@ -165,9 +165,9 @@ fn test_overlap() {
             has_indel_alleles: false,
         }
     }
-    let simple_changes = vec![Change::Ref, Change::Snp, Change::Null, Change::Mnp];
-    let ins_changes = vec![Change::Ins, Change::ComplexIns];
-    let del_changes = vec![Change::Del, Change::ComplexDel];
+    let simple_changes = [Change::Ref, Change::Snp, Change::Null, Change::Mnp];
+    let ins_changes = [Change::Ins, Change::ComplexIns];
+    let del_changes = [Change::Del, Change::ComplexDel];
     for c1 in simple_changes.iter().chain(del_changes.iter()) {
         for c2 in simple_changes.iter().chain(del_changes.iter()) {
             println!("{:?} {:?}", c1, c2);
@@ -395,20 +395,12 @@ fn test_mark_overlaps() {
         return (record, classification);
     };
 
-    let mut records: Vec<(VariantRecord, Classification)> = Vec::new();
-
-    records.push(record_to_pair(
-        "ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
-    ));
-    records.push(record_to_pair(
-        "ref\t2\tid\tCG\tC\t244.589\tF\tDP=28\tGT:AD\t1/1:0,28",
-    ));
-    records.push(record_to_pair(
-        "ref\t2\tid\tCG\tA\t300.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
-    ));
-    records.push(record_to_pair(
-        "ref\t5\tid\tCG\tC\t244.589\tF\tDP=28\tGT:AD\t1/1:0,28",
-    ));
+    let mut records: Vec<(VariantRecord, Classification)> = vec![
+        record_to_pair("ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28"),
+        record_to_pair("ref\t2\tid\tCG\tC\t244.589\tF\tDP=28\tGT:AD\t1/1:0,28"),
+        record_to_pair("ref\t2\tid\tCG\tA\t300.589\tPASS\tDP=28\tGT:AD\t1/1:0,28"),
+        record_to_pair("ref\t5\tid\tCG\tC\t244.589\tF\tDP=28\tGT:AD\t1/1:0,28"),
+    ];
 
     mark_overlaps(&mut records, &classifier);
     assert!(records[0].0.filter.contains(&OVERLAP_FILTER.to_owned()));
@@ -441,11 +433,8 @@ fn test_read_write_fasta() {
     assert_eq!(
         seq,
         HashMap::from([
-            (
-                "chrom_1".to_string(),
-                "AAAAANFFZZZMMMM-X".chars().into_iter().collect()
-            ),
-            ("chrom_2".to_string(), "CCCCC".chars().into_iter().collect())
+            ("chrom_1".to_string(), "AAAAANFFZZZMMMM-X".chars().collect()),
+            ("chrom_2".to_string(), "CCCCC".chars().collect())
         ])
     );
 
@@ -461,11 +450,8 @@ fn test_clean_fasta_characters() {
     assert_eq!(
         seq,
         HashMap::from([
-            (
-                "chrom_1".to_string(),
-                "AAAAANNNNNNNNNN-X".chars().into_iter().collect()
-            ),
-            ("chrom_2".to_string(), "CCCCC".chars().into_iter().collect())
+            ("chrom_1".to_string(), "AAAAANNNNNNNNNN-X".chars().collect()),
+            ("chrom_2".to_string(), "CCCCC".chars().collect())
         ])
     );
 }
@@ -500,21 +486,13 @@ fn test_write_creation_report() {
 #[test]
 fn test_write_vcf() {
     let header = standard_header();
-    let mut records: Vec<VariantRecord> = Vec::new();
-    records.push(
-        VariantRecord::from_string(
-            &header,
-            "ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
-        )
-        .unwrap(),
-    );
-    records.push(
-        VariantRecord::from_string(
-            &header,
-            "ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28;CALLER=bcftools\tGT:AD\t1/1:0,28",
-        )
-        .unwrap(),
-    );
+    let records: Vec<VariantRecord> = [
+        "ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
+        "ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28;CALLER=bcftools\tGT:AD\t1/1:0,28",
+    ]
+    .iter()
+    .map(|r| VariantRecord::from_string(&header, r).unwrap())
+    .collect();
 
     write_vcf(
         &records,

@@ -1,4 +1,5 @@
 #![allow(clippy::needless_return)]
+#![allow(clippy::bool_assert_comparison)]
 
 use std::path::PathBuf;
 

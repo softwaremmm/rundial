@@ -787,7 +787,7 @@ pub fn make_consensus(
     write_creation_report(
         &consensus,
         Some(het_sites.len() as i32),
-        "genome_creation_report.json",
+        &(output_root.to_owned() + ".report.json"),
     )?;
 
     let mut clean_consensus = consensus.clone();
