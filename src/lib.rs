@@ -1,5 +1,6 @@
 #![allow(clippy::needless_return)]
+#![allow(clippy::bool_assert_comparison)]
 
+pub mod consensus;
 pub mod filter_vcf;
-pub mod parameter_structs;
 pub mod vcf;

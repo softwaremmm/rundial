@@ -1,7 +1,10 @@
 use core::fmt;
 
 use indexmap::IndexMap;
-use std::error::Error;
+use std::{
+    error::Error,
+    hash::{Hash, Hasher},
+};
 
 use crate::vcf::{Genotype, RecordValue, VCFError, VCFHeader};
 
@@ -9,6 +12,7 @@ use crate::vcf::{Genotype, RecordValue, VCFError, VCFHeader};
 ///
 /// This struct is used to store the values of a VCF record.
 /// The info and format fields are stored as IndexMap<String, RecordValue>
+#[derive(Clone)]
 pub struct VariantRecord {
     // Core values
     pub chrom: String,
@@ -27,6 +31,33 @@ pub struct VariantRecord {
     allele_depths: Option<Vec<i32>>,
     strand_depths: Option<(Vec<i32>, Vec<i32>)>,
 }
+
+// Implementing PartialEq, Eq, and Hash for References to VariantRecord
+impl<'a> PartialEq for &'a VariantRecord {
+    fn eq(&self, other: &Self) -> bool {
+        return std::ptr::eq(*self, *other);
+    }
+}
+impl<'a> Eq for &'a VariantRecord {}
+impl<'a> Hash for &'a VariantRecord {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        std::ptr::hash(*self, state);
+    }
+}
+impl<'a> PartialEq for &'a mut VariantRecord {
+    fn eq(&self, other: &Self) -> bool {
+        return std::ptr::eq(*self, *other);
+    }
+}
+impl<'a> Eq for &'a mut VariantRecord {}
+impl<'a> Hash for &'a mut VariantRecord {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        std::ptr::hash(*self, state);
+    }
+}
+
+// Since qual is not allowed to be NaN, this will be an equivalence relation
+// impl Eq for VariantRecord {}
 
 impl fmt::Display for VariantRecord {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -190,7 +221,16 @@ impl VariantRecord {
                         ))
                         .into())
                     }
-                    Ok(f) => Some(f),
+                    Ok(f) => {
+                        if f.is_nan() {
+                            return Err(VCFError::InvalidField(format!(
+                                "Could not parse QUAL={}.\nError: NaN",
+                                fields[5]
+                            ))
+                            .into());
+                        }
+                        Some(f)
+                    }
                 }
             },
             filter: match fields[6] {
@@ -205,7 +245,7 @@ impl VariantRecord {
             strand_depths: None,
         };
 
-        // Add format is available
+        // Add format if available
         if fields.len() > 8 {
             record.format = str_to_format(header, fields[8], fields[9])?;
 
@@ -230,6 +270,11 @@ impl VariantRecord {
         return Ok(record);
     }
 
+    /// Gets the variants 0-based position
+    pub fn pos_idx(&self) -> usize {
+        return (self.pos - 1) as usize;
+    }
+
     /// Get reference to genotype
     ///
     /// To change use [VariantRecord::set_genotype]
@@ -245,27 +290,27 @@ impl VariantRecord {
         self.genotype = Some(genotype);
     }
 
-    /// Returns allele with greater depth
-    pub fn main_allele(&self) -> i32 {
+    /// Returns allele with greater depth.
+    ///
+    /// Will favour first allele in GT in draws
+    pub fn main_allele(&self) -> Option<i32> {
         if let Some(genotype) = &self.genotype {
-            if genotype.is_hom() {
-                return genotype.allele1;
+            match (genotype.allele1, genotype.allele2) {
+                (-1, -1) => return None,
+                (a1, -1) => return Some(a1),
+                (-1, a2) => return Some(a2),
+                (a1, a2) if a1 == a2 => return Some(a1),
+                (a1, a2) => {
+                    if let Some(depths) = &self.allele_depths {
+                        let dp1 = depths[a1 as usize];
+                        let dp2 = depths[a2 as usize];
+                        return if dp1 >= dp2 { Some(a1) } else { Some(a2) };
+                    }
+                    return None;
+                }
             }
-            if genotype.allele1 == -1 || genotype.allele2 == -1 {
-                return std::cmp::max(genotype.allele1, genotype.allele2);
-            }
-            if let Some(depths) = &self.allele_depths {
-                let dp1 = depths[genotype.allele1 as usize];
-                let dp2 = depths[genotype.allele2 as usize];
-                return if dp1 > dp2 {
-                    genotype.allele1
-                } else {
-                    genotype.allele2
-                };
-            }
-            return genotype.allele1;
         }
-        return -1;
+        return None;
     }
 
     /// Returns true if variant represents a potential indel
@@ -390,7 +435,13 @@ pub mod tests {
             desc: String::from("All filters passed"),
         }));
 
-        // Add DP, ADF, ADR, DP4, and MQ info headers
+        // Add CALLER, DP, ADF, ADR, DP4, and MQ info headers
+        header.add_header_line(HeaderLine::Info(InfoHeader {
+            id: String::from("CALLER"),
+            number: HeaderNumber::One,
+            header_type: HeaderType::String,
+            desc: String::from("Variant caller used."),
+        }));
         header.add_header_line(HeaderLine::Info(InfoHeader {
             id: String::from("DP"),
             number: HeaderNumber::One,
@@ -482,7 +533,7 @@ pub mod tests {
                 allele2: 1
             }
         );
-        assert_eq!(record.main_allele(), 1);
+        assert_eq!(record.main_allele(), Some(1));
         assert_eq!(record.depth().unwrap(), 28);
         assert_eq!(record.allele_depths(), &Some(vec![5, 6, 7]));
         assert_eq!(

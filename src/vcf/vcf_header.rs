@@ -242,6 +242,19 @@ impl VCFHeader {
         };
     }
 
+    /// Returns a VCFHeader with the standard VCFv4.2 specification
+    pub fn new_std_spec() -> Self {
+        return VCFHeader {
+            lines: vec![HeaderLine::Misc(MiscHeader {
+                line: "##fileformat=VCFv4.2".to_string(),
+            })],
+            samples: vec!["sample".to_string()],
+            filters: HashMap::new(),
+            infos: HashMap::new(),
+            formats: HashMap::new(),
+        };
+    }
+
     /// Returns a map from ID to FilterHeader
     pub fn filters(&self) -> &HashMap<String, FilterHeader> {
         return &self.filters;
@@ -392,6 +405,58 @@ impl VCFHeader {
                 return is_present;
             }
         }
+    }
+
+    /// Add a new FILTER line to the VCFHeader
+    ///
+    /// Will return true if an existing FILTER header was replaced
+    pub fn add_filter_line(&mut self, id: String, desc: String) -> bool {
+        let h = FilterHeader { id, desc };
+        return self.add_header_line(HeaderLine::Filter(h));
+    }
+
+    /// Add a new INFO line to the VCFHeader
+    ///
+    /// Will return true if an existing INFO header was replaced
+    pub fn add_info_line(
+        &mut self,
+        id: String,
+        number: HeaderNumber,
+        header_type: HeaderType,
+        desc: String,
+    ) -> bool {
+        let h = InfoHeader {
+            id,
+            number,
+            header_type,
+            desc,
+        };
+        return self.add_header_line(HeaderLine::Info(h));
+    }
+
+    /// Add a new FORMAT line to the VCFHeader
+    ///
+    /// Will return true if an existing FORMAT header was replaced
+    pub fn add_format_line(
+        &mut self,
+        id: String,
+        number: HeaderNumber,
+        header_type: HeaderType,
+        desc: String,
+    ) -> bool {
+        let h = FormatHeader {
+            id,
+            number,
+            header_type,
+            desc,
+        };
+        return self.add_header_line(HeaderLine::Format(h));
+    }
+
+    /// Add a new Misc line to the VCFHeader
+    pub fn add_misc_line(&mut self, line: String) {
+        let h = MiscHeader { line };
+        self.add_header_line(HeaderLine::Misc(h));
     }
 
     /// Set all the lines in the VCFHeader
