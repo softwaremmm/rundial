@@ -1,3 +1,20 @@
+## 0.3.0 (2024-08-27)
+
+### Feat
+
+- fully implement consensus creation
+- add incomplete version of consensus
+
+### Fix
+
+- make test directories in test
+- update ignore file
+- update version number in test data
+- remove pretty asserts from normal dependencies
+- fix linting
+- auto formatting
+- refactor parameters to be submodule
+
 ## 0.2.0 (2024-08-13)
 
 ### Feat
