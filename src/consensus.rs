@@ -1,11 +1,13 @@
 pub mod parameter_struct;
 use core::panic;
-use std::io::BufWriter;
+use std::io::Write;
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
     io::BufReader,
 };
+
+use niffler;
 
 use crate::vcf::vcf_header::{HeaderLine, HeaderNumber, HeaderType};
 use crate::vcf::{RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
@@ -271,9 +273,7 @@ fn process_main_vcf(
     HashMapSet<usize>,
     HashMapSet<usize>,
 )> {
-    let vcf_reader = VCFReader::new(BufReader::new(
-        File::open(vcf_file).map_err(|e| format!("Failed to read input vcf file. Error: {}", e))?,
-    ))?;
+    let vcf_reader = VCFReader::from_path(vcf_file)?;
 
     let mut output_records: Vec<VariantRecord> = Vec::new();
     let mut insertions: Vec<(VariantRecord, Classification)> = Vec::new();
@@ -413,9 +413,7 @@ fn process_support_vcf(
     positions_already_processed: &HashMapSet<usize>,
     verbose: bool,
 ) -> Result<(Vec<VariantRecord>, HashMapSet<usize>, HashMapSet<usize>)> {
-    let vcf_reader = VCFReader::new(BufReader::new(
-        File::open(vcf_file).map_err(|e| format!("Failed to read input vcf file. Error: {}", e))?,
-    ))?;
+    let vcf_reader = VCFReader::from_path(vcf_file)?;
 
     let mut output_records: Vec<VariantRecord> = Vec::new();
     let mut processed_positions: HashMapSet<usize> = HashMap::new();
@@ -496,30 +494,47 @@ fn process_support_vcf(
 }
 
 fn read_fasta(fasta_file: &str) -> Result<HashMap<String, Vec<char>>> {
-    let reader = fasta::Reader::from_file(fasta_file).map_err(|e| {
+    let mut consensus: HashMap<String, Vec<char>> = HashMap::new();
+
+    let (reader, _format) = niffler::from_path(fasta_file).map_err(|e| {
         format!(
             "Failed to open fasta input file {}. Error: {}",
             fasta_file, e
         )
     })?;
-
-    let mut consensus: HashMap<String, Vec<char>> = HashMap::new();
-    for record in reader.records() {
-        let record = record.expect("Error during fasta record reading");
+    let buf_reader = BufReader::new(reader);
+    let fasta_reader = fasta::Reader::new(buf_reader);
+    for record in fasta_reader.records() {
+        let record = record?;
         let chrom = record.id().to_string();
         let seq: Vec<char> = record.seq().iter().map(|c| *c as char).collect();
         consensus.insert(chrom, seq);
     }
+
     return Ok(consensus);
 }
 
-fn save_fasta(consensus: &HashMap<String, Vec<char>>, output_file: &str) -> Result<()> {
-    let mut writer = fasta::Writer::to_file(output_file).map_err(|e| {
-        format!(
-            "Failed to open fasta output file {}. Error: {}",
-            output_file, e
+fn potentially_gzipped_writer(file: &str) -> Result<Box<dyn Write>> {
+    let (nif_format, level) = if file.ends_with(".gz") {
+        (
+            niffler::compression::Format::Gzip,
+            niffler::compression::Level::One,
         )
-    })?;
+    } else {
+        (
+            niffler::compression::Format::No,
+            niffler::compression::Level::Zero,
+        )
+    };
+
+    let niffler_writer = niffler::to_path(file, nif_format, level)
+        .map_err(|e| format!("Failed to open fasta output file {}. Error: {}", file, e))?;
+
+    return Ok(niffler_writer);
+}
+
+fn save_fasta(consensus: &HashMap<String, Vec<char>>, output_file: &str) -> Result<()> {
+    let mut writer = fasta::Writer::new(potentially_gzipped_writer(output_file)?);
 
     for (chrom, seq) in consensus.iter() {
         writer.write(chrom, None, seq.iter().collect::<String>().as_bytes())?;
@@ -659,15 +674,7 @@ fn write_vcf(
     );
 
     // Now write records
-    let mut writer = VCFWriter::new(
-        BufWriter::new(File::create(output_file).map_err(|e| {
-            format!(
-                "Failed to open output vcf file {}. Error: {}",
-                output_file, e
-            )
-        })?),
-        header,
-    )?;
+    let mut writer = VCFWriter::to_path(output_file, header)?;
     for record in records.iter() {
         let mut output_record = record.clone();
         output_record.info = IndexMap::new();
