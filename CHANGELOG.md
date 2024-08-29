@@ -1,3 +1,13 @@
+## 0.4.0 (2024-08-29)
+
+### Feat
+
+- allow gzipped input and output
+
+### Fix
+
+- use Path as input type
+
 ## 0.3.0 (2024-08-27)
 
 ### Feat
