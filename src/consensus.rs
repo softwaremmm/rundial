@@ -352,7 +352,7 @@ fn process_main_vcf(
     }
 
     // Apply filtered non-indel changes records
-    // We don't look for hets in this section
+    // We don't look for hets in this section due to filters
     for (r, c) in potential_output_records.iter() {
         if !c.is_filtered || r.is_indel() {
             continue;

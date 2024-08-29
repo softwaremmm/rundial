@@ -5,7 +5,10 @@
 //!
 //! The [VCFWriter] can then be used to write to files.
 
-use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::{
+    io::{BufRead, BufReader, BufWriter, Write},
+    path::Path,
+};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -109,7 +112,7 @@ where
 }
 
 impl VCFReader<BufReader<Box<dyn std::io::Read>>> {
-    pub fn from_path(file_path: &str) -> Result<Self> {
+    pub fn from_path<P: AsRef<Path>>(file_path: P) -> Result<Self> {
         let (reader, _format) = niffler::from_path(file_path)
             .map_err(|e| format!("Failed to read input vcf file. Error: {}", e))?;
         let buf_reader = BufReader::new(reader);
@@ -155,15 +158,15 @@ where
 }
 
 impl VCFWriter<BufWriter<Box<dyn Write>>> {
-    pub fn to_path(file_path: &str, header: VCFHeader) -> Result<Self> {
+    pub fn to_path<P: AsRef<Path>>(file_path: P, header: VCFHeader) -> Result<Self> {
         let niffler_writer = potentially_gzipped_writer(file_path)?;
         let buf_writer = BufWriter::new(niffler_writer);
         VCFWriter::new(buf_writer, header)
     }
 }
 
-fn potentially_gzipped_writer(file: &str) -> Result<Box<dyn Write>> {
-    let (nif_format, level) = if file.ends_with(".gz") {
+fn potentially_gzipped_writer<P: AsRef<Path>>(file: P) -> Result<Box<dyn Write>> {
+    let (nif_format, level) = if file.as_ref().extension().unwrap_or_default() == "gz" {
         (
             niffler::compression::Format::Gzip,
             niffler::compression::Level::One,
@@ -175,8 +178,13 @@ fn potentially_gzipped_writer(file: &str) -> Result<Box<dyn Write>> {
         )
     };
 
-    let niffler_writer = niffler::to_path(file, nif_format, level)
-        .map_err(|e| format!("Failed to open fasta output file {}. Error: {}", file, e))?;
+    let file_str = file.as_ref().display().to_string();
+    let niffler_writer = niffler::to_path(file, nif_format, level).map_err(|e| {
+        format!(
+            "Failed to open fasta output file {}. Error: {}",
+            file_str, e
+        )
+    })?;
 
     return Ok(niffler_writer);
 }
