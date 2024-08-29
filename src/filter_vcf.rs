@@ -1,7 +1,6 @@
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 
 use crate::vcf::vcf_header::{FilterHeader, HeaderLine};
@@ -317,15 +316,14 @@ pub fn filter_vcf(
     let params: FilterParams = serde_yaml::from_reader(
         File::open(params).map_err(|e| format!("Failed to read params file. Error: {}", e))?,
     )?;
-    let vcf_reader = VCFReader::new(BufReader::new(
-        File::open(in_vcf).map_err(|e| format!("Failed to read input vcf file. Error: {}", e))?,
-    ))?;
+
+    let vcf_reader = VCFReader::from_path(in_vcf)?;
 
     let header = vcf_reader.header();
 
     let mut new_header = header.clone();
     add_filters_to_header(&mut new_header, &params);
-    let mut vcf_writer = VCFWriter::new(BufWriter::new(File::create(out_vcf)?), new_header)?;
+    let mut vcf_writer = VCFWriter::to_path(out_vcf, new_header)?;
 
     let std_filterer = Filterer::create_from_params(&params.parameters);
     let ref_filterer = Filterer::create_from_params(&params.ref_parameters);

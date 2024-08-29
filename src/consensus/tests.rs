@@ -1,3 +1,5 @@
+use std::io::Read;
+
 use super::*;
 use crate::vcf::variant_record::tests::standard_header;
 
@@ -441,6 +443,27 @@ fn test_read_write_fasta() {
     save_fasta(&seq, "tests/test_outputs/saved.fasta").unwrap();
     let seq2 = read_fasta("tests/test_outputs/saved.fasta").unwrap();
     assert_eq!(seq, seq2);
+}
+
+#[test]
+fn test_read_write_fasta_gzipped() {
+    let seq = read_fasta("test_data/simple.fasta.gz").unwrap();
+    assert_eq!(
+        seq,
+        HashMap::from([
+            ("chrom_1".to_string(), "AAAAANFFZZZMMMM-X".chars().collect()),
+            ("chrom_2".to_string(), "CCCCC".chars().collect())
+        ])
+    );
+
+    save_fasta(&seq, "tests/test_outputs/saved.fasta.gz").unwrap();
+    let seq2 = read_fasta("tests/test_outputs/saved.fasta.gz").unwrap();
+    assert_eq!(seq, seq2);
+
+    let mut file = File::open("tests/test_outputs/saved.fasta.gz").unwrap();
+    let mut buffer = [0; 3];
+    file.read_exact(&mut buffer).unwrap();
+    assert!(buffer == [0x1f, 0x8b, 0x08]);
 }
 
 #[test]
