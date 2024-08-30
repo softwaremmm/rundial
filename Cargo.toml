@@ -4,10 +4,10 @@ version = "0.4.1"
 edition = "2021"
 
 [dependencies]
-bio = "2.0.1"
 clap = { version = "4.5.11", features = ["derive"] }
 indexmap = "2.3.0"
 niffler = "2.6.0"
+noodles = { version = "0.79.0", features = ["fasta"] }
 ordered-float = "4.2.2"
 phf = { version = "0.11.2", features = ["macros"]}
 phf_macros = "0.11.2"

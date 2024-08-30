@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::{fs, io::Read};
 
 use super::*;
 use crate::vcf::variant_record::tests::standard_header;
@@ -443,6 +443,23 @@ fn test_read_write_fasta() {
     save_fasta(&seq, "tests/test_outputs/saved.fasta").unwrap();
     let seq2 = read_fasta("tests/test_outputs/saved.fasta").unwrap();
     assert_eq!(seq, seq2);
+}
+
+#[test]
+fn test_read_write_fasta_multiline() {
+    let seq = read_fasta("test_data/multiline.fasta").unwrap();
+    assert_eq!(
+        seq,
+        HashMap::from([
+            ("chrom_1".to_string(), "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT".chars().collect()),
+        ])
+    );
+
+    save_fasta(&seq, "tests/test_outputs/saved_multiline.fasta").unwrap();
+    // Check that the saved file is the same as the original from actual lines
+    let original = fs::read_to_string("test_data/multiline.fasta").unwrap();
+    let saved = fs::read_to_string("tests/test_outputs/saved_multiline.fasta").unwrap();
+    assert_eq!(original, saved);
 }
 
 #[test]

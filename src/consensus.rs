@@ -8,11 +8,16 @@ use std::{
 };
 
 use niffler;
+use noodles::fasta::record::Sequence;
 
 use crate::vcf::vcf_header::{HeaderLine, HeaderNumber, HeaderType};
 use crate::vcf::{RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
-use bio::io::fasta;
+
 use indexmap::IndexMap;
+use noodles::fasta::{
+    self as noodles_fasta,
+    record::{Definition, Record},
+};
 use ordered_float::OrderedFloat;
 
 pub use parameter_struct::{ConsensusParams, GenomeCreationReport, HetOption, SequencingQuality};
@@ -503,11 +508,16 @@ fn read_fasta(fasta_file: &str) -> Result<HashMap<String, Vec<char>>> {
         )
     })?;
     let buf_reader = BufReader::new(reader);
-    let fasta_reader = fasta::Reader::new(buf_reader);
+    let mut fasta_reader = noodles_fasta::Reader::new(buf_reader);
     for record in fasta_reader.records() {
         let record = record?;
-        let chrom = record.id().to_string();
-        let seq: Vec<char> = record.seq().iter().map(|c| *c as char).collect();
+        let chrom = String::from_utf8_lossy(record.definition().name()).to_string();
+        let seq: Vec<char> = record
+            .sequence()
+            .as_ref()
+            .iter()
+            .map(|c| *c as char)
+            .collect();
         consensus.insert(chrom, seq);
     }
 
@@ -534,10 +544,13 @@ fn potentially_gzipped_writer(file: &str) -> Result<Box<dyn Write>> {
 }
 
 fn save_fasta(consensus: &HashMap<String, Vec<char>>, output_file: &str) -> Result<()> {
-    let mut writer = fasta::Writer::new(potentially_gzipped_writer(output_file)?);
+    let mut writer = noodles_fasta::Writer::new(potentially_gzipped_writer(output_file)?);
 
     for (chrom, seq) in consensus.iter() {
-        writer.write(chrom, None, seq.iter().collect::<String>().as_bytes())?;
+        let definition = Definition::new(chrom.clone(), None);
+        let sequence = Sequence::from(seq.iter().collect::<String>().as_bytes().to_vec());
+        let record = Record::new(definition, sequence);
+        writer.write_record(&record)?;
     }
     return Ok(());
 }
