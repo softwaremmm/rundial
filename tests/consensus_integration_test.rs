@@ -15,7 +15,13 @@ fn test_make_consensus_single() {
     make_consensus(main_vcf, support_vcf, ref_fasta, output_root, params, true).unwrap();
 
     let expected_root = "test_data/single_consensus/consensus_expected";
-    for ending in &[".full.fasta", ".fasta", ".variable_length.fasta", ".vcf"] {
+    for ending in &[
+        ".full.fasta",
+        ".fasta",
+        ".variable_length.fasta",
+        ".vcf",
+        ".report.json",
+    ] {
         let output = output_root.to_string() + ending;
         let expected = expected_root.to_string() + ending;
         println!("Comparing {} to {}", output, expected);

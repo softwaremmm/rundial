@@ -612,10 +612,7 @@ fn write_vcf(
 
     // Copy filters from main and support vcf
     for file in [Some(main_vcf), support_vcf].iter().flatten() {
-        let reader =
-            VCFReader::new(BufReader::new(File::open(file).map_err(|e| {
-                format!("Failed to read input vcf file: {}. Error: {}", file, e)
-            })?))?;
+        let reader = VCFReader::from_path(file)?;
         for line in reader.header().lines.iter() {
             if matches!(line, HeaderLine::Filter(_)) {
                 header.add_header_line(line.clone());
@@ -683,7 +680,10 @@ fn write_vcf(
         }
 
         let mut format = IndexMap::new();
-        format.insert("GT".to_owned(), record.format.get("GT").unwrap().clone());
+        format.insert(
+            "GT".to_owned(),
+            RecordValue::String(record.genotype().unwrap().to_string()),
+        );
         if let Some(dp) = record.depth() {
             format.insert("DP".to_owned(), RecordValue::Integer(*dp));
         }
@@ -793,7 +793,7 @@ pub fn make_consensus(
 
     write_creation_report(
         &consensus,
-        Some(het_sites.len() as i32),
+        Some(het_sites.values().map(|s| s.len()).sum::<usize>() as i32),
         &(output_root.to_owned() + ".report.json"),
     )?;
 
