@@ -57,31 +57,36 @@ impl Genotype {
 
     pub fn from_string(s: &str) -> Result<Self, Box<dyn Error>> {
         let alleles: Vec<&str> = s.split('/').collect();
-        if alleles.len() != 2 {
-            return Err(
-                VCFError::InvalidField(format!("Genotype field {s} could not be parsed")).into(),
-            );
+
+        let parse_allele = |allele: &str| -> Result<i32, Box<dyn Error>> {
+            match allele {
+                "." => Ok(-1),
+                _ => match allele.parse::<i32>() {
+                    Ok(i) if i >= -1 => Ok(i),
+                    _ => Err(VCFError::InvalidField(format!(
+                        "Genotype field {s} could not be parsed"
+                    ))
+                    .into()),
+                },
+            }
+        };
+
+        if alleles.len() == 1 {
+            let allele1: i32 = parse_allele(alleles[0])?;
+            return Ok(Self {
+                allele1,
+                allele2: allele1,
+            });
         }
-        let allele1: i32 = match (alleles[0], alleles[0].parse::<i32>()) {
-            (".", _) => -1,
-            (_, Ok(i)) if i >= -1 => i,
-            _ => {
-                return Err(VCFError::InvalidField(format!(
-                    "Genotype field {s} could not be parsed"
-                ))
-                .into())
-            }
-        };
-        let allele2: i32 = match (alleles[1], alleles[1].parse::<i32>()) {
-            (".", _) => -1,
-            (_, Ok(i)) if i >= -1 => i,
-            _ => {
-                return Err(VCFError::InvalidField(format!(
-                    "Genotype field {s} could not be parsed"
-                ))
-                .into())
-            }
-        };
+
+        if alleles.len() != 2 {
+            return Err(VCFError::InvalidField(format!(
+                "Genotype field {s} could not be parsed. Incorrect length"
+            ))
+            .into());
+        }
+        let allele1: i32 = parse_allele(alleles[0])?;
+        let allele2: i32 = parse_allele(alleles[1])?;
         return Ok(Self { allele1, allele2 });
     }
 }
