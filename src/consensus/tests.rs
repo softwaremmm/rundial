@@ -363,8 +363,9 @@ fn test_score_variants() {
         let classification = classifier.classify(&mut record);
         return score_variant(&record, &classification);
     };
-    let filter_score =
-        record_to_score("ref\t1\tid\tTCG\tTAC\t244.589\tFILTER\tDP=28\tGT:AD\t./.:0,28");
+    let filter_indel =
+        record_to_score("ref\t1\tid\tTCG\tTAC\t244.589\tFILTER\tDP=28\tGT:AD\t0/0:0,28");
+    let filter_snp = record_to_score("ref\t1\tid\tT\tC\t244.589\tFILTER\tDP=28\tGT:AD\t0/0:0,28");
     let null_score = record_to_score("ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t./.:0,28");
     let ref_indel_score =
         record_to_score("ref\t1\tid\tTCG\tT\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,0");
@@ -375,7 +376,8 @@ fn test_score_variants() {
         record_to_score("ref\t1\tid\tT\tC\t2440.589\tPASS\tDP=28\tGT:AD\t1/1:28,0");
     let high_dp_score =
         record_to_score("ref\t1\tid\tT\tC\t2440.589\tPASS\tDP=280\tGT:AD\t1/1:28,0");
-    assert!(filter_score < null_score);
+    assert!(filter_indel < filter_snp);
+    assert!(filter_snp < null_score);
     assert!(null_score < ref_indel_score);
     assert!(ref_indel_score < ref_snp_score);
     assert!(ref_snp_score < indel_score);

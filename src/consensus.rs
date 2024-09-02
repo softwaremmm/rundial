@@ -140,25 +140,21 @@ fn score_variant(
 ) -> (i32, i32, OrderedFloat<f32>, i32) {
     let filter_score = if !classification.is_filtered { 2 } else { 0 };
 
-    // snps (and het snps) > indels > hom ref snp > hom ref indel > null gt calls
-    let type_score = {
-        if let Some(gt) = record.genotype() {
-            if gt.is_null() {
-                0
-            } else if gt.is_hom_ref() {
-                if classification.has_indel_alleles {
-                    1
-                } else {
-                    2
-                }
-            } else if classification.has_indel_alleles {
-                3
-            } else {
-                4
-            }
-        } else {
-            0
-        }
+    // If filtered, then snps > indels > null gt calls
+    // otherwise: snps (and het snps) > indels > hom ref snp > hom ref indel > null gt calls
+    let type_score = match (
+        classification.is_filtered,
+        record.genotype(),
+        classification.has_indel_alleles,
+    ) {
+        (_, None, _) => 0,
+        (_, Some(gt), _) if gt.is_null() => 0,
+        (true, _, true) => 1,
+        (true, _, false) => 2,
+        (false, Some(gt), true) if gt.is_hom_ref() => 1,
+        (false, Some(gt), false) if gt.is_hom_ref() => 2,
+        (false, _, true) => 3,
+        (false, _, false) => 4,
     };
 
     let qual_score = match record.qual {
