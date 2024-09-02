@@ -1,3 +1,5 @@
+use std::iter;
+
 use crate::vcf::VariantRecord;
 
 use super::{Bed, ConsensusParams, HetOption};
@@ -7,13 +9,63 @@ pub fn repeat_char(c: char, n: usize) -> String {
     std::iter::repeat(c).take(n).collect()
 }
 
-/// Simplifies ref-alt pair by removing matching leading bases
+/// Simplifies ref-alt pair by removing matching trailing and leading bases.
+/// 1. Removes shared first base if the same
+/// 2. Removes all shared trailing bases
+/// 3. Removes all shared leading bases
+///
+/// Returns the number of leading bases removed, the new ref and alt strings
 fn simplify_ref_alt(ref_bases: &str, alt_bases: &str) -> (usize, String, String) {
     let mut new_ref = "".to_string();
     let mut new_alt = "".to_string();
     let mut ref_iter = ref_bases.chars();
     let mut alt_iter = alt_bases.chars();
+    let mut final_char_ref: Option<char> = None;
+    let mut final_char_alt: Option<char> = None;
     let mut counter = 0;
+
+    // Remove shared first base as a special check first
+    if let (Some(r), Some(c)) = (ref_bases.chars().next(), alt_bases.chars().next()) {
+        if r == c {
+            counter += 1;
+            ref_iter.next();
+            alt_iter.next();
+        }
+    } else {
+        // If one is empty then no change to make
+        return (0, ref_bases.to_string(), alt_bases.to_string());
+    }
+
+    // Remove matching trailing bases
+    let mut ref_iter = ref_iter.rev();
+    let mut alt_iter = alt_iter.rev();
+    for r in ref_iter.by_ref() {
+        if let Some(c) = alt_iter.next() {
+            if r == c {
+                continue;
+            }
+            final_char_ref = Some(r);
+            final_char_alt = Some(c);
+            break;
+        }
+        final_char_ref = Some(r);
+        break;
+    }
+
+    // Reverse iterators to original order and add final chars
+    let mut ref_iter: Box<dyn Iterator<Item = char>> = if let Some(c) = final_char_ref {
+        Box::new(ref_iter.rev().chain(iter::once(c)))
+    } else {
+        Box::new(ref_iter.rev())
+    };
+
+    let mut alt_iter: Box<dyn Iterator<Item = char>> = if let Some(c) = final_char_alt {
+        Box::new(alt_iter.rev().chain(iter::once(c)))
+    } else {
+        Box::new(alt_iter.rev())
+    };
+
+    // Remove matching leading bases
     for r in ref_iter.by_ref() {
         if let Some(c) = alt_iter.next() {
             if r == c {
@@ -29,6 +81,7 @@ fn simplify_ref_alt(ref_bases: &str, alt_bases: &str) -> (usize, String, String)
     }
     new_ref.extend(ref_iter);
     new_alt.extend(alt_iter);
+
     (counter, new_ref, new_alt)
 }
 

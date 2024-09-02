@@ -30,12 +30,28 @@ fn test_simplify_ref_alt() {
         (2, "".to_string(), "TCG".to_string())
     );
     assert_eq!(
+        simplify_ref_alt("AC", "ACTCGC"),
+        (1, "".to_string(), "CTCG".to_string())
+    );
+    assert_eq!(
         simplify_ref_alt("TTAC", "TTG"),
         (2, "AC".to_string(), "G".to_string())
     );
     assert_eq!(
         simplify_ref_alt("TTAC", "TTA"),
         (3, "C".to_string(), "".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("ATTTT", "ATT"),
+        (1, "TT".to_string(), "".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("TTTTA", "TTA"),
+        (1, "TT".to_string(), "".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("TTTTAC", "TTA"),
+        (2, "TTAC".to_string(), "A".to_string())
     );
 }
 
