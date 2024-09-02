@@ -11,7 +11,7 @@ use niffler;
 use noodles::fasta::record::Sequence;
 
 use crate::vcf::vcf_header::{HeaderLine, HeaderNumber, HeaderType};
-use crate::vcf::{RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
+use crate::vcf::{Genotype, RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
 
 use indexmap::IndexMap;
 use noodles::fasta::{
@@ -701,9 +701,16 @@ fn write_vcf(
             "GT".to_owned(),
             RecordValue::String(record.genotype().unwrap().to_string()),
         );
-        if let Some(dp) = record.depth() {
-            format.insert("DP".to_owned(), RecordValue::Integer(*dp));
-        }
+
+        format.insert(
+            "DP".to_owned(),
+            if let Some(dp) = record.depth() {
+                RecordValue::Integer(*dp)
+            } else {
+                RecordValue::Integer(0)
+            },
+        );
+
         if let Some((adf, adr)) = record.strand_depths() {
             format.insert("ADF".to_owned(), RecordValue::IntegerArray(adf.clone()));
             format.insert("ADR".to_owned(), RecordValue::IntegerArray(adr.clone()));
@@ -790,16 +797,41 @@ pub fn make_consensus(
         het_sites.extend_chrom(&chrom, sites);
     }
 
+    fn make_empty_record(chrom: &str, pos: &usize, ref_bases: &str) -> VariantRecord {
+        let mut record = VariantRecord::empty_record();
+        record.chrom = chrom.to_owned();
+        record.pos = *pos as u32 + 1;
+        record.ref_bases = ref_bases.to_owned();
+        record.set_genotype(Genotype::new());
+        record
+            .info
+            .insert("DP".to_string(), RecordValue::Integer(0));
+        record
+            .info
+            .insert("ADF".to_string(), RecordValue::IntegerArray(vec![0]));
+        record
+            .info
+            .insert("ADR".to_string(), RecordValue::IntegerArray(vec![0]));
+        record
+            .format
+            .insert("AD".to_string(), RecordValue::IntegerArray(vec![0]));
+        record.update_depths();
+        return record;
+    }
+
+    // Mask missing sites
     if params.mask_missing_sites {
         for (chrom, seq) in consensus.iter_mut() {
             let all_sites: HashSet<usize> = (0..seq.len()).collect();
 
             if let Some(processed_sites) = processed_positions.get(chrom) {
                 for i in all_sites.difference(processed_sites) {
+                    output_records.push(make_empty_record(chrom, i, &seq[*i].to_string()));
                     seq[*i] = NULL;
                 }
             } else {
                 for i in all_sites {
+                    output_records.push(make_empty_record(chrom, &i, &seq[i].to_string()));
                     seq[i] = NULL;
                 }
             }

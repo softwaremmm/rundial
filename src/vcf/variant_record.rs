@@ -286,7 +286,8 @@ impl VariantRecord {
     ///
     /// This also updates the format field
     pub fn set_genotype(&mut self, genotype: Genotype) {
-        self.format["GT"] = RecordValue::String(genotype.to_string());
+        self.format
+            .insert("GT".to_string(), RecordValue::String(genotype.to_string()));
         self.genotype = Some(genotype);
     }
 
