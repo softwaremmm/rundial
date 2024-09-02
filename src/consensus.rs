@@ -74,6 +74,13 @@ fn apply_variant(
                 sites_set.insert(pos + i);
             }
         }
+        Change::HetMask => {
+            assert!(classification.ref_bases.len() == classification.new_bases.len());
+            for (i, base) in classification.new_bases.chars().enumerate() {
+                chrom_seq[pos + i] = base;
+                sites_set.insert(pos + i);
+            }
+        }
         Change::Ref => {
             for i in 0..classification.ref_bases.len() {
                 if processed_sites.contains_loc(chrom, &(pos + i)) {
@@ -176,6 +183,7 @@ fn overlaps(this: &Classification, other: &Classification) -> bool {
         // deletion at base 2-3 would be 2.0-3.0
         return match c.change {
             Change::Null
+            | Change::HetMask
             | Change::Ref
             | Change::Snp
             | Change::Mnp

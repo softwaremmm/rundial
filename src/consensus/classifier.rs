@@ -88,6 +88,7 @@ fn simplify_ref_alt(ref_bases: &str, alt_bases: &str) -> (usize, String, String)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Change {
     Null,
+    HetMask,
     Ref,
     Snp,
     Del,
@@ -98,9 +99,12 @@ pub enum Change {
 }
 impl Change {
     pub fn from_ref_alt(ref_bases: &str, alt_bases: &str) -> Self {
+        if alt_bases.chars().any(|c| c == HET) {
+            return Change::HetMask;
+        }
         if alt_bases
             .chars()
-            .any(|c| [NULL, FILTERED, HET, MASKED].contains(&c))
+            .any(|c| [NULL, FILTERED, MASKED].contains(&c))
         {
             return Change::Null;
         }
@@ -286,7 +290,7 @@ impl Classifier {
 
                 match het_option {
                     HetOption::Mask => {
-                        classification.change = Change::Null;
+                        classification.change = Change::HetMask;
                         classification.new_bases = repeat_char(HET, record.ref_bases.len());
                     }
                     HetOption::Ref if i == 0 || j == 0 => {

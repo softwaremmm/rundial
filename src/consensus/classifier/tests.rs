@@ -60,7 +60,7 @@ fn test_change_from_ref_alt() {
     assert_eq!(Change::from_ref_alt("A", "N"), Change::Null);
     assert_eq!(Change::from_ref_alt("A", "AN"), Change::Null);
     assert_eq!(Change::from_ref_alt("A", "AF"), Change::Null);
-    assert_eq!(Change::from_ref_alt("A", "ZZ"), Change::Null);
+    assert_eq!(Change::from_ref_alt("A", "ZZ"), Change::HetMask);
     assert_eq!(Change::from_ref_alt("A", "MA"), Change::Null);
     assert_eq!(Change::from_ref_alt("N", "N"), Change::Null);
 
@@ -318,7 +318,7 @@ fn test_classify_het() {
             pos: (snp_record.pos - 1) as usize,
             ref_bases: "T".to_string(),
             new_bases: "Z".to_string(),
-            change: Change::Null,
+            change: Change::HetMask,
             is_het: true,
             has_minor_population: false,
             is_filtered: false,
@@ -337,7 +337,7 @@ fn test_classify_het() {
             pos: (indel_record.pos - 1) as usize,
             ref_bases: "TAA".to_string(),
             new_bases: "ZZZ".to_string(),
-            change: Change::Null,
+            change: Change::HetMask,
             is_het: true,
             has_minor_population: false,
             is_filtered: false,

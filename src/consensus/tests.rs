@@ -47,9 +47,17 @@ fn test_apply_null_variant() {
     assert_eq!(chrom_seq, "AAANA");
     assert_eq!(set_sites, HashSet::from([3]));
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Null, "AAA", "ZZZ");
-    assert_eq!(chrom_seq, "AAAZZ");
+    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Null, "AAA", "FFF");
+    assert_eq!(chrom_seq, "AAAFF");
     assert_eq!(set_sites, HashSet::from([3, 4]));
+}
+
+#[test]
+fn test_apply_hetmask_variant() {
+    let (chrom_seq, set_sites) =
+        test_apply("AAAAA", vec![0, 1, 2], 2, Change::HetMask, "AAA", "ZZZ");
+    assert_eq!(chrom_seq, "AAZZZ");
+    assert_eq!(set_sites, HashSet::from([2, 3, 4]));
 }
 
 #[test]
