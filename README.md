@@ -25,3 +25,18 @@ ACCCC -> ACC (pos 2338194) => CC -> "" (pos 2338198)
 
 
 However, the front base is special, as it should normally refer to a base which is not affected by the indel (in a normalised form). So AAAA -> AA should have the effect of A--A
+
+## Row preference
+The way in which rows of the vcf are applied depends on the priority placed on the different kind of changes. This is were all the subtle errors come about.
+
+One quirk to be aware is that passed indels trump filtered ref calls. So if you have a potential deletion with GT 0/0 followed by a single base ref call with some filter like STRAND_BIAS. The resulting base call will be ref rather than F.
+
+Current ordering (Note being het have effect):
+1. Filtered Null call
+2. Filtered indel
+3. Filtered snp/ref 
+4. Passed Null call
+5. Passed homologous ref call indel (indel with gt 0/0)
+6. Passed homologous ref call 
+7. Passed indel
+8. Passed snp
