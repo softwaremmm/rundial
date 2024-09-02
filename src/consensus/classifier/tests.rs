@@ -164,9 +164,30 @@ fn test_classify_simple() {
             has_indel_alleles: false,
         }
     );
+
+    // Ref indel case
     let mut record = VariantRecord::from_string(
         &header,
         "ref\t1\tid\tT\tTA\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,1",
+    )
+    .unwrap();
+    assert_eq!(
+        c.classify(&mut record),
+        Classification {
+            pos: (record.pos - 1) as usize + 1,
+            ref_bases: "".to_string(),
+            new_bases: "".to_string(),
+            change: Change::Ref,
+            is_het: false,
+            has_minor_population: false,
+            is_filtered: false,
+            has_indel_alleles: true,
+        }
+    );
+    // Ref indel non standard case
+    let mut record = VariantRecord::from_string(
+        &header,
+        "ref\t1\tid\tT\tCA\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,1",
     )
     .unwrap();
     assert_eq!(
@@ -334,9 +355,9 @@ fn test_classify_het() {
     assert_eq!(
         c.classify(&mut indel_record),
         Classification {
-            pos: (indel_record.pos - 1) as usize,
-            ref_bases: "TAA".to_string(),
-            new_bases: "ZZZ".to_string(),
+            pos: (indel_record.pos - 1) as usize + 1,
+            ref_bases: "AA".to_string(),
+            new_bases: "ZZ".to_string(),
             change: Change::HetMask,
             is_het: true,
             has_minor_population: false,

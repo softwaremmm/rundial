@@ -254,6 +254,17 @@ impl Classifier {
                 });
         }
 
+        /// Indel is standard if ref and all alts start with the same base
+        /// idea being that first base is not really part of the change
+        fn is_standard_indel(ref_bases: &str, alt_bases: &[String]) -> bool {
+            if let Some(first_base) = ref_bases.chars().next() {
+                if alt_bases.iter().all(|alt| alt.starts_with(first_base)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // If filtered, just mask the site
         if classification.is_filtered {
             classification.change = Change::Null;
@@ -273,7 +284,18 @@ impl Classifier {
             }
             (0, 0) => {
                 classification.change = Change::Ref;
-                classification.new_bases = record.ref_bases.clone();
+                if classification.has_indel_alleles
+                    && is_standard_indel(&record.ref_bases, &record.alt)
+                {
+                    classification.ref_bases = record
+                        .ref_bases
+                        .chars()
+                        .skip(1)
+                        .collect::<String>()
+                        .to_string();
+                    classification.pos += 1;
+                }
+                classification.new_bases = classification.ref_bases.clone();
             }
             (i, j) if i == j => {
                 classification
@@ -291,7 +313,20 @@ impl Classifier {
                 match het_option {
                     HetOption::Mask => {
                         classification.change = Change::HetMask;
-                        classification.new_bases = repeat_char(HET, record.ref_bases.len());
+
+                        if classification.has_indel_alleles
+                            && is_standard_indel(&record.ref_bases, &record.alt)
+                        {
+                            classification.ref_bases = record
+                                .ref_bases
+                                .chars()
+                                .skip(1)
+                                .collect::<String>()
+                                .to_string();
+                            classification.pos += 1;
+                        }
+
+                        classification.new_bases = repeat_char(HET, classification.ref_bases.len());
                     }
                     HetOption::Ref if i == 0 || j == 0 => {
                         classification.change = Change::Ref;

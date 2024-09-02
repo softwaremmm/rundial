@@ -73,6 +73,11 @@ fn test_apply_ref_variant() {
     let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Ref, "AAA", "AAA");
     assert_eq!(chrom_seq, "AAAAA");
     assert_eq!(set_sites, HashSet::from([3, 4]));
+
+    // empty change
+    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Ref, "", "");
+    assert_eq!(chrom_seq, "AAAAA");
+    assert_eq!(set_sites, HashSet::from([]));
 }
 
 #[test]
