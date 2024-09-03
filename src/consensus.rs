@@ -8,11 +8,16 @@ use std::{
 };
 
 use niffler;
+use noodles::fasta::record::Sequence;
 
 use crate::vcf::vcf_header::{HeaderLine, HeaderNumber, HeaderType};
-use crate::vcf::{RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
-use bio::io::fasta;
+use crate::vcf::{Genotype, RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
+
 use indexmap::IndexMap;
+use noodles::fasta::{
+    self as noodles_fasta,
+    record::{Definition, Record},
+};
 use ordered_float::OrderedFloat;
 
 pub use parameter_struct::{ConsensusParams, GenomeCreationReport, HetOption, SequencingQuality};
@@ -65,6 +70,13 @@ fn apply_variant(
                 if processed_sites.contains_loc(chrom, &(pos + i)) {
                     continue;
                 }
+                chrom_seq[pos + i] = base;
+                sites_set.insert(pos + i);
+            }
+        }
+        Change::HetMask => {
+            assert!(classification.ref_bases.len() == classification.new_bases.len());
+            for (i, base) in classification.new_bases.chars().enumerate() {
                 chrom_seq[pos + i] = base;
                 sites_set.insert(pos + i);
             }
@@ -135,25 +147,21 @@ fn score_variant(
 ) -> (i32, i32, OrderedFloat<f32>, i32) {
     let filter_score = if !classification.is_filtered { 2 } else { 0 };
 
-    // snps (and het snps) > indels > hom ref snp > hom ref indel > null gt calls
-    let type_score = {
-        if let Some(gt) = record.genotype() {
-            if gt.is_null() {
-                0
-            } else if gt.is_hom_ref() {
-                if classification.has_indel_alleles {
-                    1
-                } else {
-                    2
-                }
-            } else if classification.has_indel_alleles {
-                3
-            } else {
-                4
-            }
-        } else {
-            0
-        }
+    // If filtered, then snps > indels > null gt calls
+    // otherwise: snps (and het snps) > indels > hom ref snp > hom ref indel > null gt calls
+    let type_score = match (
+        classification.is_filtered,
+        record.genotype(),
+        classification.has_indel_alleles,
+    ) {
+        (_, None, _) => 0,
+        (_, Some(gt), _) if gt.is_null() => 0,
+        (true, _, true) => 1,
+        (true, _, false) => 2,
+        (false, Some(gt), true) if gt.is_hom_ref() => 1,
+        (false, Some(gt), false) if gt.is_hom_ref() => 2,
+        (false, _, true) => 3,
+        (false, _, false) => 4,
     };
 
     let qual_score = match record.qual {
@@ -175,6 +183,7 @@ fn overlaps(this: &Classification, other: &Classification) -> bool {
         // deletion at base 2-3 would be 2.0-3.0
         return match c.change {
             Change::Null
+            | Change::HetMask
             | Change::Ref
             | Change::Snp
             | Change::Mnp
@@ -503,11 +512,16 @@ fn read_fasta(fasta_file: &str) -> Result<HashMap<String, Vec<char>>> {
         )
     })?;
     let buf_reader = BufReader::new(reader);
-    let fasta_reader = fasta::Reader::new(buf_reader);
+    let mut fasta_reader = noodles_fasta::Reader::new(buf_reader);
     for record in fasta_reader.records() {
         let record = record?;
-        let chrom = record.id().to_string();
-        let seq: Vec<char> = record.seq().iter().map(|c| *c as char).collect();
+        let chrom = String::from_utf8_lossy(record.definition().name()).to_string();
+        let seq: Vec<char> = record
+            .sequence()
+            .as_ref()
+            .iter()
+            .map(|c| *c as char)
+            .collect();
         consensus.insert(chrom, seq);
     }
 
@@ -534,10 +548,13 @@ fn potentially_gzipped_writer(file: &str) -> Result<Box<dyn Write>> {
 }
 
 fn save_fasta(consensus: &HashMap<String, Vec<char>>, output_file: &str) -> Result<()> {
-    let mut writer = fasta::Writer::new(potentially_gzipped_writer(output_file)?);
+    let mut writer = noodles_fasta::Writer::new(potentially_gzipped_writer(output_file)?);
 
     for (chrom, seq) in consensus.iter() {
-        writer.write(chrom, None, seq.iter().collect::<String>().as_bytes())?;
+        let definition = Definition::new(chrom.clone(), None);
+        let sequence = Sequence::from(seq.iter().collect::<String>().as_bytes().to_vec());
+        let record = Record::new(definition, sequence);
+        writer.write_record(&record)?;
     }
     return Ok(());
 }
@@ -612,10 +629,7 @@ fn write_vcf(
 
     // Copy filters from main and support vcf
     for file in [Some(main_vcf), support_vcf].iter().flatten() {
-        let reader =
-            VCFReader::new(BufReader::new(File::open(file).map_err(|e| {
-                format!("Failed to read input vcf file: {}. Error: {}", file, e)
-            })?))?;
+        let reader = VCFReader::from_path(file)?;
         for line in reader.header().lines.iter() {
             if matches!(line, HeaderLine::Filter(_)) {
                 header.add_header_line(line.clone());
@@ -683,10 +697,20 @@ fn write_vcf(
         }
 
         let mut format = IndexMap::new();
-        format.insert("GT".to_owned(), record.format.get("GT").unwrap().clone());
-        if let Some(dp) = record.depth() {
-            format.insert("DP".to_owned(), RecordValue::Integer(*dp));
-        }
+        format.insert(
+            "GT".to_owned(),
+            RecordValue::String(record.genotype().unwrap().to_string()),
+        );
+
+        format.insert(
+            "DP".to_owned(),
+            if let Some(dp) = record.depth() {
+                RecordValue::Integer(*dp)
+            } else {
+                RecordValue::Integer(0)
+            },
+        );
+
         if let Some((adf, adr)) = record.strand_depths() {
             format.insert("ADF".to_owned(), RecordValue::IntegerArray(adf.clone()));
             format.insert("ADR".to_owned(), RecordValue::IntegerArray(adr.clone()));
@@ -773,16 +797,41 @@ pub fn make_consensus(
         het_sites.extend_chrom(&chrom, sites);
     }
 
+    fn make_empty_record(chrom: &str, pos: &usize, ref_bases: &str) -> VariantRecord {
+        let mut record = VariantRecord::empty_record();
+        record.chrom = chrom.to_owned();
+        record.pos = *pos as u32 + 1;
+        record.ref_bases = ref_bases.to_owned();
+        record.set_genotype(Genotype::new());
+        record
+            .info
+            .insert("DP".to_string(), RecordValue::Integer(0));
+        record
+            .info
+            .insert("ADF".to_string(), RecordValue::IntegerArray(vec![0]));
+        record
+            .info
+            .insert("ADR".to_string(), RecordValue::IntegerArray(vec![0]));
+        record
+            .format
+            .insert("AD".to_string(), RecordValue::IntegerArray(vec![0]));
+        record.update_depths();
+        return record;
+    }
+
+    // Mask missing sites
     if params.mask_missing_sites {
         for (chrom, seq) in consensus.iter_mut() {
             let all_sites: HashSet<usize> = (0..seq.len()).collect();
 
             if let Some(processed_sites) = processed_positions.get(chrom) {
                 for i in all_sites.difference(processed_sites) {
+                    output_records.push(make_empty_record(chrom, i, &seq[*i].to_string()));
                     seq[*i] = NULL;
                 }
             } else {
                 for i in all_sites {
+                    output_records.push(make_empty_record(chrom, &i, &seq[i].to_string()));
                     seq[i] = NULL;
                 }
             }
@@ -793,7 +842,7 @@ pub fn make_consensus(
 
     write_creation_report(
         &consensus,
-        Some(het_sites.len() as i32),
+        Some(het_sites.values().map(|s| s.len()).sum::<usize>() as i32),
         &(output_root.to_owned() + ".report.json"),
     )?;
 

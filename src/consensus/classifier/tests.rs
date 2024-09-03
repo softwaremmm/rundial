@@ -30,12 +30,28 @@ fn test_simplify_ref_alt() {
         (2, "".to_string(), "TCG".to_string())
     );
     assert_eq!(
+        simplify_ref_alt("AC", "ACTCGC"),
+        (1, "".to_string(), "CTCG".to_string())
+    );
+    assert_eq!(
         simplify_ref_alt("TTAC", "TTG"),
         (2, "AC".to_string(), "G".to_string())
     );
     assert_eq!(
         simplify_ref_alt("TTAC", "TTA"),
         (3, "C".to_string(), "".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("ATTTT", "ATT"),
+        (1, "TT".to_string(), "".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("TTTTA", "TTA"),
+        (1, "TT".to_string(), "".to_string())
+    );
+    assert_eq!(
+        simplify_ref_alt("TTTTAC", "TTA"),
+        (2, "TTAC".to_string(), "A".to_string())
     );
 }
 
@@ -44,7 +60,7 @@ fn test_change_from_ref_alt() {
     assert_eq!(Change::from_ref_alt("A", "N"), Change::Null);
     assert_eq!(Change::from_ref_alt("A", "AN"), Change::Null);
     assert_eq!(Change::from_ref_alt("A", "AF"), Change::Null);
-    assert_eq!(Change::from_ref_alt("A", "ZZ"), Change::Null);
+    assert_eq!(Change::from_ref_alt("A", "ZZ"), Change::HetMask);
     assert_eq!(Change::from_ref_alt("A", "MA"), Change::Null);
     assert_eq!(Change::from_ref_alt("N", "N"), Change::Null);
 
@@ -148,9 +164,30 @@ fn test_classify_simple() {
             has_indel_alleles: false,
         }
     );
+
+    // Ref indel case
     let mut record = VariantRecord::from_string(
         &header,
         "ref\t1\tid\tT\tTA\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,1",
+    )
+    .unwrap();
+    assert_eq!(
+        c.classify(&mut record),
+        Classification {
+            pos: (record.pos - 1) as usize + 1,
+            ref_bases: "".to_string(),
+            new_bases: "".to_string(),
+            change: Change::Ref,
+            is_het: false,
+            has_minor_population: false,
+            is_filtered: false,
+            has_indel_alleles: true,
+        }
+    );
+    // Ref indel non standard case
+    let mut record = VariantRecord::from_string(
+        &header,
+        "ref\t1\tid\tT\tCA\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,1",
     )
     .unwrap();
     assert_eq!(
@@ -302,7 +339,7 @@ fn test_classify_het() {
             pos: (snp_record.pos - 1) as usize,
             ref_bases: "T".to_string(),
             new_bases: "Z".to_string(),
-            change: Change::Null,
+            change: Change::HetMask,
             is_het: true,
             has_minor_population: false,
             is_filtered: false,
@@ -318,10 +355,10 @@ fn test_classify_het() {
     assert_eq!(
         c.classify(&mut indel_record),
         Classification {
-            pos: (indel_record.pos - 1) as usize,
-            ref_bases: "TAA".to_string(),
-            new_bases: "ZZZ".to_string(),
-            change: Change::Null,
+            pos: (indel_record.pos - 1) as usize + 1,
+            ref_bases: "AA".to_string(),
+            new_bases: "ZZ".to_string(),
+            change: Change::HetMask,
             is_het: true,
             has_minor_population: false,
             is_filtered: false,

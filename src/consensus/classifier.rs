@@ -1,3 +1,5 @@
+use std::iter;
+
 use crate::vcf::VariantRecord;
 
 use super::{Bed, ConsensusParams, HetOption};
@@ -7,13 +9,63 @@ pub fn repeat_char(c: char, n: usize) -> String {
     std::iter::repeat(c).take(n).collect()
 }
 
-/// Simplifies ref-alt pair by removing matching leading bases
+/// Simplifies ref-alt pair by removing matching trailing and leading bases.
+/// 1. Removes shared first base if the same
+/// 2. Removes all shared trailing bases
+/// 3. Removes all shared leading bases
+///
+/// Returns the number of leading bases removed, the new ref and alt strings
 fn simplify_ref_alt(ref_bases: &str, alt_bases: &str) -> (usize, String, String) {
     let mut new_ref = "".to_string();
     let mut new_alt = "".to_string();
     let mut ref_iter = ref_bases.chars();
     let mut alt_iter = alt_bases.chars();
+    let mut final_char_ref: Option<char> = None;
+    let mut final_char_alt: Option<char> = None;
     let mut counter = 0;
+
+    // Remove shared first base as a special check first
+    if let (Some(r), Some(c)) = (ref_bases.chars().next(), alt_bases.chars().next()) {
+        if r == c {
+            counter += 1;
+            ref_iter.next();
+            alt_iter.next();
+        }
+    } else {
+        // If one is empty then no change to make
+        return (0, ref_bases.to_string(), alt_bases.to_string());
+    }
+
+    // Remove matching trailing bases
+    let mut ref_iter = ref_iter.rev();
+    let mut alt_iter = alt_iter.rev();
+    for r in ref_iter.by_ref() {
+        if let Some(c) = alt_iter.next() {
+            if r == c {
+                continue;
+            }
+            final_char_ref = Some(r);
+            final_char_alt = Some(c);
+            break;
+        }
+        final_char_ref = Some(r);
+        break;
+    }
+
+    // Reverse iterators to original order and add final chars
+    let mut ref_iter: Box<dyn Iterator<Item = char>> = if let Some(c) = final_char_ref {
+        Box::new(ref_iter.rev().chain(iter::once(c)))
+    } else {
+        Box::new(ref_iter.rev())
+    };
+
+    let mut alt_iter: Box<dyn Iterator<Item = char>> = if let Some(c) = final_char_alt {
+        Box::new(alt_iter.rev().chain(iter::once(c)))
+    } else {
+        Box::new(alt_iter.rev())
+    };
+
+    // Remove matching leading bases
     for r in ref_iter.by_ref() {
         if let Some(c) = alt_iter.next() {
             if r == c {
@@ -29,12 +81,14 @@ fn simplify_ref_alt(ref_bases: &str, alt_bases: &str) -> (usize, String, String)
     }
     new_ref.extend(ref_iter);
     new_alt.extend(alt_iter);
+
     (counter, new_ref, new_alt)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Change {
     Null,
+    HetMask,
     Ref,
     Snp,
     Del,
@@ -45,9 +99,12 @@ pub enum Change {
 }
 impl Change {
     pub fn from_ref_alt(ref_bases: &str, alt_bases: &str) -> Self {
+        if alt_bases.chars().any(|c| c == HET) {
+            return Change::HetMask;
+        }
         if alt_bases
             .chars()
-            .any(|c| [NULL, FILTERED, HET, MASKED].contains(&c))
+            .any(|c| [NULL, FILTERED, MASKED].contains(&c))
         {
             return Change::Null;
         }
@@ -197,6 +254,17 @@ impl Classifier {
                 });
         }
 
+        /// Indel is standard if ref and all alts start with the same base
+        /// idea being that first base is not really part of the change
+        fn is_standard_indel(ref_bases: &str, alt_bases: &[String]) -> bool {
+            if let Some(first_base) = ref_bases.chars().next() {
+                if alt_bases.iter().all(|alt| alt.starts_with(first_base)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // If filtered, just mask the site
         if classification.is_filtered {
             classification.change = Change::Null;
@@ -216,7 +284,18 @@ impl Classifier {
             }
             (0, 0) => {
                 classification.change = Change::Ref;
-                classification.new_bases = record.ref_bases.clone();
+                if classification.has_indel_alleles
+                    && is_standard_indel(&record.ref_bases, &record.alt)
+                {
+                    classification.ref_bases = record
+                        .ref_bases
+                        .chars()
+                        .skip(1)
+                        .collect::<String>()
+                        .to_string();
+                    classification.pos += 1;
+                }
+                classification.new_bases = classification.ref_bases.clone();
             }
             (i, j) if i == j => {
                 classification
@@ -233,8 +312,21 @@ impl Classifier {
 
                 match het_option {
                     HetOption::Mask => {
-                        classification.change = Change::Null;
-                        classification.new_bases = repeat_char(HET, record.ref_bases.len());
+                        classification.change = Change::HetMask;
+
+                        if classification.has_indel_alleles
+                            && is_standard_indel(&record.ref_bases, &record.alt)
+                        {
+                            classification.ref_bases = record
+                                .ref_bases
+                                .chars()
+                                .skip(1)
+                                .collect::<String>()
+                                .to_string();
+                            classification.pos += 1;
+                        }
+
+                        classification.new_bases = repeat_char(HET, classification.ref_bases.len());
                     }
                     HetOption::Ref if i == 0 || j == 0 => {
                         classification.change = Change::Ref;

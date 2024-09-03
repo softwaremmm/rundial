@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::{fs, io::Read};
 
 use super::*;
 use crate::vcf::variant_record::tests::standard_header;
@@ -47,9 +47,17 @@ fn test_apply_null_variant() {
     assert_eq!(chrom_seq, "AAANA");
     assert_eq!(set_sites, HashSet::from([3]));
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Null, "AAA", "ZZZ");
-    assert_eq!(chrom_seq, "AAAZZ");
+    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Null, "AAA", "FFF");
+    assert_eq!(chrom_seq, "AAAFF");
     assert_eq!(set_sites, HashSet::from([3, 4]));
+}
+
+#[test]
+fn test_apply_hetmask_variant() {
+    let (chrom_seq, set_sites) =
+        test_apply("AAAAA", vec![0, 1, 2], 2, Change::HetMask, "AAA", "ZZZ");
+    assert_eq!(chrom_seq, "AAZZZ");
+    assert_eq!(set_sites, HashSet::from([2, 3, 4]));
 }
 
 #[test]
@@ -65,6 +73,11 @@ fn test_apply_ref_variant() {
     let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Ref, "AAA", "AAA");
     assert_eq!(chrom_seq, "AAAAA");
     assert_eq!(set_sites, HashSet::from([3, 4]));
+
+    // empty change
+    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Ref, "", "");
+    assert_eq!(chrom_seq, "AAAAA");
+    assert_eq!(set_sites, HashSet::from([]));
 }
 
 #[test]
@@ -363,8 +376,9 @@ fn test_score_variants() {
         let classification = classifier.classify(&mut record);
         return score_variant(&record, &classification);
     };
-    let filter_score =
-        record_to_score("ref\t1\tid\tTCG\tTAC\t244.589\tFILTER\tDP=28\tGT:AD\t./.:0,28");
+    let filter_indel =
+        record_to_score("ref\t1\tid\tTCG\tTAC\t244.589\tFILTER\tDP=28\tGT:AD\t0/0:0,28");
+    let filter_snp = record_to_score("ref\t1\tid\tT\tC\t244.589\tFILTER\tDP=28\tGT:AD\t0/0:0,28");
     let null_score = record_to_score("ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t./.:0,28");
     let ref_indel_score =
         record_to_score("ref\t1\tid\tTCG\tT\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,0");
@@ -375,7 +389,8 @@ fn test_score_variants() {
         record_to_score("ref\t1\tid\tT\tC\t2440.589\tPASS\tDP=28\tGT:AD\t1/1:28,0");
     let high_dp_score =
         record_to_score("ref\t1\tid\tT\tC\t2440.589\tPASS\tDP=280\tGT:AD\t1/1:28,0");
-    assert!(filter_score < null_score);
+    assert!(filter_indel < filter_snp);
+    assert!(filter_snp < null_score);
     assert!(null_score < ref_indel_score);
     assert!(ref_indel_score < ref_snp_score);
     assert!(ref_snp_score < indel_score);
@@ -443,6 +458,23 @@ fn test_read_write_fasta() {
     save_fasta(&seq, "tests/test_outputs/saved.fasta").unwrap();
     let seq2 = read_fasta("tests/test_outputs/saved.fasta").unwrap();
     assert_eq!(seq, seq2);
+}
+
+#[test]
+fn test_read_write_fasta_multiline() {
+    let seq = read_fasta("test_data/multiline.fasta").unwrap();
+    assert_eq!(
+        seq,
+        HashMap::from([
+            ("chrom_1".to_string(), "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT".chars().collect()),
+        ])
+    );
+
+    save_fasta(&seq, "tests/test_outputs/saved_multiline.fasta").unwrap();
+    // Check that the saved file is the same as the original from actual lines
+    let original = fs::read_to_string("test_data/multiline.fasta").unwrap();
+    let saved = fs::read_to_string("tests/test_outputs/saved_multiline.fasta").unwrap();
+    assert_eq!(original, saved);
 }
 
 #[test]
