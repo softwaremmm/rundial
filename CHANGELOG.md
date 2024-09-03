@@ -1,3 +1,16 @@
+## 0.4.2 (2024-09-03)
+
+### Fix
+
+- standard indels do not impact first base
+- output lines for missing sites
+- het masks come from passed changes so bump priority
+- filtered snps/ref beat filtered indels
+- correct simplifying ref alt logic
+- change fasta parser so that prints max 80 a line
+- test genome creation report
+- allow ploidy 1 genotypes
+
 ## 0.4.1 (2024-08-29)
 
 ### Fix

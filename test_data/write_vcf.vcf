@@ -1,5 +1,5 @@
 ##fileformat=VCFv4.2
-##rundial_consensus_version=0.4.1
+##rundial_consensus_version=0.4.2
 ##FILTER=<ID=INVALID_INDEL,Description="Call is indel but has no ALT alleles.">
 ##FILTER=<ID=LOW_HQ_DEPTH,Description="High quality depth is less than 5">
 ##FILTER=<ID=LOW_MQ,Description="Mapping Quality. MQ is less than 30">
