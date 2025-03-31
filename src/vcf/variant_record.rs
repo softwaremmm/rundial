@@ -33,24 +33,24 @@ pub struct VariantRecord {
 }
 
 // Implementing PartialEq, Eq, and Hash for References to VariantRecord
-impl<'a> PartialEq for &'a VariantRecord {
+impl PartialEq for &VariantRecord {
     fn eq(&self, other: &Self) -> bool {
         return std::ptr::eq(*self, *other);
     }
 }
-impl<'a> Eq for &'a VariantRecord {}
-impl<'a> Hash for &'a VariantRecord {
+impl Eq for &VariantRecord {}
+impl Hash for &VariantRecord {
     fn hash<H: Hasher>(&self, state: &mut H) {
         std::ptr::hash(*self, state);
     }
 }
-impl<'a> PartialEq for &'a mut VariantRecord {
+impl PartialEq for &mut VariantRecord {
     fn eq(&self, other: &Self) -> bool {
         return std::ptr::eq(*self, *other);
     }
 }
-impl<'a> Eq for &'a mut VariantRecord {}
-impl<'a> Hash for &'a mut VariantRecord {
+impl Eq for &mut VariantRecord {}
+impl Hash for &mut VariantRecord {
     fn hash<H: Hasher>(&self, state: &mut H) {
         std::ptr::hash(*self, state);
     }
@@ -250,13 +250,23 @@ impl VariantRecord {
             record.format = str_to_format(header, fields[8], fields[9])?;
 
             // find genotypes
-            if let Some(RecordValue::String(genotype_str)) = record.format.get("GT") {
-                record.genotype = Some(Genotype::from_string(genotype_str)?);
-            } else {
-                return Err(VCFError::InvalidRecord(format!(
-                    "Genotype field not found in VCF row: {line}"
-                ))
-                .into());
+            match record.format.get("GT") {
+                Some(RecordValue::String(genotype_str)) => {
+                    record.genotype = Some(Genotype::from_string(genotype_str)?);
+                }
+                Some(RecordValue::Missing) => {
+                    // Missing genotype
+                    record.genotype = Some(Genotype {
+                        allele1: -1,
+                        allele2: -1,
+                    });
+                }
+                _ => {
+                    return Err(VCFError::InvalidRecord(format!(
+                        "Genotype field not found in VCF row: {line}"
+                    ))
+                    .into());
+                }
             }
 
             if fields.len() > 10 {
