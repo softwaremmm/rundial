@@ -2,7 +2,7 @@
 process apply_filters {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial =="" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.5.0' : params.test_container_rundial
+        params.test_container_rundial =="" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.4.2' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:apply_filters"
@@ -32,7 +32,7 @@ process apply_filters {
 process make_consensus {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial =="" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.5.0' : params.test_container_rundial
+        params.test_container_rundial =="" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.4.2' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:make_consensus"
@@ -79,7 +79,7 @@ process make_consensus {
 process make_clair3_consensus {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial =="" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.5.0' : params.test_container_rundial
+        params.test_container_rundial =="" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.4.2' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:make_clair3_consensus"

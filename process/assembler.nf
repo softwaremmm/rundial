@@ -6,7 +6,7 @@ process minimap2 {
         params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
     }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.5.0' : params.test_container_rundial
+        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.4.2' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:minimap2"
@@ -33,7 +33,7 @@ process call_snps {
         params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
     }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.5.0' : params.test_container_rundial
+        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.4.2' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:call_snps"
@@ -101,7 +101,7 @@ process call_all {
         params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
     }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.5.0' : params.test_container_rundial
+        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.4.2' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:call_all"
@@ -176,7 +176,7 @@ process call_all {
 
 process get_clair3_model {
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.5.0' : params.test_container_rundial
+        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:0.4.2' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:get_clair3_model"
