@@ -1,0 +1,4 @@
+parameters:
+  MIN_DP: 5
+  MIN_QUAL: 2 # based on QUAL column
+  MIN_FRS: 0.80 # min fraction of reads supporting variant
