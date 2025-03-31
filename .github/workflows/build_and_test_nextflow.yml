@@ -1,0 +1,49 @@
+name: Build and Test
+run-name: Build docker container and tests Nextflow
+# This workflow allows for testing changes on a PR before being merged
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  build_and_test:
+    runs-on: self-hosted # Uses https://github.com/GlobalPathogenAnalysisService/git_runners
+
+    steps:
+      - name: clean up # nf-test needs to sudo to remove, so will fail automatic cleanup
+        run: |
+          ls -al
+          sudo rm -rf .nf-test || true
+          sudo rm -rf tests || true
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to OCR
+        uses: docker/login-action@v2
+        with:
+          registry: lhr.ocir.io
+          username: ${{ secrets.OCR_USERNAME }}
+          password: ${{ secrets.OCR_TOKEN }}
+
+      - name: Build docker container
+        run: |
+          docker build -t test_container_rundial .
+      - name: Inspect
+        run: |
+          docker image inspect test_container_rundial
+
+      - name: symlink clair3 models
+        run: |
+          ln -s /mnt/portal-sp3dev-knowledge/sundial/clair3_models data/clair3_models
+
+      - name: Run nf-test
+        run: nf-test test tests/nextflow/*nf.test --profile local_docker
+
+      - name: clean up 2 # nf-test needs to sudo to remove, so will fail automatic cleanup
+        if: always()
+        run: |
+          ls -al
+          sudo rm -rf .nf-test || true
+          sudo rm -rf tests || true

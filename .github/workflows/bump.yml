@@ -1,16 +1,18 @@
-name: Bump Version
+name: Bump Version based on commit hash
 
 on:
   push:
     branches:
-      - main
+      - develop
 
 jobs:
-  bump-version:
+  bump:
     if: ${{ ! startsWith(github.event.head_commit.message, 'bump:') }}
     runs-on: ubuntu-latest
     permissions: write-all # Needed for automatic release
-    name: "Bump version and create changelog with commitizen"
+    name: "Bump version"
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
     steps:
       - name: Check out
         uses: actions/checkout@v4
@@ -18,20 +20,40 @@ jobs:
           token: "${{ secrets.PAT_TOKEN }}"
           fetch-depth: 0
 
-      - name: Create bump and changelog
-        uses: commitizen-tools/commitizen-action@master
+      - name: Install dependencies
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          python3 -m pip install .[dev]
+
+      - name: Get Short Commit SHA
+        id: get-commit-hash
+        run: echo "COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_ENV
+
+      - name: bump version with hash
+        id: bump
+        run: |
+          source venv/bin/activate
+
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          bumper version
+          bumper bump --active --no-tag ${{ env.COMMIT_HASH }}
+          echo "version=$(bumper version --active)" >> $GITHUB_OUTPUT
+
+      - name: push changes
+        uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.PAT_TOKEN }}
-        # This step will add an environment variable REVISION with the new version
-      - name: echo new version
-        run: |
-          echo "$REVISION"
+          tags: true
+          branch: develop
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          generate_release_notes: true
-          tag_name: ${{ env.REVISION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
+  build_container:
+    needs: bump
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build_and_push_container.yml
+    with:
+      tag: ${{ needs.bump.outputs.version }}
+    secrets: inherit

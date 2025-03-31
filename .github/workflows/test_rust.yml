@@ -3,7 +3,7 @@ name: Rust Test
 on:
   pull_request:
     branches:
-      - "**"
+      - "*"
 
 jobs:
   test:
