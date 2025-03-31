@@ -3,7 +3,7 @@ requires = ["setuptools~=68.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sundial"
+name = "rundial"
 version = "0.4.2"
 description = "Reference based assembly of ONT reads."
 classifiers = [
