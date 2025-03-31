@@ -1,0 +1,42 @@
+nextflow_workflow {
+    name "Test workflow rundial_with_bcftools"
+    script "main.nf"
+    workflow "rundial_with_bcftools"
+
+    test("Workflow runs successfully") {
+        when {
+            workflow{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/ont_simple.fastq.gz")]
+                input[1] = "$projectDir/data/h37rv_20231215.fa.gz"
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.out.full_consensus[0][1].contains('final.full.fasta')
+            assert workflow.out.final_fasta[0][1].contains('final.fasta')
+            assert workflow.out.final_vcf[0][1].contains('final.vcf')
+            assert workflow.out.full_vcf[0][1].contains('final.full.vcf')
+            assert workflow.out.sundial_report_json[0][1].contains('genome_creation_report.json')
+        }
+    }
+
+
+    test("Workflow should generate error if files do not exist") {
+        when {
+            workflow{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/non_existent.fastq.gz")]
+                input[1] = "$projectDir/data/h37rv_20231215.fa.gz"
+                """
+            }
+        }
+
+        then {
+            assert workflow.failed
+        }
+    }
+
+}

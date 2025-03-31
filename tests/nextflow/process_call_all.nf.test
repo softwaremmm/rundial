@@ -1,0 +1,64 @@
+nextflow_process {
+    name "Test Process Call all"
+    script "process/assembler.nf"
+    process "call_all"
+
+    test("Process run successfully and produce vcfs") {
+        when {
+            params {
+                test_cpus = 1
+            }
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam")]
+                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.variants[0][1].contains('calls.raw_variants.vcf.gz')
+            assert process.out.gvcf[0][1].contains('calls.gvcf.gz')
+            assert path(process.out.gvcf[0][1]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/all_calls.gvcf.gz").linesGzip[40..-1]
+        }
+    }
+
+    test("Process run successfully and produce vcfs, multithreaded") {
+        when {
+            params {
+                test_cpus = 2
+            }
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam")]
+                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.variants[0][1].contains('calls.raw_variants.vcf.gz')
+            assert process.out.gvcf[0][1].contains('calls.gvcf.gz')
+            assert path(process.out.gvcf[0][1]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/all_calls.gvcf.gz").linesGzip[40..-1]
+        }
+    }
+
+
+    test("Process should generate error if files do not exist") {
+        when {
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/not_exist.fastq.gz")]
+                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                """
+            }
+        }
+
+        then {
+            assert process.failed
+        }
+    }
+
+}

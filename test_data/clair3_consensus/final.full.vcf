@@ -1,0 +1,56 @@
+##fileformat=VCFv4.2
+##rundial_consensus_version=0.4.2
+##FILTER=<ID=LowQual,Description="Low quality variant">
+##FILTER=<ID=RefCall,Description="Reference call">
+##FILTER=<ID=PASS,Description="All filters passed">
+##FILTER=<ID=HET,Description="Flagged when genotype appears heterozygous due to >= 0.35 fraction support for second allele.">
+##FILTER=<ID=INVALID_INDEL,Description="Call is indel but has no ALT alleles.">
+##FILTER=<ID=MIN_DP,Description="Basic read depth. DP is less than 5">
+##FILTER=<ID=MIN_FRS,Description="Fractional support is less than 0.9">
+##FILTER=<ID=LOW_HQ_DEPTH,Description="High quality depth is less than 5">
+##FILTER=<ID=LOW_MQ,Description="Mapping Quality. MQ is less than 30">
+##FILTER=<ID=LOW_QUAL,Description="QUAL is less than 20.0;25.0">
+##FILTER=<ID=STRAND_BIAS,Description="Require at least 1.00% of hq reads on each strand, for called allele">
+##FILTER=<ID=LOW_VDB,Description="Variant Distance Bias. VDB is less than 1e-05">
+##FILTER=<ID=OVERLAP_BETTER_VARIANT,Description="This variant overlaps with a higher priority variant.">
+##FILTER=<ID=SNP_IN_SUPPORT_VCF,Description="This variant is a SNP in the support VCF, which should only be used for information of nulls.">
+##INFO=<ID=CALLER,Number=1,Type=String,Description="The variant caller that made the call.">
+##INFO=<ID=HET_IN_SUPPORT_VCF,Number=0,Type=Flag,Description="This variant is a HET in the support VCF, which may be undesired.">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Basic depth">
+##FORMAT=<ID=ADF,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles on forward strand">
+##FORMAT=<ID=ADR,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles on reverse strand">
+##FORMAT=<ID=COV,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample
+ref	2	.	T	C	26.01	PASS	CALLER=clair3	GT:DP:COV	1/1:20:0,20
+ref	3	.	T	TAAA	26.01	PASS	.	GT:DP:COV	1/1:20:0,20
+ref	4	.	T	A	225.417	SNP_IN_SUPPORT_VCF	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
+ref	5	.	T	.	244.589	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	./.:28:10:8:18
+ref	6	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	7	.	TTT	T	26.01	PASS	CALLER=clair3	GT:DP:COV	1/1:20:0,20
+ref	10	.	T	A	225.417	SNP_IN_SUPPORT_VCF	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
+ref	11	.	T	.	244.589	STRAND_BIAS	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/0:28:10:8:18
+ref	12	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	13	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	14	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	15	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	16	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	17	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	18	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	19	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	20	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	21	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	22	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	23	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	24	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	25	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	26	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	27	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	28	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	29	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	30	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	31	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	32	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	33	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	34	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	35	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0

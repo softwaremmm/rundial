@@ -1,4 +1,99 @@
+# Rundial
+A rust based program for filtering VCFs and creating consensus genomes.
+Uses the output from bcftools or Clair3.
 
+TODO:
+- BCFTools parallelisation needs fixing
+- Clair3 container needs to be copied
+- adjust params
+
+
+## Dependencies
+* Docker
+* Nextflow
+* Cargo for running rust
+
+### Reference Data
+Need a reference fasta and also clair3 models if using.
+This is included in the `data` folder. Just run `get_clair3_models.sh` to download them.
+
+## Running workflow
+
+Can run with bcftools or with clair3
+```
+nextflow run . --workflow bcftools --input_dir test_data/assemblers --publish_dir results \
+	--ref-fasta data/h37rv_20231215.fa.gz
+
+nextflow run . --workflow clair3 --input_dir test_data/assemblers --publish_dir results \
+	--ref-fasta data/h37rv_20231215.fa.gz --clair3_models_dir data/clair3_models \
+    --basecalling_model dna_r10.4.1_e8.2_400bps_sup@v4.3.0
+```
+
+If using modification may need to rebuild container and use `-profile local_docker`
+```
+docker build -t test_container_rundial .
+```
+
+## Testing
+Can test rust code with:
+```
+cargo test
+```
+
+Can test nextflow with:
+```
+nf-test test tests/nextflow/*.nf.test
+```
+
+You may need to rebuild the container before testing:
+```
+docker build -t test_container_rundial .
+nf-test test tests/nextflow/*.nf.test --profile local_docker
+```
+
+## Parameters and Thresholds
+### Minimap 2
+No secondary alignments are output, and ont standard params are used.
+
+### bcftools
+- Q=10: Min base quality. Only bases above this threshold are counted for AD/ADF/ADR.
+- h=100: homopolymer error coefficient, taken from tbpore.
+- M=1000: Max read length for BAQ algorithm, mainly to stop computation being too great.
+- m: multiallelic caller model is used. Also taken from tbpore.
+
+### Rundial
+Filtering params described [here](process/filter_params.yml) and consensus making params [here](process/consensus_params.yml). Clair3 vcfs have less filtering [here](process/clair3_filter_params.yml).
+Thresholds mainly choosen by trial and error.
+Main filters are:
+- Min read depth of 3, and min high quality depth of 2 (using the Q cut-off from earlier)
+- No Strand bias/mismatch where there are differences between the forward and reverse strand
+
+## Tags, Releases, and Committing
+Use conventional commits. This is enforced with commitizen validate action and pre-commit hooks:
+```bash
+pre-commit install
+```
+
+This repo uses a standard gitflow approach, but with some changes to deal with docker containers in nextflow:
+- There is a pyproject version which should be updated to match semantic version releases (from main/release branches)
+- There is an `active_version` controlled by version_bumper which allows develop to have commit hash based versions.
+- Every push to develop will cause an action to run `bumper bump <commit-hash> --no-tag --active`. This:
+    - bumps the `active_version` in pyproject.toml
+    - bumps the container tag used by nextflow processes
+    - leaves the pyproject version as is
+
+  Another workflow then builds and pushes the new container.\
+  **Important: To deploy this you will need to use the hash of the bump commit, not the hash of the merge commit/container.**
+
+- In a release branch you can create a release candidate with `bumper bump a.b.c-rcX`. This also updates the pyproject version. Pushing the changes and new tag (automatically created) will trigger a build action.
+- When release branch is ready for main run `bumper bump a.b.c --no-tag`. Push these changes to main and make a release there to build the container.
+
+
+---
+---
+
+
+# Details
 
 ### Simplifying indels
 Some indels can be contracted before being applied. This is to help isolate what change the indel row is actually making.
@@ -11,7 +106,7 @@ NC_000962.3     2338196 .       C       .       147.588 STRAND_BIAS     DP=29;AD
 NC_000962.3     2338197 .       C       .       198.589 PASS    DP=41;ADF=3;ADR=11;SCR=50;FS=0;MQ0F=0;AN=2;DP4=3,11,0,0;MQ=60   GT:SP:AD        0/0:0:14
 NC_000962.3     2338198 .       C       .       220.589 PASS    DP=54;ADF=4;ADR=13;SCR=50;FS=0;MQ0F=0;AN=2;DP4=4,13,0,0;MQ=60   GT:SP:AD        0/0:0:17
 ```
-There are 2 C's deleted by the indel. 
+There are 2 C's deleted by the indel.
 
 **But how to make this change?**
 The preference in this code is to remove the first C's as these have fewer reads assigned by bcftools (20/29 instead of 41/54) so this better matches what bcftools is doing.
@@ -34,9 +129,9 @@ One quirk to be aware is that passed indels trump filtered ref calls. So if you 
 Current ordering (Note being het have effect):
 1. Filtered Null call
 2. Filtered indel
-3. Filtered snp/ref 
+3. Filtered snp/ref
 4. Passed Null call
 5. Passed homologous ref call indel (indel with gt 0/0)
-6. Passed homologous ref call 
+6. Passed homologous ref call
 7. Passed indel
 8. Passed snp

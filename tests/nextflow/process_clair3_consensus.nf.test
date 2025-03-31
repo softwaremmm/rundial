@@ -1,0 +1,50 @@
+nextflow_process {
+    name "Test Process make_clair3_consensus"
+    script "process/filter.nf"
+    process "make_clair3_consensus"
+
+    test("Process run successfully and produce consensus") {
+        when {
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/clair3_consensus/bcftools.vcf"), file("$projectDir/test_data/clair3_consensus/clair3.vcf")]
+                input[1] = file("$projectDir/test_data/clair3_consensus/ref.fasta.gz")
+                input[2] = file("$projectDir/test_data/clair3_consensus/consensus_params.yml")
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            with(process.out.final_fasta) {
+                assert get(0)[1].contains('final.fasta')
+                assert path(get(0)[1]).md5 == path("$projectDir/test_data/clair3_consensus/final.fasta").md5
+            }
+            with(process.out.full_consensus) {
+                assert get(0)[1].contains('final.full.fasta')
+                assert path(get(0)[1]).md5 == path("$projectDir/test_data/clair3_consensus/final.full.fasta").md5
+            }
+            with(process.out.full_vcf) {
+                assert get(0)[1].contains('final.full.vcf')
+                assert path(get(0)[1]).md5 == path("$projectDir/test_data/clair3_consensus/final.full.vcf").md5
+            }
+        }
+    }
+
+    test("Process should generate error if files do not exist") {
+        when {
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/non_existent.vcf")]
+                input[1] = file("$projectDir/test_data/test_ref.fasta.gz")
+                input[2] = file("$projectDir/test_data/clair3_consensus/consensus_params.yml")
+                """
+            }
+        }
+
+        then {
+            assert process.failed
+        }
+    }
+
+}
