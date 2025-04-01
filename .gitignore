@@ -11,3 +11,5 @@ results/
 
 .nextflow/
 .nextflow*log*
+.nf-test/
+.nf-test.log*

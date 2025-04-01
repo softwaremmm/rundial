@@ -54,7 +54,7 @@ process call_snps {
     date +"%T"
 
     # script also makes indexes
-    multithreaded_bcftools -a ${sorted_alignment} -f ${reference} \
+    multithreaded_bcftools -a ${sorted_alignment} -r ${reference} \
         -o pileup.bcf -t ${task.cpus} \
         --settings "-I -x -Q 10 -a INFO/SCR,INFO/ADR,INFO/ADF,FORMAT/SP,FORMAT/AD -h100 -M10000"
 
@@ -102,7 +102,7 @@ process call_all {
     echo "Running bcftools mpileup in parallel"
 
     # script also makes indexes
-    multithreaded_bcftools -a ${sorted_alignment} -f ${reference} \
+    multithreaded_bcftools -a ${sorted_alignment} -r ${reference} \
         -o pileup.bcf -t ${task.cpus} \
         --settings "-x -Q 10 -a INFO/SCR,INFO/ADR,INFO/ADF,FORMAT/SP,FORMAT/AD -h100 -M10000"
 
