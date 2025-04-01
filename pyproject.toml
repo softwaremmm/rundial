@@ -13,6 +13,9 @@ classifiers = [
 ]
 requires-python = ">=3.11,<4.0"
 
+[project.scripts]
+multithreaded_bcftools = "helper_scripts.multithreaded_bcftools:main"
+
 [project.optional-dependencies]
 dev = [
     "pre-commit",

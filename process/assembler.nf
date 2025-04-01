@@ -50,32 +50,13 @@ process call_snps {
 
     script:
     """
-    samtools index ${sorted_alignment}
-
-    samtools faidx ${reference}
-
     echo "Running bcftools mpileup in parallel"
     date +"%T"
-    # Make job file to run bcftools mpileup in parallel
-    genome_length=\$(awk '{sum+=\$2} END {print sum}' ${reference}.fai)
-    chunk_size=\$(((genome_length / 10) + 1))
-    touch jobs.txt
-    for j in \$(seq 1 10); do
-        start=\$(( (\$j - 1) * \$chunk_size + 1 ))
-        end=\$(( \$j * \$chunk_size ))
-        echo NC_000962.3:\$start-\$end >> jobs.txt
-    done
 
-    mkdir -p pileups
-
-    cat -n jobs.txt | xargs -P ${task.cpus} -L1 sh -c \
-        'bcftools mpileup -f ${reference} \
-        -x -Q 10 -a INFO/SCR,INFO/ADR,INFO/ADF,FORMAT/SP,FORMAT/AD\
-        -I -h100 -M10000 \
-        -r \$1 \
-        -Ou -o pileups/pileup.\${0}.bcf ${sorted_alignment}'
-
-    ls pileups/pileup.*.bcf | sort -V | bcftools concat -Ou -f - -o pileup.bcf
+    # script also makes indexes
+    multithreaded_bcftools -a ${sorted_alignment} -f ${reference} \
+        -o pileup.bcf -t ${task.cpus} \
+        --settings "-I -x -Q 10 -a INFO/SCR,INFO/ADR,INFO/ADF,FORMAT/SP,FORMAT/AD -h100 -M10000"
 
     echo "Running bcftools call"
     date +"%T"
@@ -118,32 +99,12 @@ process call_all {
 
     script:
     """
-    samtools index ${sorted_alignment}
-
-    samtools faidx ${reference}
-
     echo "Running bcftools mpileup in parallel"
-    date +"%T"
-    # Make job file to run bcftools mpileup in parallel
-    genome_length=\$(awk '{sum+=\$2} END {print sum}' ${reference}.fai)
-    chunk_size=\$(((genome_length / 10) + 1))
-    touch jobs.txt
-    for j in \$(seq 1 10); do
-        start=\$(( (\$j - 1) * \$chunk_size + 1 ))
-        end=\$(( \$j * \$chunk_size ))
-        echo NC_000962.3:\$start-\$end >> jobs.txt
-    done
 
-    mkdir -p pileups
-
-    cat -n jobs.txt | xargs -P ${task.cpus} -L1 sh -c \
-        'bcftools mpileup -f ${reference} \
-        -x -Q 10 -a INFO/SCR,INFO/ADR,INFO/ADF,FORMAT/SP,FORMAT/AD\
-        -h100 -M10000 \
-        -r \$1 \
-        -Ou -o pileups/pileup.\${0}.bcf ${sorted_alignment}'
-
-    ls pileups/pileup.*.bcf | sort -V | bcftools concat -Ou -f - -o pileup.bcf
+    # script also makes indexes
+    multithreaded_bcftools -a ${sorted_alignment} -f ${reference} \
+        -o pileup.bcf -t ${task.cpus} \
+        --settings "-x -Q 10 -a INFO/SCR,INFO/ADR,INFO/ADF,FORMAT/SP,FORMAT/AD -h100 -M10000"
 
     echo "Running bcftools call"
     date +"%T"
