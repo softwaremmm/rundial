@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum HetOption {
-    Mask, // Wil set bases to Z
+    Mask, // Will set bases to Z
     Ref,  // will use ref if possible, else highest depth
     Alt,  // will use alt if possible, else highest depth
     Best, // will use highest depth allele, use first allele if tie

@@ -1,0 +1,46 @@
+nextflow_process {
+    name "Test Process Consensus"
+    script "process/filter.nf"
+    process "make_consensus"
+
+    test("Process run successfully and produce consensus") {
+        when {
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/single_consensus/consensus_input.vcf")]
+                input[1] = file("$projectDir/test_data/single_consensus/consensus_ref.fasta")
+                input[2] = file("$projectDir/test_data/single_consensus/consensus_params.yml")
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            with(process.out.final_fasta) {
+                assert get(0)[1].contains('final.fasta')
+                assert path(get(0)[1]).md5 == path("$projectDir/test_data/single_consensus/expected.fasta.renamed").md5
+            }
+            with(process.out.full_consensus) {
+                assert get(0)[1].contains('final.full.fasta')
+                assert path(get(0)[1]).md5 == path("$projectDir/test_data/single_consensus/expected.full.fasta.renamed").md5
+            }
+        }
+    }
+
+    test("Process should generate error if files do not exist") {
+        when {
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/single_consensus/non_existent.vcf")]
+                input[1] = file("$projectDir/test_data/single_consensus/consensus_ref.fasta")
+                input[2] = file("$projectDir/test_data/single_consensus/consensus_params.yml")
+                """
+            }
+        }
+
+        then {
+            assert process.failed
+        }
+    }
+
+}

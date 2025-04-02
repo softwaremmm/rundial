@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools~=68.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rundial"
+version = "0.4.2"
+description = "Reference based assembly of ONT reads."
+classifiers = [
+    "Environment :: Console",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+]
+requires-python = ">=3.11,<4.0"
+
+[project.scripts]
+multithreaded_bcftools = "helper_scripts.multithreaded_bcftools:main"
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "commitizen",
+    "version_bumper @ git+https://github.com/GlobalPathogenAnalysisService/version_bumper.git",
+]
+
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+update_changelog_on_bump = false
+bump_message = "bump: version $current_version → $new_version [skip ci]"
+tag_format = "$version"
+version_scheme = "semver"
+version_provider = "pep621"
+
+[tool.version_bumper]
+active_version = "0.4.2"
+version_files = [
+    "process/assembler.nf",
+    "process/filter.nf",
+]

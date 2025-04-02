@@ -1,0 +1,53 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##bcftoolsVersion=1.13+htslib-1.18
+##bcftoolsCommand=mpileup -f h37rv.fa.gz --threads 8 -x -Q 13 -a INFO/SCR,INFO/ADR,INFO/ADF,FORMAT/SP,FORMAT/AD -h100 -M10000 -o ERR9030326.pileup.vcf ERR9030326_aligned.sorted.sam
+##reference=file://h37rv.fa.gz
+##contig=<ID=ref,length=69>
+##ALT=<ID=*,Description="Represents allele(s) other than observed.">
+##INFO=<ID=INDEL,Number=0,Type=Flag,Description="Indicates that the variant is an INDEL.">
+##INFO=<ID=IDV,Number=1,Type=Integer,Description="Maximum number of raw reads supporting an indel">
+##INFO=<ID=IMF,Number=1,Type=Float,Description="Maximum fraction of raw reads supporting an indel">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Raw read depth">
+##INFO=<ID=VDB,Number=1,Type=Float,Description="Variant Distance Bias for filtering splice-site artefacts in RNA-seq data (bigger is better)",Version="3">
+##INFO=<ID=RPBZ,Number=1,Type=Float,Description="Mann-Whitney U-z test of Read Position Bias (closer to 0 is better)">
+##INFO=<ID=MQBZ,Number=1,Type=Float,Description="Mann-Whitney U-z test of Mapping Quality Bias (closer to 0 is better)">
+##INFO=<ID=BQBZ,Number=1,Type=Float,Description="Mann-Whitney U-z test of Base Quality Bias (closer to 0 is better)">
+##INFO=<ID=MQSBZ,Number=1,Type=Float,Description="Mann-Whitney U-z test of Mapping Quality vs Strand Bias (closer to 0 is better)">
+##INFO=<ID=SCBZ,Number=1,Type=Float,Description="Mann-Whitney U-z test of Soft-Clip Length Bias (closer to 0 is better)">
+##INFO=<ID=FS,Number=1,Type=Float,Description="Phred-scaled p-value using Fisher's exact test to detect strand bias">
+##INFO=<ID=SGB,Number=1,Type=Float,Description="Segregation based metric.">
+##INFO=<ID=MQ0F,Number=1,Type=Float,Description="Fraction of MQ0 reads (smaller is better)">
+##FORMAT=<ID=PL,Number=G,Type=Integer,Description="List of Phred-scaled genotype likelihoods">
+##FORMAT=<ID=SP,Number=1,Type=Integer,Description="Phred-scaled strand bias P-value">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths (high-quality bases)">
+##INFO=<ID=ADF,Number=R,Type=Integer,Description="Total allelic depths on the forward strand (high-quality bases)">
+##INFO=<ID=SCR,Number=1,Type=Integer,Description="Number of soft-clipped reads (at high-quality bases)">
+##INFO=<ID=ADR,Number=R,Type=Integer,Description="Total allelic depths on the reverse strand (high-quality bases)">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes for each ALT allele, in the same order as listed">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##INFO=<ID=DP4,Number=4,Type=Integer,Description="Number of high-quality ref-forward , ref-reverse, alt-forward and alt-reverse bases">
+##INFO=<ID=MQ,Number=1,Type=Integer,Description="Average mapping quality">
+##bcftools_callVersion=1.13+htslib-1.18
+##bcftools_callCommand=call --threads 8 -m -o ERR9030326.gvcf ERR9030326.pileup.vcf; Date=Mon Oct 30 16:29:34 2023
+##FILTER=<ID=HET,Description="Flagged when genotype appears heterozygous due to >= 0.35 fraction support for second allele.">
+##FILTER=<ID=INVALID_INDEL,Description="Call is indel but has no ALT alleles.">
+##FILTER=<ID=MIN_DP,Description="Basic read depth. DP is less than 5">
+##FILTER=<ID=MIN_FRS,Description="Fractional support is less than 0.9">
+##FILTER=<ID=LOW_HQ_DEPTH,Description="High quality depth is less than 5">
+##FILTER=<ID=LOW_MQ,Description="Mapping Quality. MQ is less than 30">
+##FILTER=<ID=LOW_QUAL,Description="QUAL is less than 20.0;25.0">
+##FILTER=<ID=STRAND_BIAS,Description="Require at least 1.00% of hq reads on each strand, for called allele">
+##FILTER=<ID=LOW_VDB,Description="Variant Distance Bias. VDB is less than 1e-05">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	ERR9030326_aligned.sorted.sam
+ref	1	.	T	.	244.589	PASS	DP=28;ADF=10;ADR=8;SCR=11;MQSBZ=0;FS=0;MQ0F=0;AN=2;DP4=10,8,0,0;MQ=53	GT:SP:AD	0/0:0:18
+ref	2	.	T	A	225.417	PASS	DP=30;ADF=0,13;ADR=0,9;SCR=21;VDB=0.0421783;SGB=-0.692562;FS=0;MQ0F=0;AC=2;AN=2;DP4=0,0,13,9;MQ=60	GT:PL:SP:AD	1/1:255,66,0:0:0,22
+ref	3	.	T	.	244.589	PASS	DP=28;ADF=10;ADR=8;SCR=11;MQSBZ=0;FS=0;MQ0F=0;AN=2;DP4=10,8,0,0;MQ=53	GT:SP:AD	0/0:0:18
+ref	4	.	T	A	225.417	PASS	DP=30;ADF=0,13;ADR=0,9;SCR=21;VDB=0.0421783;SGB=-0.692562;FS=0;MQ0F=0;AC=2;AN=2;DP4=0,0,13,9;MQ=60	GT:PL:SP:AD	1/1:255,66,0:0:0,22
+ref	5	.	T	.	244.589	PASS	DP=28;ADF=10;ADR=8;SCR=11;MQSBZ=0;FS=0;MQ0F=0;AN=2;DP4=10,8,0,0;MQ=53	GT:SP:AD	./.:0:18
+ref	7	.	T	A	225.417	HET	DP=30;ADF=0,13;ADR=0,9;SCR=21;VDB=0.0421783;SGB=-0.692562;FS=0;MQ0F=0;AC=2;AN=2;DP4=0,0,13,9;MQ=60	GT:PL:SP:AD	0/1:255,66,0:0:0,22
+ref	10	.	T	A	225.417	PASS	DP=30;ADF=0,13;ADR=0,9;SCR=21;VDB=0.0421783;SGB=-0.692562;FS=0;MQ0F=0;AC=2;AN=2;DP4=0,0,13,9;MQ=60	GT:PL:SP:AD	1/1:255,66,0:0:0,22
+ref	11	.	T	.	244.589	STRAND_BIAS	DP=28;ADF=10;ADR=8;SCR=11;MQSBZ=0;FS=0;MQ0F=0;AN=2;DP4=10,8,0,0;MQ=53	GT:SP:AD	0/0:0:18
+ref	15	.	T	TAAA	60.7969	PASS	INDEL;IDV=4;IMF=0.097561;DP=41;ADF=0,8;ADR=1,8;SCR=14;VDB=0.00160257;SGB=-0.379885;RPBZ=-1.42946;MQBZ=1.09178;MQSBZ=-0.57906;SCBZ=-0.505868;FS=0;MQ0F=0;AN=2;DP4=0,1,8,8;MQ=56	GT:SP:AD	1/1:0:1,16
+ref	16	.	T	TGGG	60.7969	PASS	INDEL;IDV=4;IMF=0.097561;DP=41;ADF=0,8;ADR=1,8;SCR=14;VDB=0.00160257;SGB=-0.379885;RPBZ=-1.42946;MQBZ=1.09178;MQSBZ=-0.57906;SCBZ=-0.505868;FS=0;MQ0F=0;AN=2;DP4=0,1,8,8;MQ=56	GT:SP:AD	1/1:0:1,16

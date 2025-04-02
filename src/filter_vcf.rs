@@ -245,6 +245,10 @@ fn is_strand_mismatch(record: &VariantRecord, threshold: f32) -> Option<String> 
 /// Set the genotype to be the allele with the highest depth (x/x).
 fn set_gt_to_highest_depth(record: &mut VariantRecord) {
     if record.alt.is_empty() {
+        record.set_genotype(Genotype {
+            allele1: 0,
+            allele2: 0,
+        });
         return;
     }
 
@@ -553,6 +557,34 @@ mod tests {
             &Genotype {
                 allele1: 2,
                 allele2: 2
+            }
+        );
+
+        // Will replace missing GT with 0/0
+        let mut record: VariantRecord = VariantRecord::from_string(
+            &std_header,
+            "ref\t1\tid\tT\t.\t244.589\tF1;F2\tMQ=53.0\tGT:AD\t.:0",
+        )
+        .unwrap();
+        set_gt_to_highest_depth(&mut record);
+        assert_eq!(
+            record.genotype().unwrap(),
+            &Genotype {
+                allele1: 0,
+                allele2: 0
+            }
+        );
+        let mut record: VariantRecord = VariantRecord::from_string(
+            &std_header,
+            "ref\t1\tid\tT\tC\t244.589\tF1;F2\tMQ=53.0\tGT:AD\t.:0,0",
+        )
+        .unwrap();
+        set_gt_to_highest_depth(&mut record);
+        assert_eq!(
+            record.genotype().unwrap(),
+            &Genotype {
+                allele1: 1,
+                allele2: 1
             }
         );
     }

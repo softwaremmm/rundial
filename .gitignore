@@ -1,4 +1,15 @@
+build/
 /target
-Cargo.lock
 /tests/test_outputs/*
 !tests/**/*.gitkeep
+
+data/clair3_models/
+
+results/
+
+*/*egg-info
+
+.nextflow/
+.nextflow*log*
+.nf-test/
+.nf-test.log*
