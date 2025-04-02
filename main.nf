@@ -40,7 +40,9 @@ workflow {
     input_files = Channel
         .fromPath("${params.input_dir}/${params.input_single_suffix}", checkIfExists: true)
         .ifEmpty { error("cannot find any reads matching ${params.input_single_suffix} in ${params.input_dir}") }
-        .map { it -> tuple(it.simpleName, it) }
+        .map { it -> tuple(it.getName().replaceFirst(/(?i)\.(fastq|fq)\.gz$/, ""), it) }
+
+    input_files.take(3).view()
 
     ref = Channel.fromPath("${params.ref_fasta}").first()
     clair3_models_dir = params.clair3_models_dir.startsWith("/")

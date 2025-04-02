@@ -45,13 +45,16 @@ RUN tar -xzf /app/conda_env.tar.gz -C /opt/conda && rm /app/conda_env.tar.gz
 ENV PATH="/opt/conda/bin:$PATH"
 
 
-# Install Python code if testing is true (default false)
+# Install Python code
 COPY ./pyproject.toml /app/pyproject.toml
+COPY src/helper_scripts /app/src/helper_scripts
 
 # Install pytest if TESTING is true (default false)
 ARG TESTING=false
 RUN if [ "$TESTING" = "true" ]; then \
         pip install .[dev]; \
+    else \
+        pip install .; \
     fi
 
 # Copy the rundial rust build

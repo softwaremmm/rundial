@@ -20,7 +20,7 @@ This is included in the `data` folder. Just run `get_clair3_models.sh` to downlo
 ## Running workflow
 
 Can run with bcftools or with clair3
-```
+```bash
 nextflow run . --workflow bcftools --input_dir test_data/assemblers --publish_dir results \
 	--ref-fasta data/h37rv_20231215.fa.gz
 
