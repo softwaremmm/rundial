@@ -393,7 +393,7 @@ pub fn filter_vcf(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vcf::variant_record::tests::standard_header;
+    use crate::vcf::variant_record::tests::{clair3_header, standard_header};
 
     #[test]
     fn test_is_low_tag() {
@@ -438,6 +438,14 @@ mod tests {
         assert!(is_low_depth(&record, 30.0) == Some(MIN_DP.to_string()));
         assert!(is_low_depth(&record, 28.1) == Some(MIN_DP.to_string()));
         assert!(is_low_depth(&record, 28.0).is_none());
+
+        let record: VariantRecord = VariantRecord::from_string(
+            &clair3_header(),
+            "ref\t1\tid\tT\t.\t244.589\tF1;F2\t.\tGT:DP:AD\t0/0:10:5",
+        )
+        .unwrap();
+        assert!(is_low_depth(&record, 15.0) == Some(MIN_DP.to_string()));
+        assert!(is_low_depth(&record, 7.0).is_none());
     }
 
     #[test]

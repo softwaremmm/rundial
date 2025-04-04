@@ -345,6 +345,10 @@ impl VariantRecord {
             self.depth = Some(*dp);
         }
 
+        if let Some(RecordValue::Integer(dp)) = self.format.get("DP") {
+            self.depth = Some(*dp);
+        }
+
         if let Some(forward) = self.info.get("ADF") {
             if let Some(reverse) = self.info.get("ADR") {
                 if let (RecordValue::IntegerArray(f), RecordValue::IntegerArray(r)) =
@@ -502,6 +506,71 @@ pub mod tests {
             number: HeaderNumber::R,
             header_type: HeaderType::Integer,
             desc: String::from("Allelic depths"),
+        }));
+
+        return header;
+    }
+
+    pub fn clair3_header() -> VCFHeader {
+        let mut header = VCFHeader::new();
+        header.samples.push(String::from("sample"));
+        header.add_header_line(HeaderLine::Filter(FilterHeader {
+            id: String::from("PASS"),
+            desc: String::from("All filters passed"),
+        }));
+        header.add_header_line(HeaderLine::Filter(FilterHeader {
+            id: String::from("LowQual"),
+            desc: String::from("Low quality"),
+        }));
+        header.add_header_line(HeaderLine::Filter(FilterHeader {
+            id: String::from("RefCall"),
+            desc: String::from("Ref call"),
+        }));
+
+        // Add Info headers
+        header.add_header_line(HeaderLine::Info(InfoHeader {
+            id: String::from("P"),
+            number: HeaderNumber::Flag,
+            header_type: HeaderType::Flag,
+            desc: String::from("Result from pileup calling"),
+        }));
+        header.add_header_line(HeaderLine::Info(InfoHeader {
+            id: String::from("F"),
+            number: HeaderNumber::Flag,
+            header_type: HeaderType::Flag,
+            desc: String::from("Result from alignment"),
+        }));
+
+        // Add format headers
+        header.add_header_line(HeaderLine::Format(FormatHeader {
+            id: String::from("GT"),
+            number: HeaderNumber::One,
+            header_type: HeaderType::String,
+            desc: String::from("Genotype"),
+        }));
+        header.add_header_line(HeaderLine::Format(FormatHeader {
+            id: String::from("GQ"),
+            number: HeaderNumber::One,
+            header_type: HeaderType::Integer,
+            desc: String::from("genotype quality"),
+        }));
+        header.add_header_line(HeaderLine::Format(FormatHeader {
+            id: String::from("DP"),
+            number: HeaderNumber::One,
+            header_type: HeaderType::Integer,
+            desc: String::from("depth"),
+        }));
+        header.add_header_line(HeaderLine::Format(FormatHeader {
+            id: String::from("AD"),
+            number: HeaderNumber::R,
+            header_type: HeaderType::Integer,
+            desc: String::from("Allelic depths"),
+        }));
+        header.add_header_line(HeaderLine::Format(FormatHeader {
+            id: String::from("AF"),
+            number: HeaderNumber::One,
+            header_type: HeaderType::Float,
+            desc: String::from("allele frequency"),
         }));
 
         return header;
