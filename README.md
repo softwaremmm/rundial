@@ -3,7 +3,6 @@ A rust based program for filtering VCFs and creating consensus genomes.
 Uses the output from bcftools or Clair3.
 
 TODO:
-- BCFTools parallelisation needs fixing
 - Clair3 container needs to be copied
 - adjust params
 
@@ -14,8 +13,8 @@ TODO:
 * Cargo for running rust
 
 ### Reference Data
-Need a reference fasta and also clair3 models if using.
-This is included in the `data` folder. Just run `get_clair3_models.sh` to download them.
+Needs a reference fasta and also clair3 models if using.
+This is included in the `data` folder. Just run `get_clair3_models.sh` to download the clair3 models.
 
 ## Running workflow
 
@@ -62,11 +61,19 @@ No secondary alignments are output, and ont standard params are used.
 - m: multiallelic caller model is used. Also taken from tbpore.
 
 ### Rundial
-Filtering params described [here](process/filter_params.yml) and consensus making params [here](process/consensus_params.yml). Clair3 vcfs have less filtering [here](process/clair3_filter_params.yml).
+Filtering params described [here](process/filter_params.yml) and consensus making params [here](process/consensus_params.yml).
+Clair3 vcfs have less filtering [here](process/clair3_filter_params.yml) but similar consensus [params](process/clair3_consensus_params.yml).
 Thresholds mainly choosen by trial and error.
 Main filters are:
-- Min read depth of 3, and min high quality depth of 2 (using the Q cut-off from earlier)
+- Min read depth of 3/5, and min high quality depth of 2 (using the Q cut-off from earlier)
 - No Strand bias/mismatch where there are differences between the forward and reverse strand
+
+## Consensus with two VCFs
+When running with clair3, the clair3 VCF doesn't cover the whole genome.
+As such the bcftools assembly is used to fill in the blanks. It never adds any passed mutation but will add ref calls and null/filtered sites.
+This provides more explanation for the calls made.
+
+When running in this mode, bcftools only calls snps.
 
 ## Tags, Releases, and Committing
 Use conventional commits. This is enforced with commitizen validate action and pre-commit hooks:

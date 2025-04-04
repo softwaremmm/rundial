@@ -2,6 +2,7 @@
 
 include { call_all ; call_snps ; minimap2 ; get_clair3_model ; clair3 } from './process/assembler.nf'
 include { apply_filters } from './process/filter.nf'
+include { apply_filters as apply_filters_clair3 } from './process/filter.nf'
 include { make_consensus ; make_clair3_consensus } from './process/filter.nf'
 
 
@@ -71,7 +72,7 @@ workflow rundial_with_bcftools {
 
     minimap2(fastq_files, ref)
     call_all(minimap2.out.sorted_alignment, ref)
-    apply_filters(call_all.out.gvcf, filter_params)
+    apply_filters(call_all.out.gvcf, filter_params, "")
 
     calls = apply_filters.out.filtered_gvcf
     make_consensus(calls, ref, consensus_params)
@@ -107,8 +108,8 @@ workflow rundial_with_clair3 {
         .filter { it -> it[2] == "failed" }
         .map { it -> tuple(it[0], it[1]) }
 
-    valid_model_ch.take(1).view { it -> "${it[0]} - Appropriate Clair3 Model Found" }
-    invalid_model_ch.take(1).view { it -> "${it[0]} - No appropriate Clair3 Model Found" }
+    valid_model_ch.take(1).view { "Appropriate Clair3 Model Found" }
+    invalid_model_ch.take(1).view { "No appropriate Clair3 Model Found" }
 
     // If no appropriate clair3 model is found, use bcftools
     rundial_with_bcftools(invalid_model_ch, ref)
@@ -116,17 +117,21 @@ workflow rundial_with_clair3 {
     // If appropriate clair3 model is found, run clair3
     model_path = clair3_model.map { it -> clair3_models_dir + "/${it}.tar.gz" }
     model_path.view { "Using Clair3 Model: ${it}" }
+
     minimap2(valid_model_ch, ref)
     clair3(minimap2.out.sorted_alignment, ref, model_path)
 
+    clair3_filter_params = Channel.fromPath("${moduleDir}/process/clair3_filter_params.yml").first()
+    apply_filters_clair3(clair3.out.vcf, clair3_filter_params, "clair3_")
+
     // Still use normal params with bcftools support vcf
     filter_params = Channel.fromPath("${moduleDir}/process/filter_params.yml").first()
-    consensus_params = Channel.fromPath("${moduleDir}/process/consensus_params.yml").first()
-
     call_snps(minimap2.out.sorted_alignment, ref)
-    apply_filters(call_snps.out.gvcf, filter_params)
+    apply_filters(call_snps.out.gvcf, filter_params, "bcftools_")
 
-    calls = apply_filters.out.filtered_gvcf.join(clair3.out.vcf)
+
+    consensus_params = Channel.fromPath("${moduleDir}/process/clair3_consensus_params.yml").first()
+    calls = apply_filters.out.filtered_gvcf.join(apply_filters_clair3.out.filtered_gvcf)
     make_clair3_consensus(calls, ref, consensus_params)
 
     emit:

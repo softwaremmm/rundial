@@ -1,8 +1,7 @@
-
 process apply_filters {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + file_prefix + filename }
     container {
-        params.test_container_rundial =="" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:148fee2' : params.test_container_rundial
+        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:148fee2' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:apply_filters"
@@ -11,20 +10,17 @@ process apply_filters {
 
     input:
     tuple val(sample_name), path(gvcf)
-    path(filter_params)
+    path filter_params
+    val file_prefix
 
     output:
     tuple val(sample_name), path("filtered.gvcf.gz"), emit: filtered_gvcf
 
-    /*
-    Settings are in the params yml.
-    --overwrite overwrite existing info in FILTER field
-    */
     script:
     """
     rundial filter --verbose --overwrite \
         -p ${filter_params} \
-        -o filtered.gvcf -i $gvcf
+        -o filtered.gvcf -i ${gvcf}
     bgzip filtered.gvcf
     """
 }
@@ -32,7 +28,7 @@ process apply_filters {
 process make_consensus {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial =="" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:148fee2' : params.test_container_rundial
+        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:148fee2' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:make_consensus"
@@ -41,8 +37,8 @@ process make_consensus {
 
     input:
     tuple val(sample_name), path(filtered_gvcf)
-    path(reference)
-    path(consensus_params)
+    path reference
+    path consensus_params
 
     output:
     tuple val(sample_name), path("final.full.fasta"), emit: full_consensus
@@ -52,10 +48,6 @@ process make_consensus {
     tuple val(sample_name), path("final.full.vcf"), emit: full_vcf
     tuple val(sample_name), path("genome_creation_report.json"), emit: report_json
 
-    /*
-    This will apply the vcf to the ref to make the fasta.
-    masked, filtered, het and missing sites become N's in the clean consensus
-    */
     script:
     """
     rundial consensus --verbose \
@@ -79,7 +71,7 @@ process make_consensus {
 process make_clair3_consensus {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial =="" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:148fee2' : params.test_container_rundial
+        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:148fee2' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:make_clair3_consensus"
@@ -88,8 +80,8 @@ process make_clair3_consensus {
 
     input:
     tuple val(sample_name), path("filtered.gvcf.gz"), path("clair3.vcf.gz")
-    path(reference)
-    path(consensus_params)
+    path reference
+    path consensus_params
 
     output:
     tuple val(sample_name), path("final.full.fasta"), emit: full_consensus
@@ -99,10 +91,6 @@ process make_clair3_consensus {
     tuple val(sample_name), path("final.full.vcf"), emit: full_vcf
     tuple val(sample_name), path("genome_creation_report.json"), emit: report_json
 
-    /*
-    clair3 vcf is used for all variants.
-    bcftools is required for sites not in the clair3 vcf, which may be N's
-    */
     script:
     """
     rundial consensus --verbose \
