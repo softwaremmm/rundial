@@ -6,7 +6,7 @@ use super::{Bed, ConsensusParams, HetOption};
 use super::{FILTERED, HET, MASKED, NULL};
 
 pub fn repeat_char(c: char, n: usize) -> String {
-    std::iter::repeat(c).take(n).collect()
+    std::iter::repeat_n(c, n).collect()
 }
 
 /// Simplifies ref-alt pair by removing matching trailing and leading bases.
