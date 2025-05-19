@@ -70,10 +70,10 @@ Main filters are:
 
 ## Consensus with two VCFs
 When running with clair3, the clair3 VCF doesn't cover the whole genome.
-As such the bcftools assembly is used to fill in the blanks. It never adds any passed mutation but will add ref calls and null/filtered sites.
+As such the bcftools assembly is used to fill in the blanks. It never adds any passed mutation but will add ref calls and null/filtered sites. It can be configured as to whether to output rows with minor populations or not.
 This provides more explanation for the calls made.
 
-When running in this mode, bcftools only calls snps.
+When running in this mode, bcftools only calls snps in the mpileup command.
 
 ## Tags, Releases, and Committing
 Use conventional commits. This is enforced with commitizen validate action and pre-commit hooks:

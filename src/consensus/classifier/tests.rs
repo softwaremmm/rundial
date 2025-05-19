@@ -97,10 +97,11 @@ fn make_classifier() -> Classifier {
         filter_ignore_list: None,
         het_pc_threshold: None,
         minor_pop_threshold: Some(5),
+        support_minor_pop_threshold: None,
         main_caller: None,
         support_caller: None,
     };
-    return Classifier::new(&params);
+    return Classifier::new(&params, false);
 }
 
 #[test]

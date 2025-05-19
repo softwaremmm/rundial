@@ -177,15 +177,22 @@ impl Classification {
 pub struct Classifier {
     pub params: ConsensusParams,
     pub mask: Option<Bed>,
+    pub minor_pop_threshold: Option<i32>,
 }
 
 impl Classifier {
-    pub fn new(params: &ConsensusParams) -> Self {
+    pub fn new(params: &ConsensusParams, is_support: bool) -> Self {
         let mask: Option<Bed> = params.mask.as_ref().map(|s| Bed::from_file(s));
+        let minor_pop_threshold = if is_support {
+            params.support_minor_pop_threshold
+        } else {
+            params.minor_pop_threshold
+        };
 
         Classifier {
             params: params.clone(),
             mask,
+            minor_pop_threshold,
         }
     }
 
@@ -241,7 +248,7 @@ impl Classifier {
         classification.is_het = gt.is_het();
 
         if let (Some(allelic_depths), Some(minor_threshold)) =
-            (record.allele_depths(), self.params.minor_pop_threshold)
+            (record.allele_depths(), self.minor_pop_threshold)
         {
             // look for alleles not in GT which have depth >= minor_pop_threshold
             classification.has_minor_population =

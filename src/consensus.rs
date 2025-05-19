@@ -737,13 +737,13 @@ pub fn make_consensus(
     )?;
 
     let mut consensus = read_fasta(ref_fasta)?;
-    let classifier = Classifier::new(&params);
+    let classifier = Classifier::new(&params, false);
 
     let skip_indels: bool = params.skip_indels;
 
     let (mut output_records, mut insertions, mut processed_positions, mut het_sites) =
         process_main_vcf(main_vcf, &mut consensus, &classifier, skip_indels, verbose)?;
-    if let Some(caller) = params.main_caller {
+    if let Some(caller) = &params.main_caller {
         for r in output_records.iter_mut() {
             r.info
                 .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
@@ -763,6 +763,7 @@ pub fn make_consensus(
         );
     }
 
+    let classifier = Classifier::new(&params, true);
     let (mut support_records, support_processed_positions, support_het_sites) = match support_vcf {
         Some(file) => process_support_vcf(
             file,
@@ -773,7 +774,7 @@ pub fn make_consensus(
         )?,
         None => (Vec::new(), HashMap::new(), HashMap::new()),
     };
-    if let Some(caller) = params.support_caller {
+    if let Some(caller) = &params.support_caller {
         for r in support_records.iter_mut() {
             r.info
                 .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
@@ -877,6 +878,7 @@ pub fn make_consensus(
         &(output_root.to_owned() + ".variable_length.fasta"),
     )?;
 
+    // Output records to vcf
     output_records.sort_by_key(|r| (r.chrom.clone(), r.pos, r.is_indel()));
     write_vcf(
         &output_records,
