@@ -1,7 +1,7 @@
 params.test_cpus = ""
 
 process minimap2 {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     cpus {
         params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
     }
@@ -28,7 +28,7 @@ process minimap2 {
 }
 
 process call_snps {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     cpus {
         params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
     }
@@ -77,7 +77,7 @@ process call_snps {
 }
 
 process call_all {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     cpus {
         params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
     }
@@ -158,7 +158,7 @@ process get_clair3_model {
 }
 
 process clair3 {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     cpus {
         params.testing == "" ? 4 : (params.test_cpus == "" ? 2 : params.test_cpus)
     }
