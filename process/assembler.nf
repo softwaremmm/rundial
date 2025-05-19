@@ -194,7 +194,7 @@ process clair3 {
         --no_phasing_for_fa \
         --haploid_sensitive \
         --enable_long_indel \
-        --qual=4 \
+        --qual=2 \
         --print_ref_calls \
         --sample_name=${bam} \
         --output=clair_out > clair3.log
