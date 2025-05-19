@@ -748,6 +748,10 @@ pub fn make_consensus(
             r.info
                 .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
         }
+        for (r, _) in insertions.iter_mut() {
+            r.info
+                .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
+        }
     }
     if verbose {
         let num_process_positions = processed_positions.values().map(|s| s.len()).sum::<usize>();
