@@ -101,7 +101,7 @@ process make_clair3_consensus {
         -o final
 
     mv final.vcf final.full.vcf
-    bcftools view -v snps,indels -i 'GT!="0/0"' final.full.vcf > final.vcf
+    bcftools view -v snps,indels final.full.vcf > final.vcf
     mv final.report.json genome_creation_report.json
     mv final.variable_length.fasta final.indel.fasta
 
