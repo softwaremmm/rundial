@@ -4,6 +4,8 @@ mask_missing_sites: True # Sites not in the input vcfs are set to N
 use_filters: True # Filtered sites are replaced with F
 filter_ignore_list:
   - "RefCall"
+overriding_filters:
+  - "Low_VDB"
 
 minor_pop_threshold: 5 # Minimum number of reads for an allele to be considered a minor population
 
