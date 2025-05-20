@@ -359,6 +359,7 @@ fn make_classifier() -> Classifier {
         het_indel_option: HetOption::Mask,
         use_filters: true,
         filter_ignore_list: None,
+        overriding_filters: None,
         het_pc_threshold: None,
         minor_pop_threshold: Some(5),
         support_minor_pop_threshold: None,
