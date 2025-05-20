@@ -142,3 +142,15 @@ Current ordering (Note being het have effect):
 6. Passed homologous ref call
 7. Passed indel
 8. Passed snp
+
+
+## Filters
+Most filters are fairly easy to understand from the header line added.
+
+### MIN_FRS and MIN_AL
+These both get called MIN_FRS in the resulting VCF as they are checking that the called allele has sufficient support.
+- MIN_AF compares the depth of the called allele to the total depth.
+- MIN_FRS compares depth of the called allele to the sum of depth of all called alleles.
+These are not the same! Some potential alleles have low support so never appear in the vcf but do contribute to overall depth. And in BCFTools the overall depth includes reads of insufficient quality but the alleles depths do not.
+
+Currently MIN_AF is only used for clair3 when checking that ref calls have sufficient support.
