@@ -359,12 +359,14 @@ fn add_filters_to_header(header: &mut VCFHeader, params: &FilterParams) {
         ));
     }
 
-    let min_frs_desc = DESCRIPTIONS
-        .get(MIN_FRS)
-        .map(|&desc| desc.to_string())
-        .unwrap_or_else(|| format!("{} - thresholds: ?", MIN_FRS))
-        .replace('?', &min_frs_descs.join(", "));
-    add_filter_to_header(header, MIN_FRS, &min_frs_desc);
+    if !min_frs_descs.is_empty() {
+        let min_frs_desc = DESCRIPTIONS
+            .get(MIN_FRS)
+            .map(|&desc| desc.to_string())
+            .unwrap_or_else(|| format!("{} - thresholds: ?", MIN_FRS))
+            .replace('?', &min_frs_descs.join(", "));
+        add_filter_to_header(header, MIN_FRS, &min_frs_desc);
+    }
 }
 
 /// Filter a VCF file based on a set of parameters.

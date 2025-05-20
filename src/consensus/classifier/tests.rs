@@ -516,7 +516,7 @@ fn test_classify_minor_population() {
     assert!(!c.classify(&mut record).has_minor_population);
 
     // change threshold
-    c.params.minor_pop_threshold = Some(4);
+    c.minor_pop_threshold = Some(4);
     let mut record = VariantRecord::from_string(
         &header,
         "ref\t1\tid\tT\tA,C\t244.589\tPASS\tDP=28\tGT:AD\t1/1:1,27,4",
@@ -525,7 +525,7 @@ fn test_classify_minor_population() {
     assert!(c.classify(&mut record).has_minor_population);
 
     // if no threshold
-    c.params.minor_pop_threshold = None;
+    c.minor_pop_threshold = None;
     let mut record = VariantRecord::from_string(
         &header,
         "ref\t1\tid\tT\tA,C\t244.589\tPASS\tDP=28\tGT:AD\t1/1:1,27,4",
