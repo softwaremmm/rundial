@@ -23,6 +23,8 @@ wget https://cdn.oxfordnanoportal.com/software/analysis/models/clair3/r1041_e82_
 wget https://cdn.oxfordnanoportal.com/software/analysis/models/clair3/r1041_e82_400bps_sup_v430.tar.gz
 wget https://cdn.oxfordnanoportal.com/software/analysis/models/clair3/r104_e81_hac_g5015.tar.gz
 wget https://cdn.oxfordnanoportal.com/software/analysis/models/clair3/r104_e81_sup_g5015.tar.gz
+wget https://cdn.oxfordnanoportal.com/software/analysis/models/clair3/r1041_e82_400bps_sup_v500.tar.gz
+wget https://cdn.oxfordnanoportal.com/software/analysis/models/clair3/r1041_e82_400bps_hac_v500.tar.gz
 
 # for f in *.tar.gz; do tar -xzf $f; done
 # rm *.tar.gz

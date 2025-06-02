@@ -412,6 +412,15 @@ fn process_main_vcf(
     return Ok((output_records, insertions, processed_positions, het_sites));
 }
 
+/// Wrap the results from processing support vcf
+#[derive(Debug, Default)]
+struct SupportVCFResults {
+    output_records: Vec<VariantRecord>,
+    processed_positions: HashMapSet<usize>,
+    het_sites: HashMapSet<usize>,
+    overriding_filters: HashMap<(String, usize), Vec<String>>,
+}
+
 /// Reads support vcf file to provide data on sites not in main vcf
 ///
 /// Skips any indels, and will not apply any snps, only masking and nulls
@@ -420,13 +429,12 @@ fn process_support_vcf(
     consensus: &mut HashMap<String, Vec<char>>,
     classifier: &Classifier,
     positions_already_processed: &HashMapSet<usize>,
+    caller_name: &Option<String>,
     verbose: bool,
-) -> Result<(Vec<VariantRecord>, HashMapSet<usize>, HashMapSet<usize>)> {
+) -> Result<SupportVCFResults> {
     let vcf_reader = VCFReader::from_path(vcf_file)?;
 
-    let mut output_records: Vec<VariantRecord> = Vec::new();
-    let mut processed_positions: HashMapSet<usize> = HashMap::new();
-    let mut het_sites: HashMapSet<usize> = HashMap::new();
+    let mut results = SupportVCFResults::default();
 
     for (count, record) in vcf_reader.enumerate() {
         if verbose && count % 100000 == 0 && count != 0 {
@@ -438,6 +446,15 @@ fn process_support_vcf(
 
         if let Some(processed_sites) = positions_already_processed.get(&record.chrom) {
             if processed_sites.contains(&pos) {
+                //first check if there is overriding filter flag
+                if let Some(flags) = classifier.get_overriding_flags(&record) {
+                    results
+                        .overriding_filters
+                        .entry((record.chrom.clone(), pos))
+                        .or_insert_with(Vec::new)
+                        .extend(flags);
+                }
+
                 continue;
             }
         }
@@ -461,14 +478,17 @@ fn process_support_vcf(
         }
 
         // By this point we know it is a single nucleotide ref or change
-        if processed_positions.contains_loc(&record.chrom, &pos) {
+        if results
+            .processed_positions
+            .contains_loc(&record.chrom, &pos)
+        {
             return Err(format!(
                 "Site {}:{} already processed. Multiple snps on same site not allowed",
                 record.chrom, record.chrom
             )
             .into());
         }
-        processed_positions.insert_loc(&record.chrom, &pos);
+        results.processed_positions.insert_loc(&record.chrom, &pos);
 
         let mut classification = classifier.classify(&mut record);
 
@@ -487,7 +507,7 @@ fn process_support_vcf(
             record
                 .info
                 .insert(HET_IN_SUPPORT_VCF.to_string(), RecordValue::Flag);
-            het_sites.insert_loc(&record.chrom, &pos);
+            results.het_sites.insert_loc(&record.chrom, &pos);
         }
 
         // Apply the changes, which we know are single base changes
@@ -496,10 +516,49 @@ fn process_support_vcf(
             .chars()
             .next()
             .expect("New bases empty");
-        output_records.push(record);
+
+        // Add the caller name to the record
+        if let Some(caller) = caller_name {
+            record
+                .info
+                .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
+        }
+
+        results.output_records.push(record);
     }
 
-    return Ok((output_records, processed_positions, het_sites));
+    return Ok(results);
+}
+
+fn process_overriding_filters(
+    consensus: &mut HashMap<String, Vec<char>>,
+    overriding_filters: &HashMap<(String, usize), Vec<String>>,
+    output_records: &mut [VariantRecord],
+    verbose: bool,
+) {
+    for record in output_records.iter_mut() {
+        if let Some(filters) = overriding_filters.get(&(record.chrom.clone(), record.pos_idx())) {
+            if verbose {
+                println!(
+                    "Applying overriding filters {:?} to {}:{}",
+                    filters,
+                    record.chrom,
+                    record.pos_idx()
+                );
+            }
+
+            record.filter.extend(filters.clone());
+
+            // need to set consensus to filtered
+            let chrom_seq: &mut Vec<char> = consensus
+                .get_mut(&record.chrom)
+                .expect("Chrom not found in consensus");
+
+            let start = record.pos_idx();
+            let end = start + record.ref_bases.len();
+            chrom_seq[start..end].iter_mut().for_each(|c| *c = FILTERED);
+        }
+    }
 }
 
 fn read_fasta(fasta_file: &str) -> Result<HashMap<String, Vec<char>>> {
@@ -737,14 +796,18 @@ pub fn make_consensus(
     )?;
 
     let mut consensus = read_fasta(ref_fasta)?;
-    let classifier = Classifier::new(&params);
+    let classifier = Classifier::new(&params, false);
 
     let skip_indels: bool = params.skip_indels;
 
     let (mut output_records, mut insertions, mut processed_positions, mut het_sites) =
         process_main_vcf(main_vcf, &mut consensus, &classifier, skip_indels, verbose)?;
-    if let Some(caller) = params.main_caller {
+    if let Some(caller) = &params.main_caller {
         for r in output_records.iter_mut() {
+            r.info
+                .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
+        }
+        for (r, _) in insertions.iter_mut() {
             r.info
                 .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
         }
@@ -759,43 +822,46 @@ pub fn make_consensus(
         );
     }
 
-    let (mut support_records, support_processed_positions, support_het_sites) = match support_vcf {
+    let classifier = Classifier::new(&params, true);
+    let support_results = match support_vcf {
         Some(file) => process_support_vcf(
             file,
             &mut consensus,
             &classifier,
             &processed_positions,
+            &params.support_caller,
             verbose,
         )?,
-        None => (Vec::new(), HashMap::new(), HashMap::new()),
+        None => SupportVCFResults::default(),
     };
-    if let Some(caller) = params.support_caller {
-        for r in support_records.iter_mut() {
-            r.info
-                .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
-        }
-    }
     if verbose {
-        let num_process_positions = support_processed_positions
+        let num_process_positions = support_results
+            .processed_positions
             .values()
             .map(|s| s.len())
             .sum::<usize>();
         println!(
             "From support VCF: Processed {} sites. Found {} records to output, and {} het sites",
             num_process_positions,
-            support_records.len(),
-            support_het_sites.values().map(|s| s.len()).sum::<usize>(),
+            support_results.output_records.len(),
+            support_results
+                .het_sites
+                .values()
+                .map(|s| s.len())
+                .sum::<usize>(),
         );
     }
 
-    output_records.extend(support_records);
+    output_records.extend(support_results.output_records);
+    processed_positions.extend_all_chroms(support_results.processed_positions);
+    het_sites.extend_all_chroms(support_results.het_sites);
 
-    for (chrom, sites) in support_processed_positions.into_iter() {
-        processed_positions.extend_chrom(&chrom, sites);
-    }
-    for (chrom, sites) in support_het_sites.into_iter() {
-        het_sites.extend_chrom(&chrom, sites);
-    }
+    process_overriding_filters(
+        &mut consensus,
+        &support_results.overriding_filters,
+        &mut output_records,
+        verbose,
+    );
 
     fn make_empty_record(chrom: &str, pos: &usize, ref_bases: &str) -> VariantRecord {
         let mut record = VariantRecord::empty_record();
@@ -873,6 +939,7 @@ pub fn make_consensus(
         &(output_root.to_owned() + ".variable_length.fasta"),
     )?;
 
+    // Output records to vcf
     output_records.sort_by_key(|r| (r.chrom.clone(), r.pos, r.is_indel()));
     write_vcf(
         &output_records,

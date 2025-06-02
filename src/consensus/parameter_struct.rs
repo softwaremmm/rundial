@@ -2,15 +2,16 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub enum HetOption {
+    #[default]
     Mask, // Will set bases to Z
     Ref,  // will use ref if possible, else highest depth
     Alt,  // will use alt if possible, else highest depth
     Best, // will use highest depth allele, use first allele if tie
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct ConsensusParams {
     pub skip_indels: bool, // Will skip any vcf row with indels
     pub mask: Option<String>,
@@ -19,8 +20,10 @@ pub struct ConsensusParams {
     pub het_indel_option: HetOption,
     pub use_filters: bool, // If true will mask sites which have filters
     pub filter_ignore_list: Option<Vec<String>>, // If set will allow these filters
+    pub overriding_filters: Option<Vec<String>>, // If set will apply these to main vcf if in the support vcf
     pub het_pc_threshold: Option<f32>,
-    pub minor_pop_threshold: Option<i32>,
+    pub minor_pop_threshold: Option<i32>, // min depth of non-GT allele to be considered a minor population
+    pub support_minor_pop_threshold: Option<i32>,
     pub main_caller: Option<String>, // If set will use this Caller on records from main vcf
     pub support_caller: Option<String>, // If set will use this Caller on records from support vcf
 }

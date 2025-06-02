@@ -23,7 +23,7 @@
 ##FORMAT=<ID=COV,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample
 ref	2	.	T	C	26.01	PASS	CALLER=clair3	GT:DP:COV	1/1:20:0,20
-ref	3	.	T	TAAA	26.01	PASS	.	GT:DP:COV	1/1:20:0,20
+ref	3	.	T	TAAA	26.01	PASS	CALLER=clair3	GT:DP:COV	1/1:20:0,20
 ref	4	.	T	A	225.417	SNP_IN_SUPPORT_VCF	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	5	.	T	.	244.589	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	./.:28:10:8:18
 ref	6	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0

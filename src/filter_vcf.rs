@@ -22,6 +22,7 @@ const MIN_MQ: &str = "MIN_MQ";
 const MIN_VDB: &str = "MIN_VDB";
 const MIN_IDV: &str = "MIN_IDV";
 const MIN_IMF: &str = "MIN_IMF";
+const MIN_AF: &str = "MIN_AF";
 
 static DESCRIPTIONS: phf::Map<&'static str, &'static str> = phf_map! {
     "MIN_DP" => "Basic read depth is less than ?",
@@ -86,6 +87,9 @@ impl Filterer {
                 MIN_FRS => filterer
                     .filters
                     .push(Box::new(move |record| is_low_support(record, threshold))),
+                MIN_AF => filterer.filters.push(Box::new(move |record| {
+                    is_low_allele_frequency(record, threshold)
+                })),
                 MIN_MQ | MIN_VDB | MIN_IDV | MIN_IMF => {
                     filterer.filters.push(Box::new(move |record| {
                         is_low_tag(record, threshold, RELEVANT_INFO_TAGS[&flag], &flag)
@@ -169,6 +173,24 @@ fn is_low_support(record: &VariantRecord, threshold: f32) -> Option<String> {
             return None;
         }
         if (depths[main_allele] as f32 / total_depth as f32) < threshold {
+            return Some(MIN_FRS.to_string());
+        }
+    }
+    return None;
+}
+
+/// Check if a record has low fraction of support for the main allele compared to overall depth.
+/// Used in clair3.
+fn is_low_allele_frequency(record: &VariantRecord, threshold: f32) -> Option<String> {
+    if let (Some(main_allele), Some(depths), &Some(total_depth)) =
+        (record.main_allele(), record.allele_depths(), record.depth())
+    {
+        let main_allele = main_allele as usize;
+        if total_depth == 0 {
+            return None;
+        }
+        if (depths[main_allele] as f32 / total_depth as f32) < threshold {
+            // This is a special case for clair3 so still returns MIN_FRS
             return Some(MIN_FRS.to_string());
         }
     }
@@ -292,6 +314,9 @@ fn add_filters_to_header(header: &mut VCFHeader, params: &FilterParams) {
     all_keys.sort();
 
     for key in all_keys {
+        if key == MIN_AF || key == MIN_FRS {
+            continue;
+        }
         let thresholds: String = all_params
             .iter()
             .filter(|x| x.contains_key(key))
@@ -306,6 +331,41 @@ fn add_filters_to_header(header: &mut VCFHeader, params: &FilterParams) {
             .replace('?', &thresholds);
 
         add_filter_to_header(header, key, &desc);
+    }
+
+    // MIN_AL is a special kind of MIN_FRS so will get just one header
+    let mut min_frs_descs = Vec::new();
+    let min_frs_thresholds = all_params
+        .iter()
+        .filter(|x| x.contains_key(MIN_FRS))
+        .map(|x| x[MIN_FRS].to_string())
+        .collect::<Vec<String>>();
+    if !min_frs_thresholds.is_empty() {
+        min_frs_descs.push(format!(
+            "{} (compared to other alleles)",
+            min_frs_thresholds.join(", ")
+        ));
+    }
+
+    let min_af_thresholds = all_params
+        .iter()
+        .filter(|x| x.contains_key(MIN_AF))
+        .map(|x| x[MIN_AF].to_string())
+        .collect::<Vec<String>>();
+    if !min_af_thresholds.is_empty() {
+        min_frs_descs.push(format!(
+            "{} (compared to other overall depth)",
+            min_af_thresholds.join(", ")
+        ));
+    }
+
+    if !min_frs_descs.is_empty() {
+        let min_frs_desc = DESCRIPTIONS
+            .get(MIN_FRS)
+            .map(|&desc| desc.to_string())
+            .unwrap_or_else(|| format!("{} - thresholds: ?", MIN_FRS))
+            .replace('?', &min_frs_descs.join(", "));
+        add_filter_to_header(header, MIN_FRS, &min_frs_desc);
     }
 }
 

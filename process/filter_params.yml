@@ -1,6 +1,6 @@
 parameters:
   # These apply to all rows
-  MIN_DP: 5
+  MIN_DP: 3
   MIN_HQ_DP: 2 # min depth of high-quality base calls
   STRAND_BIAS: 10 # Need at least this percentage of reads on each strand
   MIN_MQ: 30 # min mapping quality

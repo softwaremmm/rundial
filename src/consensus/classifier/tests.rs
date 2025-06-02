@@ -95,12 +95,14 @@ fn make_classifier() -> Classifier {
         het_indel_option: HetOption::Mask,
         use_filters: true,
         filter_ignore_list: None,
+        overriding_filters: None,
         het_pc_threshold: None,
         minor_pop_threshold: Some(5),
+        support_minor_pop_threshold: None,
         main_caller: None,
         support_caller: None,
     };
-    return Classifier::new(&params);
+    return Classifier::new(&params, false);
 }
 
 #[test]
@@ -515,7 +517,7 @@ fn test_classify_minor_population() {
     assert!(!c.classify(&mut record).has_minor_population);
 
     // change threshold
-    c.params.minor_pop_threshold = Some(4);
+    c.minor_pop_threshold = Some(4);
     let mut record = VariantRecord::from_string(
         &header,
         "ref\t1\tid\tT\tA,C\t244.589\tPASS\tDP=28\tGT:AD\t1/1:1,27,4",
@@ -524,7 +526,7 @@ fn test_classify_minor_population() {
     assert!(c.classify(&mut record).has_minor_population);
 
     // if no threshold
-    c.params.minor_pop_threshold = None;
+    c.minor_pop_threshold = None;
     let mut record = VariantRecord::from_string(
         &header,
         "ref\t1\tid\tT\tA,C\t244.589\tPASS\tDP=28\tGT:AD\t1/1:1,27,4",

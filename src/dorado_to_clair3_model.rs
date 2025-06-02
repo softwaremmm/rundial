@@ -26,6 +26,8 @@ static MAPPING_TABLE: phf::Map<&'static str, &'static str> = phf_map! {
     "dna_r10.4.1_e8.2_400bps_fast@v4.3.0" => "r1041_e82_400bps_hac_v430",
     "dna_r10.4.1_e8.2_400bps_hac@v4.3.0" => "r1041_e82_400bps_hac_v430",
     "dna_r10.4.1_e8.2_400bps_sup@v4.3.0" => "r1041_e82_400bps_sup_v430",
+    "dna_r10.4.1_e8.2_400bps_hac@v5.0.0" => "r1041_e82_400bps_hac_v500",
+    "dna_r10.4.1_e8.2_400bps_sup@v5.0.0" => "r1041_e82_400bps_sup_v500",
 };
 
 /// static function which simply applies mapping table

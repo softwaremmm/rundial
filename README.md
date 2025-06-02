@@ -70,10 +70,10 @@ Main filters are:
 
 ## Consensus with two VCFs
 When running with clair3, the clair3 VCF doesn't cover the whole genome.
-As such the bcftools assembly is used to fill in the blanks. It never adds any passed mutation but will add ref calls and null/filtered sites.
+As such the bcftools assembly is used to fill in the blanks. It never adds any passed mutation but will add ref calls and null/filtered sites. It can be configured as to whether to output rows with minor populations or not.
 This provides more explanation for the calls made.
 
-When running in this mode, bcftools only calls snps.
+When running in this mode, bcftools only calls snps in the mpileup command.
 
 ## Tags, Releases, and Committing
 Use conventional commits. This is enforced with commitizen validate action and pre-commit hooks:
@@ -142,3 +142,23 @@ Current ordering (Note being het have effect):
 6. Passed homologous ref call
 7. Passed indel
 8. Passed snp
+
+
+## Filters
+Most filters are fairly easy to understand from the header line added.
+
+### MIN_FRS and MIN_AL
+These both get called MIN_FRS in the resulting VCF as they are checking that the called allele has sufficient support.
+- MIN_AF compares the depth of the called allele to the total depth.
+- MIN_FRS compares depth of the called allele to the sum of depth of all called alleles.
+These are not the same! Some potential alleles have low support so never appear in the vcf but do contribute to overall depth. And in BCFTools the overall depth includes reads of insufficient quality but the alleles depths do not.
+
+Currently MIN_AF is only used for clair3 when checking that ref calls have sufficient support.
+
+### Low_VDB Overriding filters
+VDB is Variant distance bias. A low VDB indicates that the variant (snp/indel) appears in the same position in all the alignements. Equivalently all the reads seem to start or end their alignment at the same place which is odd as we'd expect this to be random.
+
+It works as an extra check for something funny with alignments even when mapping quality is good.
+
+However, only bcftools provides it as a metric. So when taking the clai3 route `Low_VDB` must be set as an overriding filter in the params.yml.
+This way the variant in the clair3 vcf will inherit the `Low_VDB` flag.
