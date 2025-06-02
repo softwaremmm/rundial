@@ -154,3 +154,11 @@ These both get called MIN_FRS in the resulting VCF as they are checking that the
 These are not the same! Some potential alleles have low support so never appear in the vcf but do contribute to overall depth. And in BCFTools the overall depth includes reads of insufficient quality but the alleles depths do not.
 
 Currently MIN_AF is only used for clair3 when checking that ref calls have sufficient support.
+
+### Low_VDB Overriding filters
+VDB is Variant distance bias. A low VDB indicates that the variant (snp/indel) appears in the same position in all the alignements. Equivalently all the reads seem to start or end their alignment at the same place which is odd as we'd expect this to be random.
+
+It works as an extra check for something funny with alignments even when mapping quality is good.
+
+However, only bcftools provides it as a metric. So when taking the clai3 route `Low_VDB` must be set as an overriding filter in the params.yml.
+This way the variant in the clair3 vcf will inherit the `Low_VDB` flag.

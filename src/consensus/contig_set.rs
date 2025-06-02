@@ -9,6 +9,9 @@ pub trait ContigSet<T> {
         I: IntoIterator<Item = T>;
     fn contains_loc(&self, chrom: &str, pos: T) -> bool;
     fn insert_loc(&mut self, chrom: &str, pos: T) -> bool;
+    fn extend_all_chroms<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = (String, HashSet<T>)>;
 }
 impl<T> ContigSet<T> for HashMap<String, HashSet<T>>
 where
@@ -20,6 +23,16 @@ where
     {
         let sites = self.entry(chrom.to_string()).or_default();
         sites.extend(iter);
+    }
+
+    fn extend_all_chroms<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = (String, HashSet<T>)>,
+    {
+        for (chrom, new_sites) in iter {
+            let sites = self.entry(chrom).or_default();
+            sites.extend(new_sites);
+        }
     }
 
     fn contains_loc(&self, chrom: &str, pos: T) -> bool {
@@ -44,6 +57,16 @@ where
     {
         let sites = self.entry(chrom.to_string()).or_default();
         sites.extend(iter.into_iter().cloned());
+    }
+
+    fn extend_all_chroms<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = (String, HashSet<&'a T>)>,
+    {
+        for (chrom, new_sites) in iter {
+            let sites = self.entry(chrom).or_default();
+            sites.extend(new_sites.into_iter().cloned());
+        }
     }
 
     fn contains_loc(&self, chrom: &str, pos: &'a T) -> bool {
@@ -78,6 +101,26 @@ mod tests {
         let expectations: HashMap<String, HashSet<usize>> = HashMap::from([
             ("chr1".to_string(), [1, 2, 3, 4].iter().cloned().collect()),
             ("chr2".to_string(), [1].iter().cloned().collect()),
+        ]);
+        assert_eq!(sites, expectations);
+    }
+
+    #[test]
+    fn test_contig_extend() {
+        let mut sites: HashMap<String, HashSet<usize>> = HashMap::new();
+        sites.extend_chrom("chr1", vec![1, 2, 3]);
+        sites.extend_chrom("chr2", vec![1, 2, 3]);
+
+        let mut other_sites: HashMap<String, HashSet<usize>> = HashMap::new();
+        other_sites.extend_chrom("chr1", vec![2, 3, 4]);
+        other_sites.extend_chrom("chr3", vec![1, 2, 3]);
+
+        sites.extend_all_chroms(other_sites);
+
+        let expectations: HashMap<String, HashSet<usize>> = HashMap::from([
+            ("chr1".to_string(), [1, 2, 3, 4].iter().cloned().collect()),
+            ("chr2".to_string(), [1, 2, 3].iter().cloned().collect()),
+            ("chr3".to_string(), [1, 2, 3].iter().cloned().collect()),
         ]);
         assert_eq!(sites, expectations);
     }
