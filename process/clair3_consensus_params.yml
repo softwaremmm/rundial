@@ -5,7 +5,9 @@ use_filters: True # Filtered sites are replaced with F
 filter_ignore_list:
   - "RefCall"
 
-minor_pop_threshold: 3 # Minimum number of reads for an allele to be considered a minor population
+# Detecting minor populations just ensures those vcf rows our output for downstream processing.
+# Threshold is min number of reads for an allele to be considered a minor population
+minor_pop_threshold: 3
 support_minor_pop_threshold: null
 
 # Het options are "Ref", "Alt", "Best" (which will select the major allele), or "Mask" to replace with Z
