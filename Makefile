@@ -11,6 +11,7 @@ test:
 
 test_local:
 	cargo test
+	docker build -t test_container_rundial .
 	nf-test test tests/nextflow/*.nf.test --profile local_docker
 
 container:
