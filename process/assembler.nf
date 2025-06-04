@@ -162,7 +162,7 @@ process clair3 {
     cpus {
         params.testing == "" ? 4 : (params.test_cpus == "" ? 2 : params.test_cpus)
     }
-    container "hkubal/clair3:v1.0.5"
+    container "lhr.ocir.io/lrbvkel2wjot/gpas/clair3:v1.0.5"
 
     pod label: "name", value: "rundial:clair3"
     pod label: "sample_id", value: "${params.sample_id}"
