@@ -41,6 +41,10 @@ pub struct SequencingQuality {
     pub null_calls: i32,
     #[serde(rename = "Mixed calls")]
     pub mixed_calls: i32,
+    #[serde(rename = "Mixed snps")]
+    pub mixed_snps: i32,
+    #[serde(rename = "Mixed indels")]
+    pub mixed_indels: i32,
     #[serde(rename = "Fixed coverage")]
     pub fixed_coverage: f32,
     #[serde(rename = "Null Genotype calls")]

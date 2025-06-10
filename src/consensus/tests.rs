@@ -510,28 +510,13 @@ fn test_clean_fasta_characters() {
 #[test]
 fn test_write_creation_report() {
     let seq = read_fasta("test_data/simple.fasta").unwrap();
-    let het_count: Option<i32> = None;
 
-    write_creation_report(&seq, het_count, "tests/test_outputs/creation_report_1.json").unwrap();
+    write_creation_report(&seq, 1, 2, "tests/test_outputs/creation_report_1.json").unwrap();
     let report = std::fs::read_to_string("tests/test_outputs/creation_report_1.json").unwrap();
     let expected_report = std::fs::read_to_string("test_data/creation_report.json").unwrap();
     let report_json: serde_json::Value = serde_json::from_str(&report).unwrap();
     let expected_report_json: serde_json::Value = serde_json::from_str(&expected_report).unwrap();
     assert_eq!(report_json, expected_report_json);
-
-    let het_count: Option<i32> = Some(5);
-    write_creation_report(&seq, het_count, "tests/test_outputs/creation_report_2.json").unwrap();
-    let report = std::fs::read_to_string("tests/test_outputs/creation_report_2.json").unwrap();
-    let report_json: serde_json::Value = serde_json::from_str(&report).unwrap();
-    println!("{:?}", report_json);
-    assert_eq!(
-        report_json
-            .get("Sequencing Quality")
-            .unwrap()
-            .get("Mixed calls")
-            .unwrap(),
-        5
-    );
 }
 
 #[test]
