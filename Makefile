@@ -19,3 +19,6 @@ container:
 
 pc:
 	pre-commit run --all-files
+
+clippy:
+	cargo clippy --all --all-features --tests -- -D warnings

@@ -424,8 +424,6 @@ fn test_mark_overlaps() {
             ref_bases: "TCG".to_owned(),
             new_bases: "FFF".to_owned(),
             change: Change::Null,
-            is_het: false,
-            has_minor_population: false,
             is_filtered: true,
             has_indel_alleles: true,
             ..Default::default()
