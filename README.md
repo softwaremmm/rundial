@@ -2,11 +2,6 @@
 A rust based program for filtering VCFs and creating consensus genomes.
 Uses the output from bcftools or Clair3.
 
-TODO:
-- Clair3 container needs to be copied
-- adjust params
-
-
 ### Dependencies
 * Docker
 * Nextflow
@@ -83,6 +78,8 @@ These both get called MIN_FRS in the resulting VCF as they are checking that the
 These are not the same! Some potential alleles have low support so never appear in the vcf but do contribute to overall depth. And in BCFTools the overall depth includes reads of insufficient quality but the alleles depths do not.
 
 Currently MIN_AF is only used for clair3 when checking that ref calls have sufficient support.
+
+Note that MIN_FRS + minor population is taken to mean a het call rather than a simple filter fail. Any other filters will keep the variant as a filter fail.
 
 #### Low_VDB Overriding filters
 VDB is Variant distance bias. A low VDB indicates that the variant (snp/indel) appears in the same position in all the alignements. Equivalently all the reads seem to start or end their alignment at the same place which is odd as we'd expect this to be random.

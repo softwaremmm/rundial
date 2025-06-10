@@ -141,9 +141,9 @@ pub struct Classification {
     pub change: Change,
     pub ref_bases: String,
     pub new_bases: String,
-    pub is_het: bool,
+    pub is_het: bool, // Check if GT is heterozygous OR has minor population and only filter is MIN_FRS
     pub has_minor_population: bool,
-    pub is_filtered: bool,
+    pub is_filtered: bool, // Has any (non-ignored) filter. MIN_FRS alone is considered het
     pub has_indel_alleles: bool, // Either ref or alt has multiple bases, gets processed later
 }
 impl Default for Classification {
@@ -265,7 +265,6 @@ impl Classifier {
         };
 
         let gt = record.genotype().expect("Genotype not found");
-        classification.is_het = gt.is_het();
 
         if let (Some(allelic_depths), Some(minor_threshold)) =
             (record.allele_depths(), self.minor_pop_threshold)
@@ -279,6 +278,17 @@ impl Classifier {
                     }
                     return *depth >= minor_threshold;
                 });
+        }
+
+        classification.is_het = gt.is_het();
+
+        // special check for het via minor population
+        if classification.has_minor_population
+            && record.filter.contains(&"MIN_FRS".to_string())
+            && record.filter.len() == 1
+        {
+            classification.is_het = true;
+            classification.is_filtered = false; // treat as het rather than filtered
         }
 
         /// Indel is standard if ref and all alts start with the same base
@@ -301,15 +311,15 @@ impl Classifier {
 
         // Case match based on genotype.
         // Hets for indels vs snps may be handled different based on parameters
-        match (gt.allele1, gt.allele2) {
-            (-1, -1) => {
+        match (classification.is_het, gt.allele1, gt.allele2) {
+            (_, -1, -1) => {
                 classification.change = Change::Null;
                 classification.new_bases = repeat_char(NULL, record.ref_bases.len());
             }
-            (-1, _) | (_, -1) => {
+            (_, -1, _) | (_, _, -1) => {
                 panic!("Does not support partial null GT like ./1")
             }
-            (0, 0) => {
+            (false, 0, 0) => {
                 classification.change = Change::Ref;
                 if classification.has_indel_alleles
                     && is_standard_indel(&record.ref_bases, &record.alt)
@@ -324,11 +334,14 @@ impl Classifier {
                 }
                 classification.new_bases = classification.ref_bases.clone();
             }
-            (i, j) if i == j => {
+            (false, i, j) if i == j => {
                 classification
                     .set_ref_alt_and_simplify(&record.ref_bases, &record.alt[(i - 1) as usize]);
             }
-            (i, j) => {
+            (false, i, j) => {
+                panic!("Not considered het yet alleles are not equal: {} {}", i, j);
+            }
+            (true, i, j) => {
                 // Difficult het case
                 classification.is_het = true;
                 let het_option = if record.is_indel() {

@@ -21,7 +21,6 @@ pub struct ConsensusParams {
     pub use_filters: bool, // If true will mask sites which have filters
     pub filter_ignore_list: Option<Vec<String>>, // If set will allow these filters
     pub overriding_filters: Option<Vec<String>>, // If set will apply these to main vcf if in the support vcf
-    pub het_pc_threshold: Option<f32>,
     pub minor_pop_threshold: Option<i32>, // min depth of non-GT allele to be considered a minor population
     pub support_minor_pop_threshold: Option<i32>,
     pub main_caller: Option<String>, // If set will use this Caller on records from main vcf
