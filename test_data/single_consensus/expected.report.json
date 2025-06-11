@@ -2,10 +2,12 @@
   "Sequencing Quality": {
     "Reference genome length": 40,
     "Null calls": 27,
-    "Mixed calls": 1,
+    "Mixed calls": 2,
+    "Mixed snps": 2,
+    "Mixed indels": 0,
     "Fixed coverage": 32.5,
     "Null Genotype calls": 15,
-    "Filtered calls": 11,
+    "Filtered calls": 10,
     "Masked calls": 0,
     "Deleted calls": 1
   }

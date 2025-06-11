@@ -28,10 +28,7 @@ fn test_apply(
         ref_bases: ref_bases.to_string(),
         new_bases: new_bases.to_string(),
         change,
-        is_het: false,
-        has_minor_population: false,
-        is_filtered: false,
-        has_indel_alleles: false,
+        ..Default::default()
     };
     let set_sites = apply_variant("chrom", &variant, &mut chrom_seq, &processed_sites);
     return (chrom_seq["chrom"].iter().collect(), set_sites);
@@ -174,10 +171,7 @@ fn test_overlap() {
             ref_bases: ref_bases.to_string(),
             new_bases: ref_bases.to_string(),
             change,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
-            has_indel_alleles: false,
+            ..Default::default()
         }
     }
     let simple_changes = [Change::Ref, Change::Snp, Change::Null, Change::Mnp];
@@ -360,7 +354,6 @@ fn make_classifier() -> Classifier {
         use_filters: true,
         filter_ignore_list: None,
         overriding_filters: None,
-        het_pc_threshold: None,
         minor_pop_threshold: Some(5),
         support_minor_pop_threshold: None,
         main_caller: None,
@@ -431,10 +424,9 @@ fn test_mark_overlaps() {
             ref_bases: "TCG".to_owned(),
             new_bases: "FFF".to_owned(),
             change: Change::Null,
-            is_het: false,
-            has_minor_population: false,
             is_filtered: true,
             has_indel_alleles: true,
+            ..Default::default()
         }
     );
 
@@ -516,28 +508,13 @@ fn test_clean_fasta_characters() {
 #[test]
 fn test_write_creation_report() {
     let seq = read_fasta("test_data/simple.fasta").unwrap();
-    let het_count: Option<i32> = None;
 
-    write_creation_report(&seq, het_count, "tests/test_outputs/creation_report_1.json").unwrap();
+    write_creation_report(&seq, 1, 2, "tests/test_outputs/creation_report_1.json").unwrap();
     let report = std::fs::read_to_string("tests/test_outputs/creation_report_1.json").unwrap();
     let expected_report = std::fs::read_to_string("test_data/creation_report.json").unwrap();
     let report_json: serde_json::Value = serde_json::from_str(&report).unwrap();
     let expected_report_json: serde_json::Value = serde_json::from_str(&expected_report).unwrap();
     assert_eq!(report_json, expected_report_json);
-
-    let het_count: Option<i32> = Some(5);
-    write_creation_report(&seq, het_count, "tests/test_outputs/creation_report_2.json").unwrap();
-    let report = std::fs::read_to_string("tests/test_outputs/creation_report_2.json").unwrap();
-    let report_json: serde_json::Value = serde_json::from_str(&report).unwrap();
-    println!("{:?}", report_json);
-    assert_eq!(
-        report_json
-            .get("Sequencing Quality")
-            .unwrap()
-            .get("Mixed calls")
-            .unwrap(),
-        5
-    );
 }
 
 #[test]

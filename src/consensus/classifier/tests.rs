@@ -96,7 +96,6 @@ fn make_classifier() -> Classifier {
         use_filters: true,
         filter_ignore_list: None,
         overriding_filters: None,
-        het_pc_threshold: None,
         minor_pop_threshold: Some(5),
         support_minor_pop_threshold: None,
         main_caller: None,
@@ -160,10 +159,7 @@ fn test_classify_simple() {
             ref_bases: "T".to_string(),
             new_bases: "T".to_string(),
             change: Change::Ref,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
-            has_indel_alleles: false,
+            ..Default::default()
         }
     );
 
@@ -180,10 +176,8 @@ fn test_classify_simple() {
             ref_bases: "".to_string(),
             new_bases: "".to_string(),
             change: Change::Ref,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
             has_indel_alleles: true,
+            ..Default::default()
         }
     );
     // Ref indel non standard case
@@ -199,10 +193,8 @@ fn test_classify_simple() {
             ref_bases: "T".to_string(),
             new_bases: "T".to_string(),
             change: Change::Ref,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
             has_indel_alleles: true,
+            ..Default::default()
         }
     );
 
@@ -219,10 +211,7 @@ fn test_classify_simple() {
             ref_bases: "T".to_string(),
             new_bases: "N".to_string(),
             change: Change::Null,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
-            has_indel_alleles: false,
+            ..Default::default()
         }
     );
     let mut record = VariantRecord::from_string(
@@ -237,10 +226,8 @@ fn test_classify_simple() {
             ref_bases: "TTT".to_string(),
             new_bases: "NNN".to_string(),
             change: Change::Null,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
             has_indel_alleles: true,
+            ..Default::default()
         }
     );
 
@@ -257,10 +244,8 @@ fn test_classify_simple() {
             ref_bases: "T".to_string(),
             new_bases: "F".to_string(),
             change: Change::Null,
-            is_het: false,
-            has_minor_population: false,
             is_filtered: true,
-            has_indel_alleles: false,
+            ..Default::default()
         }
     );
 
@@ -277,10 +262,7 @@ fn test_classify_simple() {
             ref_bases: "T".to_string(),
             new_bases: "A".to_string(),
             change: Change::Snp,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
-            has_indel_alleles: false,
+            ..Default::default()
         }
     );
 
@@ -297,10 +279,8 @@ fn test_classify_simple() {
             ref_bases: "".to_string(),
             new_bases: "A".to_string(),
             change: Change::Ins,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
             has_indel_alleles: true,
+            ..Default::default()
         }
     );
 
@@ -316,10 +296,8 @@ fn test_classify_simple() {
             ref_bases: "GA".to_string(),
             new_bases: "C".to_string(),
             change: Change::ComplexDel,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
             has_indel_alleles: true,
+            ..Default::default()
         }
     );
 }
@@ -343,9 +321,7 @@ fn test_classify_het() {
             new_bases: "Z".to_string(),
             change: Change::HetMask,
             is_het: true,
-            has_minor_population: false,
-            is_filtered: false,
-            has_indel_alleles: false,
+            ..Default::default()
         }
     );
 
@@ -362,9 +338,8 @@ fn test_classify_het() {
             new_bases: "ZZ".to_string(),
             change: Change::HetMask,
             is_het: true,
-            has_minor_population: false,
-            is_filtered: false,
             has_indel_alleles: true,
+            ..Default::default()
         }
     );
 
@@ -410,10 +385,8 @@ fn test_classify_filtered() {
             ref_bases: "T".to_string(),
             new_bases: "F".to_string(),
             change: Change::Null,
-            is_het: false,
-            has_minor_population: false,
             is_filtered: true,
-            has_indel_alleles: false,
+            ..Default::default()
         }
     );
 
@@ -430,10 +403,9 @@ fn test_classify_filtered() {
             ref_bases: "TAA".to_string(),
             new_bases: "FFF".to_string(),
             change: Change::Null,
-            is_het: false,
-            has_minor_population: false,
             is_filtered: true,
             has_indel_alleles: true,
+            ..Default::default()
         }
     );
 
@@ -450,10 +422,7 @@ fn test_classify_filtered() {
             ref_bases: "T".to_string(),
             new_bases: "T".to_string(),
             change: Change::Ref,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
-            has_indel_alleles: false,
+            ..Default::default()
         }
     );
 }

@@ -11,6 +11,7 @@ test:
 
 test_local:
 	cargo test
+	docker build -t test_container_rundial .
 	nf-test test tests/nextflow/*.nf.test --profile local_docker
 
 container:
@@ -18,3 +19,6 @@ container:
 
 pc:
 	pre-commit run --all-files
+
+clippy:
+	cargo clippy --all --all-features --tests -- -D warnings

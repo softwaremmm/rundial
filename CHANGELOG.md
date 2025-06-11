@@ -1,3 +1,15 @@
+## New
+
+- Fix issue with multithreaded mpileup which gave different results based on number of threads
+- Add filter and consensus params to clair3 pipeline
+- add MIN_AF filter for clair3 (similar to MIN_FRS but for ref calls only)
+- add dorado 5.0.0 models for clair3
+- Any row with minor allele gets output to main vcf
+- MIN_VDB from bcftools can override clair3 and set site to null
+- use own container for clair3
+- interpret MIN_FRS with minor population to mean het
+- Calculate mixed site counts for indels and snps separately
+
 ## 0.4.2 (2024-09-03)
 
 ### Fix
