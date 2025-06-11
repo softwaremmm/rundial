@@ -33,7 +33,7 @@ version_scheme = "semver"
 version_provider = "pep621"
 
 [tool.version_bumper]
-active_version = "221bf51"
+active_version = "b6acd2f"
 version_files = [
     "process/assembler.nf",
     "process/filter.nf",
