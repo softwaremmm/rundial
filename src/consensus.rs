@@ -48,6 +48,8 @@ const HET_IN_SUPPORT_VCF_DESC: &str =
     "This variant is a HET in the support VCF, which may be undesired.";
 const CALLER: &str = "CALLER";
 const CALLER_DESC: &str = "The variant caller that made the call.";
+const MIXED: &str = "MIXED";
+const MIXED_DESC: &str = "This variant is counted as a mixed call.";
 
 fn apply_variant(
     chrom: &str,
@@ -279,7 +281,6 @@ struct MainVCFResults {
 }
 
 // Assumes rows are split for snps vs indels
-#[allow(clippy::type_complexity)]
 fn process_main_vcf(
     vcf_file: &str,
     consensus: &mut HashMap<String, Vec<char>>,
@@ -653,8 +654,8 @@ fn clean_fasta_characters(consensus: &mut HashMap<String, Vec<char>>) {
 
 fn write_creation_report(
     consensus: &HashMap<String, Vec<char>>,
-    het_snp_count: i32,
-    het_indel_count: i32,
+    het_snp_sites: &HashMapSet<usize>,
+    het_indel_sites: &HashMapSet<usize>,
     output_file: &str,
 ) -> Result<()> {
     let mut letter_counts: HashMap<char, i32> = HashMap::new();
@@ -670,13 +671,38 @@ fn write_creation_report(
     for base in [NULL, FILTERED, HET, MASKED].iter() {
         all_null_counts += letter_counts.get(base).unwrap_or(&0);
     }
-
     let fixed_cov: f32 = 100.0 * (total_length - all_null_counts) as f32 / total_length as f32;
+
+    let het_snp_count = het_snp_sites.values().map(|s| s.len()).sum::<usize>() as i32;
+    let het_indel_count = het_indel_sites.values().map(|s| s.len()).sum::<usize>() as i32;
+
+    // Also want to count how many het snp clusters there are
+    let cluster_size = 50;
+    let mut het_snp_clusters = 0;
+    for (_, sites) in het_snp_sites.iter() {
+        if sites.is_empty() {
+            continue;
+        }
+
+        // sort the sites
+        let mut sorted_sites: Vec<usize> = sites.iter().cloned().collect();
+        sorted_sites.sort_unstable();
+        let mut last_site = sorted_sites[0];
+        het_snp_clusters = 1; // first site is always a new cluster
+        for site in sorted_sites.iter().skip(1) {
+            if site - last_site > cluster_size {
+                // new cluster
+                het_snp_clusters += 1;
+            }
+            last_site = *site;
+        }
+    }
 
     let quality_stats = SequencingQuality {
         genome_length: total_length,
         null_calls: all_null_counts,
         mixed_snps: het_snp_count,
+        mixed_snps_clusters: het_snp_clusters,
         mixed_indels: het_indel_count,
         mixed_calls: het_snp_count + het_indel_count,
         fixed_coverage: fixed_cov,
@@ -735,6 +761,12 @@ fn write_vcf(
         HeaderType::Flag,
         HET_IN_SUPPORT_VCF_DESC.to_owned(),
     );
+    header.add_info_line(
+        MIXED.to_owned(),
+        HeaderNumber::Flag,
+        HeaderType::Flag,
+        MIXED_DESC.to_owned(),
+    );
 
     header.add_format_line(
         "GT".to_owned(),
@@ -772,8 +804,11 @@ fn write_vcf(
     for record in records.iter() {
         let mut output_record = record.clone();
         output_record.info = IndexMap::new();
-        if let Some(caller) = record.info.get(CALLER) {
-            output_record.info.insert(CALLER.to_owned(), caller.clone());
+
+        for key in [CALLER, HET_IN_SUPPORT_VCF, MIXED] {
+            if let Some(value) = record.info.get(key) {
+                output_record.info.insert(key.to_owned(), value.clone());
+            }
         }
 
         let mut format = IndexMap::new();
@@ -928,16 +963,8 @@ pub fn make_consensus(
 
     write_creation_report(
         &consensus,
-        main_results
-            .het_snp_sites
-            .values()
-            .map(|s| s.len())
-            .sum::<usize>() as i32,
-        main_results
-            .het_indel_sites
-            .values()
-            .map(|s| s.len())
-            .sum::<usize>() as i32,
+        &main_results.het_snp_sites,
+        &main_results.het_indel_sites,
         &(output_root.to_owned() + ".report.json"),
     )?;
 

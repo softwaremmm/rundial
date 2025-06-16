@@ -14,6 +14,7 @@
 ##FILTER=<ID=SNP_IN_SUPPORT_VCF,Description="This variant is a SNP in the support VCF, which should only be used for information of nulls.">
 ##INFO=<ID=CALLER,Number=1,Type=String,Description="The variant caller that made the call.">
 ##INFO=<ID=HET_IN_SUPPORT_VCF,Number=0,Type=Flag,Description="This variant is a HET in the support VCF, which may be undesired.">
+##INFO=<ID=MIXED,Number=0,Type=Flag,Description="This variant is counted as a mixed call.">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Basic depth">
 ##FORMAT=<ID=ADF,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles on forward strand">
@@ -22,7 +23,7 @@
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample
 ref	2	.	T	A	225.417	PASS	CALLER=main	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	3	.	T	A,G	225.417	PASS	CALLER=main	GT:DP:ADF:ADR:COV	2/2:30:0,0,13:0,0,9:0,0,22
-ref	4	.	T	A	225.417	PASS	CALLER=main	GT:DP:ADF:ADR:COV	0/1:30:0,13:0,9:0,22
+ref	4	.	T	A	225.417	PASS	CALLER=main;MIXED	GT:DP:ADF:ADR:COV	0/1:30:0,13:0,9:0,22
 ref	5	.	T	.	244.589	MIN_DP	CALLER=main	GT:DP:ADF:ADR:COV	0/0:0:0:0:0
 ref	6	.	T	TGGG	60.7969	PASS	CALLER=main	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
 ref	7	.	T	.	40.589	PASS	CALLER=support	GT:DP:ADF:ADR:COV	./.:28:10:8:18
