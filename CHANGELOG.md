@@ -9,6 +9,7 @@
 - use own container for clair3
 - interpret MIN_FRS with minor population to mean het
 - Calculate mixed site counts for indels and snps separately
+- Mark mixed sites using INFO field, and count clusters
 
 ## 0.4.2 (2024-09-03)
 
