@@ -14,6 +14,7 @@
 ##FILTER=<ID=SNP_IN_SUPPORT_VCF,Description="This variant is a SNP in the support VCF, which should only be used for information of nulls.">
 ##INFO=<ID=CALLER,Number=1,Type=String,Description="The variant caller that made the call.">
 ##INFO=<ID=HET_IN_SUPPORT_VCF,Number=0,Type=Flag,Description="This variant is a HET in the support VCF, which may be undesired.">
+##INFO=<ID=MIXED,Number=0,Type=Flag,Description="This variant is counted as a mixed call.">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Basic depth">
 ##FORMAT=<ID=ADF,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles on forward strand">
@@ -22,14 +23,14 @@
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample
 ref	2	.	T	A	225.417	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	3	.	T	A,G	225.417	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	2/2:30:0,0,13:0,0,9:0,0,22
-ref	4	.	T	A	225.417	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/1:30:0,13:0,9:0,22
+ref	4	.	T	A	225.417	PASS	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	0/1:30:0,13:0,9:0,22
 ref	5	.	T	.	244.589	MIN_DP	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/0:0:0:0:0
-ref	8	.	T	A	20.417	LOW_QUAL	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/1:30:0,13:0,9:0,22
+ref	8	.	T	A	20.417	LOW_QUAL	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	0/1:30:0,13:0,9:0,22
 ref	9	.	T	.	200.589	MIN_DP	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/0:3:10:8:18
 ref	10	.	T	A	225.417	LOW_HQ_DEPTH	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:20:0,1:0,1:0,2
-ref	12	.	T	A	12.642	LOW_QUAL;MIN_FRS;STRAND_MISMATCH	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/1:26:0,8:6,0:6,8
+ref	12	.	T	A	12.642	LOW_QUAL;MIN_FRS;STRAND_MISMATCH	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	0/1:26:0,8:6,0:6,8
 ref	13	.	T	A	225.417	LOW_VDB	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
-ref	14	.	T	A	225.417	MIN_FRS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:5,5:5,5:10,10
+ref	14	.	T	A	225.417	MIN_FRS	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	1/1:30:5,5:5,5:10,10
 ref	15	.	T	A	225.417	LOW_MQ	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	16	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
 ref	17	.	TT	T	30.7969	LOW_QUAL	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16

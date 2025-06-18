@@ -509,7 +509,17 @@ fn test_clean_fasta_characters() {
 fn test_write_creation_report() {
     let seq = read_fasta("test_data/simple.fasta").unwrap();
 
-    write_creation_report(&seq, 1, 2, "tests/test_outputs/creation_report_1.json").unwrap();
+    // mock data does not actually match fasta
+    let het_snp_sites = HashMapSet::from([("chrom_1".to_string(), HashSet::from([5]))]);
+    let het_indel_sites = HashMapSet::from([("chrom_2".to_string(), HashSet::from([1, 2]))]);
+
+    write_creation_report(
+        &seq,
+        &het_snp_sites,
+        &het_indel_sites,
+        "tests/test_outputs/creation_report_1.json",
+    )
+    .unwrap();
     let report = std::fs::read_to_string("tests/test_outputs/creation_report_1.json").unwrap();
     let expected_report = std::fs::read_to_string("test_data/creation_report.json").unwrap();
     let report_json: serde_json::Value = serde_json::from_str(&report).unwrap();

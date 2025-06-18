@@ -2,6 +2,7 @@ use std::iter;
 
 use crate::vcf::VariantRecord;
 
+use super::MIXED;
 use super::{Bed, ConsensusParams, HetOption};
 use super::{FILTERED, HET, MASKED, NULL};
 
@@ -264,7 +265,7 @@ impl Classifier {
             ..Default::default()
         };
 
-        let gt = record.genotype().expect("Genotype not found");
+        let gt = record.genotype().expect("Genotype not found").clone();
 
         if let (Some(allelic_depths), Some(minor_threshold)) =
             (record.allele_depths(), self.minor_pop_threshold)
@@ -289,6 +290,13 @@ impl Classifier {
         {
             classification.is_het = true;
             classification.is_filtered = false; // treat as het rather than filtered
+        }
+
+        if classification.is_het {
+            // Then add this to the info field of the record
+            record
+                .info
+                .insert(MIXED.to_string(), crate::vcf::RecordValue::Flag);
         }
 
         /// Indel is standard if ref and all alts start with the same base

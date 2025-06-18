@@ -16,6 +16,7 @@
 ##FILTER=<ID=SNP_IN_SUPPORT_VCF,Description="This variant is a SNP in the support VCF, which should only be used for information of nulls.">
 ##INFO=<ID=CALLER,Number=1,Type=String,Description="The variant caller that made the call.">
 ##INFO=<ID=HET_IN_SUPPORT_VCF,Number=0,Type=Flag,Description="This variant is a HET in the support VCF, which may be undesired.">
+##INFO=<ID=MIXED,Number=0,Type=Flag,Description="This variant is counted as a mixed call.">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Basic depth">
 ##FORMAT=<ID=ADF,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles on forward strand">
