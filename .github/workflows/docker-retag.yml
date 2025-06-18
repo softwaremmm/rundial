@@ -1,0 +1,87 @@
+name: Docker Image Retag and Push
+
+on:
+  workflow_dispatch:
+    inputs:
+      original_tag:
+        description: 'Original docker image tag (e.g. v1.1.1)'
+        required: true
+        type: string
+      sp3_prefix:
+        description: 'SP3 docker image prefix'
+        required: false
+        default: 'lrbvkel2wjot/gpas/clair3'
+        type: string
+      gpasltd_prefix:
+        description: 'GPASLTD docker image prefix'
+        required: false
+        default: 'lr3yhdniv6gu/clair3'
+        type: string
+
+env:
+  REGISTRY: lhr.ocir.io
+  ORIGINAL_IMAGE: hkubal/clair3
+
+jobs:
+  retag_and_push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          token: "${{ secrets.PAT_TOKEN }}"
+          fetch-depth: 0
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set image tags
+        run: |
+          echo "ORIGINAL_FULL_TAG=${{ env.ORIGINAL_IMAGE }}:${{ inputs.original_tag }}" >> $GITHUB_ENV
+          echo "SP3_FULL_TAG=${{ env.REGISTRY }}/${{ inputs.sp3_prefix }}:${{ inputs.original_tag }}" >> $GITHUB_ENV
+          echo "GPASLTD_FULL_TAG=${{ env.REGISTRY }}/${{ inputs.gpasltd_prefix }}:${{ inputs.original_tag }}" >> $GITHUB_ENV
+          
+          echo "Original image tag: ${{ env.ORIGINAL_IMAGE }}:${{ inputs.original_tag }}"
+          echo "SP3 target tag: ${{ env.REGISTRY }}/${{ inputs.sp3_prefix }}:${{ inputs.original_tag }}"
+          echo "GPASLTD target tag: ${{ env.REGISTRY }}/${{ inputs.gpasltd_prefix }}:${{ inputs.original_tag }}"
+
+      - name: Pull original image
+        run: |
+          docker pull ${{ env.ORIGINAL_FULL_TAG }}
+
+      # SP3 retagging and pushing
+      - name: Login to SP3 OCIR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.OCR_USERNAME }}
+          password: ${{ secrets.OCR_TOKEN }}
+
+      - name: Retag and push SP3 image
+        run: |
+          echo "Retagging ${{ env.ORIGINAL_FULL_TAG }} to ${{ env.SP3_FULL_TAG }}"
+          docker tag ${{ env.ORIGINAL_FULL_TAG }} ${{ env.SP3_FULL_TAG }}
+          echo "Pushing ${{ env.SP3_FULL_TAG }}"
+          docker push ${{ env.SP3_FULL_TAG }}
+
+      # GPASLTD retagging and pushing
+      - name: Login to GPASLTD OCIR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.OCR_CONTAINER_USERNAME_GPASLTD }}
+          password: ${{ secrets.OCR_CONTAINER_TOKEN_GPASLTD }}
+
+      - name: Retag and push GPASLTD image
+        run: |
+          echo "Retagging ${{ env.ORIGINAL_FULL_TAG }} to ${{ env.GPASLTD_FULL_TAG }}"
+          docker tag ${{ env.ORIGINAL_FULL_TAG }} ${{ env.GPASLTD_FULL_TAG }}
+          echo "Pushing ${{ env.GPASLTD_FULL_TAG }}"
+          docker push ${{ env.GPASLTD_FULL_TAG }} 
