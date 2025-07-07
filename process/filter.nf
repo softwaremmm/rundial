@@ -1,7 +1,7 @@
 process apply_filters {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + file_prefix + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + file_prefix + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:apply_filters"
@@ -26,9 +26,9 @@ process apply_filters {
 }
 
 process make_consensus {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:make_consensus"
@@ -69,9 +69,9 @@ process make_consensus {
 }
 
 process make_clair3_consensus {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:make_clair3_consensus"

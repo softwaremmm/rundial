@@ -1,7 +1,7 @@
 # ---- Rust Build Stage ----
-FROM rust:1.84 as chef
+FROM rust:1.88-slim as chef
 
-# RUN apt-get update && apt-get install -y clang llvm-dev
+RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-chef
 WORKDIR /app
 

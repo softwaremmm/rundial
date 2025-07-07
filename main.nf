@@ -51,7 +51,7 @@ workflow {
         : "${projectDir}/${params.clair3_models_dir}"
 
     if (params.workflow == "clair3") {
-        rundial_with_clair3(input_files, ref, clair3_models_dir, params.basecalling_model)
+        rundial(input_files, ref, clair3_models_dir, params.basecalling_model)
     }
     else if (params.workflow == "bcftools") {
         rundial_with_bcftools(input_files, ref)
@@ -61,35 +61,8 @@ workflow {
     }
 }
 
-workflow rundial_with_bcftools {
-    take:
-    fastq_files
-    ref
-
-    main:
-    filter_params = Channel.fromPath("${moduleDir}/process/filter_params.yml").first()
-    consensus_params = Channel.fromPath("${moduleDir}/process/consensus_params.yml").first()
-
-    minimap2(fastq_files, ref)
-    call_all(minimap2.out.sorted_alignment, ref)
-    apply_filters(call_all.out.gvcf, filter_params, "")
-
-    calls = apply_filters.out.filtered_gvcf
-    make_consensus(calls, ref, consensus_params)
-
-    emit:
-    alignment = minimap2.out.sorted_alignment
-    gvcf = apply_filters.out.filtered_gvcf
-    full_consensus = make_consensus.out.full_consensus
-    final_fasta = make_consensus.out.final_fasta
-    indel_fasta = make_consensus.out.indel_fasta
-    final_vcf = make_consensus.out.final_vcf
-    full_vcf = make_consensus.out.full_vcf
-    sundial_report_json = make_consensus.out.report_json
-}
-
-
-workflow rundial_with_clair3 {
+// Main workflow uses clair3 variant calling with bcftools to fill in the gaps
+workflow rundial {
     take:
     fastq_files
     ref
@@ -143,4 +116,32 @@ workflow rundial_with_clair3 {
     final_vcf = rundial_with_bcftools.out.final_vcf.concat(make_clair3_consensus.out.final_vcf)
     full_vcf = rundial_with_bcftools.out.full_vcf.concat(make_clair3_consensus.out.full_vcf)
     sundial_report_json = rundial_with_bcftools.out.sundial_report_json.concat(make_clair3_consensus.out.report_json)
+}
+
+
+workflow rundial_with_bcftools {
+    take:
+    fastq_files
+    ref
+
+    main:
+    filter_params = Channel.fromPath("${moduleDir}/process/filter_params.yml").first()
+    consensus_params = Channel.fromPath("${moduleDir}/process/consensus_params.yml").first()
+
+    minimap2(fastq_files, ref)
+    call_all(minimap2.out.sorted_alignment, ref)
+    apply_filters(call_all.out.gvcf, filter_params, "")
+
+    calls = apply_filters.out.filtered_gvcf
+    make_consensus(calls, ref, consensus_params)
+
+    emit:
+    alignment = minimap2.out.sorted_alignment
+    gvcf = apply_filters.out.filtered_gvcf
+    full_consensus = make_consensus.out.full_consensus
+    final_fasta = make_consensus.out.final_fasta
+    indel_fasta = make_consensus.out.indel_fasta
+    final_vcf = make_consensus.out.final_vcf
+    full_vcf = make_consensus.out.full_vcf
+    sundial_report_json = make_consensus.out.report_json
 }

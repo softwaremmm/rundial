@@ -1,12 +1,12 @@
 params.test_cpus = ""
 
 process minimap2 {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
-    cpus {
-        params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
-    }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
+    }
+    cpus {
+        params.testing == "" ? 10 : params.test_cpus
     }
 
     pod label: "name", value: "rundial:minimap2"
@@ -28,12 +28,12 @@ process minimap2 {
 }
 
 process call_snps {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
-    cpus {
-        params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
-    }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
+    }
+    cpus {
+        params.testing == "" ? 10 : params.test_cpus
     }
 
     pod label: "name", value: "rundial:call_snps"
@@ -77,12 +77,12 @@ process call_snps {
 }
 
 process call_all {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
-    cpus {
-        params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
-    }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
+    }
+    cpus {
+        params.testing == "" ? 10 : params.test_cpus
     }
 
     pod label: "name", value: "rundial:call_all"
@@ -137,7 +137,7 @@ process call_all {
 
 process get_clair3_model {
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:get_clair3_model"
@@ -158,11 +158,13 @@ process get_clair3_model {
 }
 
 process clair3 {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
-    cpus {
-        params.testing == "" ? 4 : (params.test_cpus == "" ? 2 : params.test_cpus)
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    container {
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
-    container "lhr.ocir.io/lrbvkel2wjot/gpas/clair3:v1.0.5"
+    cpus {
+        params.testing == "" ? 4 : params.test_cpus
+    }
 
     pod label: "name", value: "rundial:clair3"
     pod label: "sample_id", value: "${params.sample_id}"
