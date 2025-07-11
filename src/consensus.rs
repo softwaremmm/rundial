@@ -846,7 +846,7 @@ pub fn make_consensus(
     output_root: &str,
     params: &str,
     verbose: bool,
-) -> Result<HashMap<String, Vec<char>>> {
+) -> Result<()> {
     let params: ConsensusParams = serde_yaml::from_reader(
         File::open(params).map_err(|e| format!("Failed to read params file. Error: {}", e))?,
     )?;
@@ -959,8 +959,6 @@ pub fn make_consensus(
         }
     }
 
-    save_fasta(&consensus, &(output_root.to_owned() + ".full.fasta"))?;
-
     write_creation_report(
         &consensus,
         &main_results.het_snp_sites,
@@ -968,12 +966,11 @@ pub fn make_consensus(
         &(output_root.to_owned() + ".report.json"),
     )?;
 
-    let mut clean_consensus = consensus.clone();
-    clean_fasta_characters(&mut clean_consensus);
-    save_fasta(&clean_consensus, &(output_root.to_owned() + ".fasta"))?;
+    clean_fasta_characters(&mut consensus);
+    save_fasta(&consensus, &(output_root.to_owned() + ".fasta"))?;
 
     // Apply insertion changes in reverse order!
-    let mut variable_len_consensus = clean_consensus;
+    let mut variable_len_consensus = consensus;
     insertions.sort_by_key(|(_r, c)| c.pos);
     insertions.reverse();
     for (record, classification) in insertions.into_iter() {
@@ -1004,7 +1001,7 @@ pub fn make_consensus(
         support_vcf,
     )?;
 
-    Ok(consensus)
+    Ok(())
 }
 
 #[cfg(test)]
