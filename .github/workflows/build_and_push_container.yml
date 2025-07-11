@@ -15,7 +15,7 @@ on:
 env:
   REGISTRY: lhr.ocir.io
   IMAGE_NAME: lrbvkel2wjot/gpas/rundial
-  IMAGE_NAME_GPAS_LTD: lr3yhdniv6gu/rundial
+  IMAGE_NAME_GPAS_LTD: lr3yhdniv6gu/gpas/rundial
 
 jobs:
   build:
