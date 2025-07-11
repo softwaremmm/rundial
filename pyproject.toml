@@ -35,6 +35,6 @@ version_provider = "pep621"
 [tool.version_bumper]
 active_version = "5a7f1e1"
 version_files = [
-    "process/assembler.nf",
-    "process/filter.nf",
+    "process/variant_calling.nf",
+    "process/consensus.nf",
 ]

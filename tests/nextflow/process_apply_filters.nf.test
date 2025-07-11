@@ -1,6 +1,6 @@
 nextflow_process {
     name "Test Process Apply filters"
-    script "process/filter.nf"
+    script "process/consensus.nf"
     process "apply_filters"
 
     test("Process run successfully and produce filtered vcfs") {

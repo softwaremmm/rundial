@@ -1,22 +1,10 @@
 #!/usr/bin/env nextflow
 
-include { call_all ; call_snps ; minimap2 ; get_clair3_model ; clair3 } from './process/assembler.nf'
-include { apply_filters } from './process/filter.nf'
-include { apply_filters as apply_filters_clair3 } from './process/filter.nf'
-include { make_consensus ; make_clair3_consensus } from './process/filter.nf'
+include { call_all ; call_snps ; minimap2 ; get_clair3_model ; clair3 } from './process/variant_calling.nf'
+include { apply_filters } from './process/consensus.nf'
+include { apply_filters as apply_filters_clair3 } from './process/consensus.nf'
+include { make_consensus ; make_clair3_consensus } from './process/consensus.nf'
 
-
-// Parameters
-params.help = ""
-params.input_dir = ""
-params.workflow = ""
-params.ref_fasta = "data/h37rv_20231215.fa.gz"
-params.clair3_models_dir = "data/clair3_models"
-// e.g. "dna_r9.4.1_450bps_sup_prom"
-params.basecalling_model = ""
-
-// input defaults
-params.input_single_suffix = "*.fastq.gz"
 
 workflow {
     if (params.help) {
@@ -38,8 +26,7 @@ workflow {
         exit(0)
     }
 
-    input_files = Channel
-        .fromPath("${params.input_dir}/${params.input_single_suffix}", checkIfExists: true)
+    input_files = Channel.fromPath("${params.input_dir}/${params.input_single_suffix}", checkIfExists: true)
         .ifEmpty { error("cannot find any reads matching ${params.input_single_suffix} in ${params.input_dir}") }
         .map { it -> tuple(it.getName().replaceFirst(/(?i)\.(fastq|fq)\.gz$/, ""), it) }
 
@@ -110,12 +97,11 @@ workflow rundial {
     emit:
     alignment = rundial_with_bcftools.out.alignment.concat(minimap2.out.sorted_alignment)
     gvcf = rundial_with_bcftools.out.gvcf.concat(clair3.out.vcf)
-    full_consensus = rundial_with_bcftools.out.full_consensus.concat(make_clair3_consensus.out.full_consensus)
     final_fasta = rundial_with_bcftools.out.final_fasta.concat(make_clair3_consensus.out.final_fasta)
-    indel_fasta = rundial_with_bcftools.out.indel_fasta.concat(make_clair3_consensus.out.indel_fasta)
+    variable_length_fasta = rundial_with_bcftools.out.variable_length_fasta.concat(make_clair3_consensus.out.variable_length_fasta)
     final_vcf = rundial_with_bcftools.out.final_vcf.concat(make_clair3_consensus.out.final_vcf)
     full_vcf = rundial_with_bcftools.out.full_vcf.concat(make_clair3_consensus.out.full_vcf)
-    sundial_report_json = rundial_with_bcftools.out.sundial_report_json.concat(make_clair3_consensus.out.report_json)
+    creation_report_json = rundial_with_bcftools.out.creation_report_json.concat(make_clair3_consensus.out.report_json)
 }
 
 
@@ -138,10 +124,9 @@ workflow rundial_with_bcftools {
     emit:
     alignment = minimap2.out.sorted_alignment
     gvcf = apply_filters.out.filtered_gvcf
-    full_consensus = make_consensus.out.full_consensus
     final_fasta = make_consensus.out.final_fasta
-    indel_fasta = make_consensus.out.indel_fasta
+    variable_length_fasta = make_consensus.out.variable_length_fasta
     final_vcf = make_consensus.out.final_vcf
     full_vcf = make_consensus.out.full_vcf
-    sundial_report_json = make_consensus.out.report_json
+    creation_report_json = make_consensus.out.report_json
 }

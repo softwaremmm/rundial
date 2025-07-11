@@ -1,6 +1,6 @@
 nextflow_process {
     name "Test Process clair3"
-    script "process/assembler.nf"
+    script "process/variant_calling.nf"
     process "clair3"
 
     test("Process run successfully and produce vcfs") {

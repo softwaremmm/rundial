@@ -1,6 +1,6 @@
 nextflow_process {
     name "Test Process minimap2"
-    script "process/assembler.nf"
+    script "process/variant_calling.nf"
     process "minimap2"
 
     test("Process run successfully and produce alignment") {

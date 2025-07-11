@@ -1,6 +1,6 @@
 nextflow_process {
     name "Test Process make_clair3_consensus"
-    script "process/filter.nf"
+    script "process/consensus.nf"
     process "make_clair3_consensus"
 
     test("Process run successfully and produce consensus") {

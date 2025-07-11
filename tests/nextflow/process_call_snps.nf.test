@@ -1,6 +1,6 @@
 nextflow_process {
     name "Test Process call snps"
-    script "process/assembler.nf"
+    script "process/variant_calling.nf"
     process "call_snps"
 
     test("Process run successfully and produce vcfs - cpus 1") {
