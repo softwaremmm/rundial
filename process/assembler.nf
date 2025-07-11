@@ -6,7 +6,7 @@ process minimap2 {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
     cpus {
-        params.testing == "" ? 10 : params.test_cpus
+        params.testing == "" ? 4 : params.test_cpus
     }
 
     pod label: "name", value: "rundial:minimap2"
@@ -33,7 +33,7 @@ process call_snps {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
     cpus {
-        params.testing == "" ? 10 : params.test_cpus
+        params.testing == "" ? 4 : params.test_cpus
     }
 
     pod label: "name", value: "rundial:call_snps"
@@ -46,7 +46,6 @@ process call_snps {
 
     output:
     tuple val(sample_name), path("calls.gvcf.gz"), emit: gvcf
-    tuple val(sample_name), path("calls.raw_variants.vcf.gz"), emit: variants
 
     script:
     """
@@ -68,8 +67,6 @@ process call_snps {
     echo "Finished Calling Variants"
     date +"%T"
 
-    bcftools view -v snps calls.gvcf.gz -Oz -o calls.raw_variants.vcf.gz
-
     # Clean up large files to save space locally
     rm -r pileups
     rm pileup.bcf
@@ -82,7 +79,7 @@ process call_all {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
     cpus {
-        params.testing == "" ? 10 : params.test_cpus
+        params.testing == "" ? 4 : params.test_cpus
     }
 
     pod label: "name", value: "rundial:call_all"
@@ -95,7 +92,6 @@ process call_all {
 
     output:
     tuple val(sample_name), path("calls.gvcf.gz"), emit: gvcf
-    tuple val(sample_name), path("calls.raw_variants.vcf.gz"), emit: variants
 
     script:
     """
@@ -121,8 +117,6 @@ process call_all {
 
     echo "Finished Calling Variants"
     date +"%T"
-
-    bcftools view -v snps,indels calls.gvcf -o calls.raw_variants.vcf
 
     # Clean up large files to save space locally
     rm -r pileups
