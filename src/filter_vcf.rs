@@ -60,6 +60,13 @@ impl Filterer {
         let mut filterer = Self {
             filters: Vec::new(),
         };
+
+        // Always filter out invalid indels
+        // They are more of a quirk in BCFTools
+        filterer
+            .filters
+            .push(Box::new(move |record| is_invalid_indel(record, 0.0)));
+
         let Some(params) = params else {
             return filterer;
         };
@@ -75,9 +82,6 @@ impl Filterer {
                 MIN_QUAL => filterer
                     .filters
                     .push(Box::new(move |record| is_low_qual(record, threshold))),
-                INVALID_INDEL => filterer
-                    .filters
-                    .push(Box::new(move |record| is_invalid_indel(record, threshold))),
                 STRAND_BIAS => filterer
                     .filters
                     .push(Box::new(move |record| is_strand_bias(record, threshold))),

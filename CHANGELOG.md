@@ -12,6 +12,8 @@
 - use own container for clair3
 - use container prefix param
 - use same container name for both registries
+- stop producing final.full.fasta
+- INVALID_INDELS now always filtered
 
 ## 0.4.2 (2024-09-03)
 
