@@ -12,15 +12,15 @@ parameters:
 # These apply only to indels
 indel_parameters:
   MIN_IDV: 5 # min number of reads supporting an indel
-  MIN_FRS: 0.65 # min fraction of reads supporting variant
+  MIN_FRS: 0.70 # min fraction of reads supporting variant
 
 # These apply only for snp calls based on genotype (so GT!=0/0).
 snp_parameters:
   MIN_VDB: 0.00001 # This is the variant distance bias, it flags varants that appear in the same place in all reads, and so are likely an artifact
-  MIN_FRS: 0.80 # min fraction of reads supporting variant
+  MIN_FRS: 0.90 # min fraction of reads supporting variant
 
 # The rest also get these parameters
 ref_parameters:
-  MIN_FRS: 0.80 # min fraction of reads supporting variant
+  MIN_FRS: 0.90 # min fraction of reads supporting variant
 
 fix_gt: true # If true, will fix GT field to match AD field
