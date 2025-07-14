@@ -179,7 +179,7 @@ fn test_overlap() {
     let del_changes = [Change::Del, Change::ComplexDel];
     for c1 in simple_changes.iter().chain(del_changes.iter()) {
         for c2 in simple_changes.iter().chain(del_changes.iter()) {
-            println!("{:?} {:?}", c1, c2);
+            println!("{c1:?} {c2:?}");
             assert_eq!(
                 overlaps(
                     &make_classification(1, "A", c1.clone()),

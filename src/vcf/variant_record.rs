@@ -97,7 +97,7 @@ impl fmt::Display for VariantRecord {
                 if let RecordValue::Flag = v {
                     return k.to_string();
                 }
-                format!("{}={}", k, v)
+                format!("{k}={v}")
             })
             .collect::<Vec<String>>()
             .join(";");
@@ -153,7 +153,7 @@ impl fmt::Display for VariantRecord {
 
 impl fmt::Debug for VariantRecord {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Record: {}", self)
+        write!(f, "Record: {self}")
     }
 }
 

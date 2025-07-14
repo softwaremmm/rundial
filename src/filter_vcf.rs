@@ -100,7 +100,7 @@ impl Filterer {
                     }))
                 }
                 _ => {
-                    println!("Unknown flag: {}", flag);
+                    println!("Unknown flag: {flag}");
                 }
             }
         }
@@ -331,7 +331,7 @@ fn add_filters_to_header(header: &mut VCFHeader, params: &FilterParams) {
         let desc: String = DESCRIPTIONS
             .get(key)
             .map(|&desc| desc.to_string())
-            .unwrap_or_else(|| format!("{} - thresholds: ?", key))
+            .unwrap_or_else(|| format!("{key} - thresholds: ?"))
             .replace('?', &thresholds);
 
         add_filter_to_header(header, key, &desc);
@@ -367,7 +367,7 @@ fn add_filters_to_header(header: &mut VCFHeader, params: &FilterParams) {
         let min_frs_desc = DESCRIPTIONS
             .get(MIN_FRS)
             .map(|&desc| desc.to_string())
-            .unwrap_or_else(|| format!("{} - thresholds: ?", MIN_FRS))
+            .unwrap_or_else(|| format!("{MIN_FRS} - thresholds: ?"))
             .replace('?', &min_frs_descs.join(", "));
         add_filter_to_header(header, MIN_FRS, &min_frs_desc);
     }
@@ -382,7 +382,7 @@ pub fn filter_vcf(
     verbose: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let params: FilterParams = serde_yaml::from_reader(
-        File::open(params).map_err(|e| format!("Failed to read params file. Error: {}", e))?,
+        File::open(params).map_err(|e| format!("Failed to read params file. Error: {e}"))?,
     )?;
 
     let vcf_reader = VCFReader::from_path(in_vcf)?;
@@ -405,7 +405,7 @@ pub fn filter_vcf(
     let mut filter_counter: HashMap<String, i32> = HashMap::new();
     for (count, record) in vcf_reader.enumerate() {
         if verbose && count % 100000 == 0 && count != 0 {
-            println!("Processed {} records", count);
+            println!("Processed {count} records");
         }
         let mut record = record?;
         if fix_gt {
@@ -447,7 +447,7 @@ pub fn filter_vcf(
     if verbose {
         println!("Filter counts:");
         for (filter, count) in filter_counter {
-            println!("{}: {}", filter, count);
+            println!("{filter}: {count}");
         }
     }
 

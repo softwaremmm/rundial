@@ -14,6 +14,7 @@
 - use same container name for both registries
 - stop producing final.full.fasta
 - INVALID_INDELS now always filtered
+- update to cargo 1.88
 
 ## 0.4.2 (2024-09-03)
 

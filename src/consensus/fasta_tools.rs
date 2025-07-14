@@ -15,12 +15,8 @@ use super::{FILTERED, HET, MASKED, NULL};
 pub fn read_fasta(fasta_file: &str) -> Result<HashMap<String, Vec<char>>> {
     let mut consensus: HashMap<String, Vec<char>> = HashMap::new();
 
-    let (reader, _format) = niffler::from_path(fasta_file).map_err(|e| {
-        format!(
-            "Failed to open fasta input file {}. Error: {}",
-            fasta_file, e
-        )
-    })?;
+    let (reader, _format) = niffler::from_path(fasta_file)
+        .map_err(|e| format!("Failed to open fasta input file {fasta_file}. Error: {e}"))?;
     let buf_reader = BufReader::new(reader);
     let mut fasta_reader = noodles_fasta::Reader::new(buf_reader);
     for record in fasta_reader.records() {
@@ -52,7 +48,7 @@ fn potentially_gzipped_writer(file: &str) -> Result<Box<dyn Write>> {
     };
 
     let niffler_writer = niffler::to_path(file, nif_format, level)
-        .map_err(|e| format!("Failed to open fasta output file {}. Error: {}", file, e))?;
+        .map_err(|e| format!("Failed to open fasta output file {file}. Error: {e}"))?;
 
     return Ok(niffler_writer);
 }

@@ -347,7 +347,7 @@ impl Classifier {
                     .set_ref_alt_and_simplify(&record.ref_bases, &record.alt[(i - 1) as usize]);
             }
             (false, i, j) => {
-                panic!("Not considered het yet alleles are not equal: {} {}", i, j);
+                panic!("Not considered het yet alleles are not equal: {i} {j}");
             }
             (true, i, j) => {
                 // Difficult het case

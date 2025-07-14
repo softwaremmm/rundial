@@ -98,7 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::DoradoToClair3Model { model_name } => {
             if let Some(mapped_name) = map_model_name(&model_name) {
-                println!("{}", mapped_name);
+                println!("{mapped_name}");
             } else {
                 println!("failed");
             }

@@ -300,7 +300,7 @@ fn process_main_vcf(
 
     for (count, record) in vcf_reader.enumerate() {
         if verbose && count % 100000 == 0 && count != 0 {
-            println!("Processed {} records", count);
+            println!("Processed {count} records");
         }
         let mut record = record?;
 
@@ -453,7 +453,7 @@ fn process_support_vcf(
 
     for (count, record) in vcf_reader.enumerate() {
         if verbose && count % 100000 == 0 && count != 0 {
-            println!("Processed {} records of support vcf", count);
+            println!("Processed {count} records of support vcf");
         }
         let mut record = record?;
         // Need to convert to 0-based
@@ -772,7 +772,7 @@ pub fn make_consensus(
     verbose: bool,
 ) -> Result<()> {
     let params: ConsensusParams = serde_yaml::from_reader(
-        File::open(params).map_err(|e| format!("Failed to read params file. Error: {}", e))?,
+        File::open(params).map_err(|e| format!("Failed to read params file. Error: {e}"))?,
     )?;
 
     let mut consensus = read_fasta(ref_fasta)?;

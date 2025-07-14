@@ -24,7 +24,7 @@ fn test_make_consensus_single() {
     ] {
         let output = output_root.to_string() + ending;
         let expected = expected_root.to_string() + ending;
-        println!("Comparing {} to {}", output, expected);
+        println!("Comparing {output} to {expected}");
         assert_eq!(
             read_to_string(expected).unwrap(),
             read_to_string(output).unwrap()
@@ -57,7 +57,7 @@ fn test_make_consensus_support() {
     for ending in &[".full.fasta", ".fasta", ".variable_length.fasta", ".vcf"] {
         let output = output_root.to_string() + ending;
         let expected = expected_root.to_string() + ending;
-        println!("Comparing {} to {}", output, expected);
+        println!("Comparing {output} to {expected}");
         assert_eq!(
             read_to_string(expected).unwrap(),
             read_to_string(output).unwrap()
