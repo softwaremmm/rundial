@@ -24,23 +24,12 @@ FROM continuumio/miniconda3 as conda_builder
 WORKDIR /app
 
 COPY env.yml /app/env.yml
-RUN conda env create --file env.yml
-
-
-# Pack conda installation
-RUN conda install -c conda-forge conda-pack
-RUN conda-pack -n rundial -o /app/conda_env.tar.gz
+RUN conda env update -n base --file env.yml && conda clean -afy
 
 
 # ---- Conda Build Stage ----
-FROM debian:stable-slim as runtime
+FROM conda_builder as runtime
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y libssl-dev procps && rm -rf /var/lib/apt/lists/*
-
-COPY --from=conda_builder /app/conda_env.tar.gz /app/conda_env.tar.gz
-RUN mkdir -p /opt/conda
-RUN tar -xzf /app/conda_env.tar.gz -C /opt/conda && rm /app/conda_env.tar.gz
 
 ENV PATH="/opt/conda/bin:$PATH"
 
