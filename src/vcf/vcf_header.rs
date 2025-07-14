@@ -50,7 +50,7 @@ impl fmt::Display for HeaderNumber {
             HeaderNumber::R => return write!(f, "R"),
             HeaderNumber::One => return write!(f, "1"),
             HeaderNumber::Flag => return write!(f, "0"),
-            HeaderNumber::Multiple(n) => return write!(f, "{}", n),
+            HeaderNumber::Multiple(n) => return write!(f, "{n}"),
             HeaderNumber::Unknown => return write!(f, "."),
         }
     }
@@ -160,16 +160,16 @@ impl fmt::Display for HeaderLine {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             HeaderLine::Info(h) => {
-                write!(f, "{}", h)
+                write!(f, "{h}")
             }
             HeaderLine::Format(h) => {
-                write!(f, "{}", h)
+                write!(f, "{h}")
             }
             HeaderLine::Filter(h) => {
-                write!(f, "{}", h)
+                write!(f, "{h}")
             }
             HeaderLine::Misc(h) => {
-                write!(f, "{}", h)
+                write!(f, "{h}")
             }
         }
     }
@@ -213,7 +213,7 @@ impl fmt::Display for VCFHeader {
 
         let mut header_string = header_strings.join("\n");
         header_string.push('\n');
-        write!(f, "{}", header_string)
+        write!(f, "{header_string}")
     }
 }
 

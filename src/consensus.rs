@@ -1,33 +1,24 @@
-pub mod parameter_struct;
 use core::panic;
-use std::io::Write;
+use indexmap::IndexMap;
+use ordered_float::OrderedFloat;
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
-    io::BufReader,
 };
-
-use niffler;
-use noodles::fasta::record::Sequence;
 
 use crate::vcf::vcf_header::{HeaderLine, HeaderNumber, HeaderType};
 use crate::vcf::{Genotype, RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
 
-use indexmap::IndexMap;
-use noodles::fasta::{
-    self as noodles_fasta,
-    record::{Definition, Record},
-};
-use ordered_float::OrderedFloat;
-
+pub mod parameter_struct;
 pub use parameter_struct::{ConsensusParams, GenomeCreationReport, HetOption, SequencingQuality};
-
 pub mod bed;
 pub use bed::Bed;
 mod classifier;
 use classifier::{repeat_char, Change, Classification, Classifier};
 mod contig_set;
 use contig_set::ContigSet;
+mod fasta_tools;
+use fasta_tools::{clean_fasta_characters, read_fasta, save_fasta};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 type HashMapSet<T> = HashMap<String, HashSet<T>>;
@@ -309,7 +300,7 @@ fn process_main_vcf(
 
     for (count, record) in vcf_reader.enumerate() {
         if verbose && count % 100000 == 0 && count != 0 {
-            println!("Processed {} records", count);
+            println!("Processed {count} records");
         }
         let mut record = record?;
 
@@ -462,7 +453,7 @@ fn process_support_vcf(
 
     for (count, record) in vcf_reader.enumerate() {
         if verbose && count % 100000 == 0 && count != 0 {
-            println!("Processed {} records of support vcf", count);
+            println!("Processed {count} records of support vcf");
         }
         let mut record = record?;
         // Need to convert to 0-based
@@ -581,73 +572,6 @@ fn process_overriding_filters(
             let start = record.pos_idx();
             let end = start + record.ref_bases.len();
             chrom_seq[start..end].iter_mut().for_each(|c| *c = FILTERED);
-        }
-    }
-}
-
-fn read_fasta(fasta_file: &str) -> Result<HashMap<String, Vec<char>>> {
-    let mut consensus: HashMap<String, Vec<char>> = HashMap::new();
-
-    let (reader, _format) = niffler::from_path(fasta_file).map_err(|e| {
-        format!(
-            "Failed to open fasta input file {}. Error: {}",
-            fasta_file, e
-        )
-    })?;
-    let buf_reader = BufReader::new(reader);
-    let mut fasta_reader = noodles_fasta::Reader::new(buf_reader);
-    for record in fasta_reader.records() {
-        let record = record?;
-        let chrom = String::from_utf8_lossy(record.definition().name()).to_string();
-        let seq: Vec<char> = record
-            .sequence()
-            .as_ref()
-            .iter()
-            .map(|c| *c as char)
-            .collect();
-        consensus.insert(chrom, seq);
-    }
-
-    return Ok(consensus);
-}
-
-fn potentially_gzipped_writer(file: &str) -> Result<Box<dyn Write>> {
-    let (nif_format, level) = if file.ends_with(".gz") {
-        (
-            niffler::compression::Format::Gzip,
-            niffler::compression::Level::One,
-        )
-    } else {
-        (
-            niffler::compression::Format::No,
-            niffler::compression::Level::Zero,
-        )
-    };
-
-    let niffler_writer = niffler::to_path(file, nif_format, level)
-        .map_err(|e| format!("Failed to open fasta output file {}. Error: {}", file, e))?;
-
-    return Ok(niffler_writer);
-}
-
-fn save_fasta(consensus: &HashMap<String, Vec<char>>, output_file: &str) -> Result<()> {
-    let mut writer = noodles_fasta::Writer::new(potentially_gzipped_writer(output_file)?);
-
-    for (chrom, seq) in consensus.iter() {
-        let definition = Definition::new(chrom.clone(), None);
-        let sequence = Sequence::from(seq.iter().collect::<String>().as_bytes().to_vec());
-        let record = Record::new(definition, sequence);
-        writer.write_record(&record)?;
-    }
-    return Ok(());
-}
-
-fn clean_fasta_characters(consensus: &mut HashMap<String, Vec<char>>) {
-    for (_, seq) in consensus.iter_mut() {
-        for base in seq.iter_mut() {
-            if [FILTERED, HET, MASKED].contains(base) {
-                *base = NULL;
-            }
         }
     }
 }
@@ -846,9 +770,9 @@ pub fn make_consensus(
     output_root: &str,
     params: &str,
     verbose: bool,
-) -> Result<HashMap<String, Vec<char>>> {
+) -> Result<()> {
     let params: ConsensusParams = serde_yaml::from_reader(
-        File::open(params).map_err(|e| format!("Failed to read params file. Error: {}", e))?,
+        File::open(params).map_err(|e| format!("Failed to read params file. Error: {e}"))?,
     )?;
 
     let mut consensus = read_fasta(ref_fasta)?;
@@ -959,8 +883,6 @@ pub fn make_consensus(
         }
     }
 
-    save_fasta(&consensus, &(output_root.to_owned() + ".full.fasta"))?;
-
     write_creation_report(
         &consensus,
         &main_results.het_snp_sites,
@@ -968,12 +890,11 @@ pub fn make_consensus(
         &(output_root.to_owned() + ".report.json"),
     )?;
 
-    let mut clean_consensus = consensus.clone();
-    clean_fasta_characters(&mut clean_consensus);
-    save_fasta(&clean_consensus, &(output_root.to_owned() + ".fasta"))?;
+    clean_fasta_characters(&mut consensus);
+    save_fasta(&consensus, &(output_root.to_owned() + ".fasta"))?;
 
     // Apply insertion changes in reverse order!
-    let mut variable_len_consensus = clean_consensus;
+    let mut variable_len_consensus = consensus;
     insertions.sort_by_key(|(_r, c)| c.pos);
     insertions.reverse();
     for (record, classification) in insertions.into_iter() {
@@ -1004,7 +925,7 @@ pub fn make_consensus(
         support_vcf,
     )?;
 
-    Ok(consensus)
+    Ok(())
 }
 
 #[cfg(test)]

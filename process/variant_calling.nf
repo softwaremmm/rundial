@@ -1,12 +1,12 @@
 params.test_cpus = ""
 
 process minimap2 {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
-    cpus {
-        params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
-    }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
+    }
+    cpus {
+        params.testing == "" ? 4 : params.test_cpus
     }
 
     pod label: "name", value: "rundial:minimap2"
@@ -22,18 +22,20 @@ process minimap2 {
 
     script:
     """
+    set -o pipefail
+
     minimap2 -t ${task.cpus} -a -L --sam-hit-only --secondary=no -x map-ont ${reference} ${fq} | \
         samtools sort -@ ${task.cpus} -o final.bam
     """
 }
 
 process call_snps {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
-    cpus {
-        params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
-    }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
+    }
+    cpus {
+        params.testing == "" ? 4 : params.test_cpus
     }
 
     pod label: "name", value: "rundial:call_snps"
@@ -46,7 +48,6 @@ process call_snps {
 
     output:
     tuple val(sample_name), path("calls.gvcf.gz"), emit: gvcf
-    tuple val(sample_name), path("calls.raw_variants.vcf.gz"), emit: variants
 
     script:
     """
@@ -68,8 +69,6 @@ process call_snps {
     echo "Finished Calling Variants"
     date +"%T"
 
-    bcftools view -v snps calls.gvcf.gz -Oz -o calls.raw_variants.vcf.gz
-
     # Clean up large files to save space locally
     rm -r pileups
     rm pileup.bcf
@@ -77,12 +76,12 @@ process call_snps {
 }
 
 process call_all {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
-    cpus {
-        params.testing == "" ? 10 : (params.test_cpus == "" ? 2 : params.test_cpus)
-    }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
+    }
+    cpus {
+        params.testing == "" ? 4 : params.test_cpus
     }
 
     pod label: "name", value: "rundial:call_all"
@@ -95,7 +94,6 @@ process call_all {
 
     output:
     tuple val(sample_name), path("calls.gvcf.gz"), emit: gvcf
-    tuple val(sample_name), path("calls.raw_variants.vcf.gz"), emit: variants
 
     script:
     """
@@ -122,22 +120,19 @@ process call_all {
     echo "Finished Calling Variants"
     date +"%T"
 
-    bcftools view -v snps,indels calls.gvcf -o calls.raw_variants.vcf
-
     # Clean up large files to save space locally
     rm -r pileups
     rm pileup.bcf
     rm snps.gvcf.gz
     rm indels.gvcf.gz
     bgzip calls.gvcf
-    bgzip calls.raw_variants.vcf
     """
 }
 
 
 process get_clair3_model {
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:get_clair3_model"
@@ -158,11 +153,13 @@ process get_clair3_model {
 }
 
 process clair3 {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
-    cpus {
-        params.testing == "" ? 4 : (params.test_cpus == "" ? 2 : params.test_cpus)
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    container {
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
-    container "lhr.ocir.io/lrbvkel2wjot/gpas/clair3:v1.0.5"
+    cpus {
+        params.testing == "" ? 4 : params.test_cpus
+    }
 
     pod label: "name", value: "rundial:clair3"
     pod label: "sample_id", value: "${params.sample_id}"
@@ -197,7 +194,7 @@ process clair3 {
         --qual=2 \
         --print_ref_calls \
         --sample_name=${bam} \
-        --output=clair_out > clair3.log
+        --output=clair_out
 
     mv clair_out/merge_output.vcf.gz clair3.vcf.gz
     """

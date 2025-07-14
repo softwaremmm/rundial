@@ -1,6 +1,6 @@
 nextflow_process {
     name "Test Process Call all"
-    script "process/assembler.nf"
+    script "process/variant_calling.nf"
     process "call_all"
 
     test("Process run successfully and produce vcfs") {
@@ -18,7 +18,6 @@ nextflow_process {
 
         then {
             assert process.success
-            assert process.out.variants[0][1].contains('calls.raw_variants.vcf.gz')
             assert process.out.gvcf[0][1].contains('calls.gvcf.gz')
             assert path(process.out.gvcf[0][1]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/all_calls.gvcf.gz").linesGzip[40..-1]
         }
@@ -39,7 +38,6 @@ nextflow_process {
 
         then {
             assert process.success
-            assert process.out.variants[0][1].contains('calls.raw_variants.vcf.gz')
             assert process.out.gvcf[0][1].contains('calls.gvcf.gz')
             assert path(process.out.gvcf[0][1]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/all_calls.gvcf.gz").linesGzip[40..-1]
         }

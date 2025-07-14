@@ -1,6 +1,6 @@
 main.nf
-process/assembler.nf
-process/filter.nf
+process/variant_calling.nf
+process/consensus.nf
 process/filter_params.yml
 process/consensus_params.yml
 process/clair3_filter_params.yml

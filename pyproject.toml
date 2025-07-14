@@ -11,7 +11,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
 ]
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.9,<4.0"
 
 [project.scripts]
 multithreaded_bcftools = "helper_scripts.multithreaded_bcftools:main"
@@ -35,6 +35,6 @@ version_provider = "pep621"
 [tool.version_bumper]
 active_version = "5a7f1e1"
 version_files = [
-    "process/assembler.nf",
-    "process/filter.nf",
+    "process/variant_calling.nf",
+    "process/consensus.nf",
 ]

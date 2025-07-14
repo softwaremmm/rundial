@@ -1,7 +1,7 @@
 process apply_filters {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + file_prefix + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + file_prefix + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:apply_filters"
@@ -26,9 +26,9 @@ process apply_filters {
 }
 
 process make_consensus {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:make_consensus"
@@ -41,9 +41,8 @@ process make_consensus {
     path consensus_params
 
     output:
-    tuple val(sample_name), path("final.full.fasta"), emit: full_consensus
     tuple val(sample_name), path("final.fasta"), emit: final_fasta
-    tuple val(sample_name), path("final.indel.fasta"), emit: indel_fasta, optional: true
+    tuple val(sample_name), path("final.variable_length.fasta"), emit: variable_length_fasta
     tuple val(sample_name), path("final.vcf"), emit: final_vcf
     tuple val(sample_name), path("final.full.vcf"), emit: full_vcf
     tuple val(sample_name), path("genome_creation_report.json"), emit: report_json
@@ -59,19 +58,17 @@ process make_consensus {
     mv final.vcf final.full.vcf
     bcftools view -v snps,indels -i 'GT!="0/0"' final.full.vcf > final.vcf
     mv final.report.json genome_creation_report.json
-    mv final.variable_length.fasta final.indel.fasta
 
     # replace header of fasta files
-    sed -i "s/^>/>${sample_name}:/" final.full.fasta
     sed -i "s/^>/>${sample_name}:/" final.fasta
-    sed -i "s/^>/>${sample_name}:/" final.indel.fasta
+    sed -i "s/^>/>${sample_name}:/" final.variable_length.fasta
     """
 }
 
 process make_clair3_consensus {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
     container {
-        params.test_container_rundial == "" ? 'lhr.ocir.io/lrbvkel2wjot/gpas/rundial:5a7f1e1' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:5a7f1e1' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:make_clair3_consensus"
@@ -84,9 +81,8 @@ process make_clair3_consensus {
     path consensus_params
 
     output:
-    tuple val(sample_name), path("final.full.fasta"), emit: full_consensus
     tuple val(sample_name), path("final.fasta"), emit: final_fasta
-    tuple val(sample_name), path("final.indel.fasta"), emit: indel_fasta, optional: true
+    tuple val(sample_name), path("final.variable_length.fasta"), emit: variable_length_fasta
     tuple val(sample_name), path("final.vcf"), emit: final_vcf
     tuple val(sample_name), path("final.full.vcf"), emit: full_vcf
     tuple val(sample_name), path("genome_creation_report.json"), emit: report_json
@@ -103,11 +99,9 @@ process make_clair3_consensus {
     mv final.vcf final.full.vcf
     bcftools view -v snps,indels final.full.vcf > final.vcf
     mv final.report.json genome_creation_report.json
-    mv final.variable_length.fasta final.indel.fasta
 
     # replace header of fasta files
-    sed -i "s/^>/>${sample_name}:/" final.full.fasta
     sed -i "s/^>/>${sample_name}:/" final.fasta
-    sed -i "s/^>/>${sample_name}:/" final.indel.fasta
+    sed -i "s/^>/>${sample_name}:/" final.variable_length.fasta
     """
 }

@@ -1,6 +1,6 @@
 nextflow_process {
     name "Test Process get_clair3_model"
-    script "process/assembler.nf"
+    script "process/variant_calling.nf"
     process "get_clair3_model"
 
     test("Clair3 model present") {

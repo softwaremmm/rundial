@@ -56,7 +56,7 @@ impl fmt::Display for RecordValue {
             "{}",
             match self {
                 RecordValue::Integer(i) => i.to_string(),
-                RecordValue::Float(fl) => format!("{:?}", fl),
+                RecordValue::Float(fl) => format!("{fl:?}"),
                 RecordValue::Flag => String::from(""),
                 RecordValue::IntegerArray(arr) => arr
                     .iter()
@@ -65,7 +65,7 @@ impl fmt::Display for RecordValue {
                     .join(","),
                 RecordValue::FloatArray(arr) => arr
                     .iter()
-                    .map(|f| format!("{:?}", f))
+                    .map(|f| format!("{f:?}"))
                     .collect::<Vec<String>>()
                     .join(","),
                 RecordValue::String(s) => s.to_string(),

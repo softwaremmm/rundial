@@ -1,6 +1,6 @@
 nextflow_process {
     name "Test Process Consensus"
-    script "process/filter.nf"
+    script "process/consensus.nf"
     process "make_consensus"
 
     test("Process run successfully and produce consensus") {
@@ -19,10 +19,6 @@ nextflow_process {
             with(process.out.final_fasta) {
                 assert get(0)[1].contains('final.fasta')
                 assert path(get(0)[1]).md5 == path("$projectDir/test_data/single_consensus/expected.fasta.renamed").md5
-            }
-            with(process.out.full_consensus) {
-                assert get(0)[1].contains('final.full.fasta')
-                assert path(get(0)[1]).md5 == path("$projectDir/test_data/single_consensus/expected.full.fasta.renamed").md5
             }
         }
     }

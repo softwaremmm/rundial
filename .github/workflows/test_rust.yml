@@ -20,6 +20,12 @@ jobs:
           profile: minimal
           components: clippy
 
+      - name: Print versions
+        run: |
+          rustc --version
+          cargo --version
+          cargo clippy --version
+
       - name: Run clippy
         run: cargo clippy --all --all-features --tests -- -D warnings
 

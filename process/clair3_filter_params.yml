@@ -1,7 +1,6 @@
 # These apply to all
 parameters:
   MIN_DP: 5
-  # MIN_HQ_DP: 3 # This is based on sum of allele depths
   MIN_QUAL: 2 # based on QUAL column
 
 # If indel add these as well

@@ -114,7 +114,7 @@ where
 impl VCFReader<BufReader<Box<dyn std::io::Read>>> {
     pub fn from_path<P: AsRef<Path>>(file_path: P) -> Result<Self> {
         let (reader, _format) = niffler::from_path(file_path)
-            .map_err(|e| format!("Failed to read input vcf file. Error: {}", e))?;
+            .map_err(|e| format!("Failed to read input vcf file. Error: {e}"))?;
         let buf_reader = BufReader::new(reader);
         VCFReader::new(buf_reader)
     }
@@ -179,12 +179,8 @@ fn potentially_gzipped_writer<P: AsRef<Path>>(file: P) -> Result<Box<dyn Write>>
     };
 
     let file_str = file.as_ref().display().to_string();
-    let niffler_writer = niffler::to_path(file, nif_format, level).map_err(|e| {
-        format!(
-            "Failed to open fasta output file {}. Error: {}",
-            file_str, e
-        )
-    })?;
+    let niffler_writer = niffler::to_path(file, nif_format, level)
+        .map_err(|e| format!("Failed to open fasta output file {file_str}. Error: {e}"))?;
 
     return Ok(niffler_writer);
 }

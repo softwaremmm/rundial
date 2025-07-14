@@ -8,7 +8,7 @@ Uses the output from bcftools or Clair3.
 * Cargo for running rust
 
 ### Reference Data
-Needs a reference fasta and also clair3 models if using.
+Needs a reference fasta and models for using clair3.
 This is included in the `data` folder. Just run `get_clair3_models.sh` to download the clair3 models.
 
 ## Running workflow
@@ -20,33 +20,20 @@ nextflow run . --workflow bcftools --input_dir test_data/assemblers --publish_di
 
 nextflow run . --workflow clair3 --input_dir test_data/assemblers --publish_dir results \
 	--ref-fasta data/h37rv_20231215.fa.gz --clair3_models_dir data/clair3_models \
-    --basecalling_model dna_r10.4.1_e8.2_400bps_sup@v4.3.0
+  --basecalling_model dna_r10.4.1_e8.2_400bps_sup@v4.3.0
 ```
 
 If using modification may need to rebuild container and use `-profile local_docker`
 ```
-docker build -t test_container_rundial .
+make container
 ```
 
 ## Testing
 Can test rust code with:
-```
-cargo test
-```
+```bash
+make test
 
-Can test nextflow with:
-```
-nf-test test tests/nextflow/*.nf.test
-```
-
-You may need to rebuild the container before testing:
-```
-docker build -t test_container_rundial .
-nf-test test tests/nextflow/*.nf.test --profile local_docker
-```
-
-This is all done by
-```
+# Or to test with rebuilding docker container
 make test_local
 ```
 
