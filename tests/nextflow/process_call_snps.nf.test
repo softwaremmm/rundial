@@ -19,7 +19,6 @@ nextflow_process {
         then {
             assert process.success
             assert process.out.gvcf[0][1].contains('calls.gvcf.gz')
-            assert process.out.variants[0][1].contains('calls.raw_variants.vcf.gz')
             assert path(process.out.gvcf[0][1]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/snp_calls.gvcf.gz").linesGzip[40..-1]
         }
     }
@@ -40,7 +39,6 @@ nextflow_process {
         then {
             assert process.success
             assert process.out.gvcf[0][1].contains('calls.gvcf.gz')
-            assert process.out.variants[0][1].contains('calls.raw_variants.vcf.gz')
             assert path(process.out.gvcf[0][1]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/snp_calls.gvcf.gz").linesGzip[40..-1]
         }
     }

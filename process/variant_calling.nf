@@ -22,6 +22,8 @@ process minimap2 {
 
     script:
     """
+    set -o pipefail
+
     minimap2 -t ${task.cpus} -a -L --sam-hit-only --secondary=no -x map-ont ${reference} ${fq} | \
         samtools sort -@ ${task.cpus} -o final.bam
     """
@@ -124,7 +126,6 @@ process call_all {
     rm snps.gvcf.gz
     rm indels.gvcf.gz
     bgzip calls.gvcf
-    bgzip calls.raw_variants.vcf
     """
 }
 
