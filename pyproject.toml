@@ -33,7 +33,7 @@ version_scheme = "semver"
 version_provider = "pep621"
 
 [tool.version_bumper]
-active_version = "5a7f1e1"
+active_version = "2da2cd5"
 version_files = [
     "process/variant_calling.nf",
     "process/consensus.nf",
