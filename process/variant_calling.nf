@@ -193,7 +193,7 @@ process clair3 {
         --qual=2 \
         --print_ref_calls \
         --sample_name=${bam} \
-        --output=clair_out > clair3.log
+        --output=clair_out
 
     mv clair_out/merge_output.vcf.gz clair3.vcf.gz
     """
