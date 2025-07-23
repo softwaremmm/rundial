@@ -42,6 +42,9 @@ const CALLER_DESC: &str = "The variant caller that made the call.";
 const MIXED: &str = "MIXED";
 const MIXED_DESC: &str = "This variant is counted as a mixed call.";
 
+const BAD_MINOR_ALLELE: &str = "FILTERED_MINOR_ALLELES";
+const BAD_MINOR_ALLELE_DESC: &str = "Depths for Minor alleles which failed quality checks.";
+
 fn apply_variant(
     chrom: &str,
     classification: &Classification,
@@ -340,7 +343,6 @@ fn process_main_vcf(
 
     mark_overlaps(&mut potential_output_records, classifier);
 
-    // TODO: remove all the cloning in the following
     // Apply unfiltered records
     for (r, c) in potential_output_records.iter() {
         if c.is_filtered {
@@ -674,6 +676,13 @@ fn write_vcf(
     );
 
     header.add_info_line(
+        BAD_MINOR_ALLELE.to_owned(),
+        HeaderNumber::Unknown,
+        HeaderType::String,
+        BAD_MINOR_ALLELE_DESC.to_owned(),
+    );
+
+    header.add_info_line(
         CALLER.to_owned(),
         HeaderNumber::One,
         HeaderType::String,
@@ -729,7 +738,7 @@ fn write_vcf(
         let mut output_record = record.clone();
         output_record.info = IndexMap::new();
 
-        for key in [CALLER, HET_IN_SUPPORT_VCF, MIXED] {
+        for key in [CALLER, HET_IN_SUPPORT_VCF, MIXED, BAD_MINOR_ALLELE] {
             if let Some(value) = record.info.get(key) {
                 output_record.info.insert(key.to_owned(), value.clone());
             }

@@ -29,7 +29,7 @@ static DESCRIPTIONS: phf::Map<&'static str, &'static str> = phf_map! {
     "MIN_HQ_DP" => "High quality read depth is less than ?",
     "MIN_QUAL" => "Quality is less than ?",
     "INVALID_INDEL" => "Indel record with no alternate alleles",
-    "STRAND_BIAS" => "Strand bias. One strand is more than ? times the other",
+    "STRAND_BIAS" => "Strand bias. Requires at least ?% of reads on each strand",
     "STRAND_MISMATCH" => "Strand mismatch. Top alleles (defined as those within ? of max depth) on forward and reverse strands are different",
     "MIN_FRS" => "Fraction of reads supporting the main allele is less than ?",
     "MIN_MQ" => "Minimum mapping quality. MQ is less than ?",
@@ -82,9 +82,9 @@ impl Filterer {
                 MIN_QUAL => filterer
                     .filters
                     .push(Box::new(move |record| is_low_qual(record, threshold))),
-                STRAND_BIAS => filterer
-                    .filters
-                    .push(Box::new(move |record| is_strand_bias(record, threshold))),
+                STRAND_BIAS => filterer.filters.push(Box::new(move |record| {
+                    is_strand_bias(record, threshold / 100.0)
+                })),
                 STRAND_MISMATCH => filterer.filters.push(Box::new(move |record| {
                     is_strand_mismatch(record, threshold)
                 })),
@@ -212,16 +212,16 @@ fn is_invalid_indel(record: &VariantRecord, _threshold: f32) -> Option<String> {
 }
 
 /// Check if a record has many more reads on one strand than the other.
+/// Require at least threshold percent of reads on each strand
 fn is_strand_bias(record: &VariantRecord, threshold: f32) -> Option<String> {
     if let Some(main_allele) = record.main_allele() {
         let main_allele = main_allele as usize;
         if let Some((forward, reverse)) = record.strand_depths() {
             let forward_depth = max(1, forward[main_allele]) as f32;
             let reverse_depth = max(1, reverse[main_allele]) as f32;
+            let total = forward_depth + reverse_depth;
 
-            if forward_depth / reverse_depth >= threshold
-                || reverse_depth / forward_depth >= threshold
-            {
+            if forward_depth / total < threshold || reverse_depth / total < threshold {
                 return Some(STRAND_BIAS.to_string());
             }
         }
@@ -571,20 +571,20 @@ mod tests {
         let std_header = standard_header();
         let record: VariantRecord = VariantRecord::from_string(
             &std_header,
-            "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=10,8,1;ADR=1,15,4;DP4=10,8,1,5;MQ=53.0\tGT:AD\t0/0:5,6,7",
+            "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=9,8,1;ADR=1,15,4;DP4=10,8,1,5;MQ=53.0\tGT:AD\t0/0:5,6,7",
         ).unwrap();
 
-        assert!(is_strand_bias(&record, 10.0) == Some(STRAND_BIAS.to_string()));
-        assert!(is_strand_bias(&record, 10.1).is_none());
+        assert!(is_strand_bias(&record, 0.11) == Some(STRAND_BIAS.to_string()));
+        assert!(is_strand_bias(&record, 0.1).is_none());
 
         // Each strand is considered to have at least 1 read
         let record: VariantRecord = VariantRecord::from_string(
             &std_header,
-            "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=10,8,1;ADR=0,15,4;DP4=10,8,1,5;MQ=53.0\tGT:AD\t0/0:5,6,7",
+            "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=9,8,1;ADR=0,15,4;DP4=10,8,1,5;MQ=53.0\tGT:AD\t0/0:5,6,7",
         ).unwrap();
 
-        assert!(is_strand_bias(&record, 10.0) == Some(STRAND_BIAS.to_string()));
-        assert!(is_strand_bias(&record, 10.1).is_none());
+        assert!(is_strand_bias(&record, 0.11) == Some(STRAND_BIAS.to_string()));
+        assert!(is_strand_bias(&record, 0.1).is_none());
     }
 
     #[test]

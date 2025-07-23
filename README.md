@@ -29,12 +29,17 @@ make container
 ```
 
 ## Testing
-Can test rust code with:
+Can test rust/nextflow code with:
 ```bash
 make test
 
 # Or to test with rebuilding docker container
 make test_local
+```
+
+To update rust expectations run:
+```bash
+UPDATE_EXPECTATIONS=1 cargo test
 ```
 
 ## Parameters and Thresholds

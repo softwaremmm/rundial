@@ -7,7 +7,8 @@ filter_ignore_list:
 
 # Detecting minor populations just ensures those vcf rows our output for downstream processing.
 # Threshold is min number of reads for an allele to be considered a minor population
-minor_pop_threshold: 3
+minor_pop_threshold: 5
+minor_pop_strand_bias: 0.01 # require at least this proportion of reads on each strand
 
 # Het options are "Ref", "Alt", "Best" (which will select the major allele), or "Mask" to replace with Z
 het_snp_option: "Mask"
