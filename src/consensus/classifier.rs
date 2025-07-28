@@ -307,9 +307,13 @@ impl Classifier {
                 }
             }
 
-            let (good_minors, bad_minors): (Vec<_>, Vec<_>) = minor_alleles
+            let (good_minors, mut bad_minors): (Vec<_>, Vec<_>) = minor_alleles
                 .into_iter()
                 .partition(|(_, passed_quality_check, _)| *passed_quality_check);
+
+            // Not interested in bad minor alleles for REF call
+            // They can't be removed from the record
+            bad_minors.retain(|(allele, _, _)| *allele != 0);
 
             if !bad_minors.is_empty() {
                 // Remove bad minor alleles
