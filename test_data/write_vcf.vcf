@@ -12,6 +12,7 @@
 ##FILTER=<ID=STRAND_MISMATCH,Description="Flagged when each strand calls a different base.">
 ##FILTER=<ID=OVERLAP_BETTER_VARIANT,Description="This variant overlaps with a higher priority variant.">
 ##FILTER=<ID=SNP_IN_SUPPORT_VCF,Description="This variant is a SNP in the support VCF, which should only be used for information of nulls.">
+##INFO=<ID=FILTERED_MINOR_ALLELES,Number=.,Type=String,Description="Depths for Minor alleles which failed quality checks.">
 ##INFO=<ID=CALLER,Number=1,Type=String,Description="The variant caller that made the call.">
 ##INFO=<ID=HET_IN_SUPPORT_VCF,Number=0,Type=Flag,Description="This variant is a HET in the support VCF, which may be undesired.">
 ##INFO=<ID=MIXED,Number=0,Type=Flag,Description="This variant is counted as a mixed call.">

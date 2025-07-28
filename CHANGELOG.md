@@ -15,6 +15,7 @@
 - stop producing final.full.fasta
 - INVALID_INDELS now always filtered
 - update to cargo 1.88
+- Minor alleles which fail strand bias test are now removed (only impacts bcftools workflow)
 
 ## 0.4.2 (2024-09-03)
 

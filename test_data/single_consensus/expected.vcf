@@ -12,6 +12,7 @@
 ##FILTER=<ID=STRAND_MISMATCH,Description="Flagged when each strand calls a different base.">
 ##FILTER=<ID=OVERLAP_BETTER_VARIANT,Description="This variant overlaps with a higher priority variant.">
 ##FILTER=<ID=SNP_IN_SUPPORT_VCF,Description="This variant is a SNP in the support VCF, which should only be used for information of nulls.">
+##INFO=<ID=FILTERED_MINOR_ALLELES,Number=.,Type=String,Description="Depths for Minor alleles which failed quality checks.">
 ##INFO=<ID=CALLER,Number=1,Type=String,Description="The variant caller that made the call.">
 ##INFO=<ID=HET_IN_SUPPORT_VCF,Number=0,Type=Flag,Description="This variant is a HET in the support VCF, which may be undesired.">
 ##INFO=<ID=MIXED,Number=0,Type=Flag,Description="This variant is counted as a mixed call.">
@@ -46,7 +47,7 @@ ref	27	.	T	TA	30.7969	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
 ref	28	.	T	C	225.417	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	28	.	T	TA	30.7969	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
 ref	29	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
-ref	30	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
+ref	30	.	T	A	225.417	PASS	CALLER=bcftools;FILTERED_MINOR_ALLELES=G(5:0),C(0:5)	GT:DP:ADF:ADR:COV	1/1:30:0,100:0,100:0,200
 ref	31	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
 ref	32	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
 ref	33	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0

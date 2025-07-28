@@ -6,6 +6,7 @@ filter_ignore_list:
   - "RefCall"
 
 minor_pop_threshold: 5 # Minimum number of reads for an allele to be considered a minor population
+minor_pop_strand_bias: 0.01
 
 # Het options are "Ref", "Alt", "Best" (which will select the major allele), or "Mask" to replace with Z
 het_snp_option: "Mask"

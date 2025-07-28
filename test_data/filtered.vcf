@@ -38,7 +38,7 @@
 ##FILTER=<ID=MIN_MQ,Description="Minimum mapping quality. MQ is less than 30">
 ##FILTER=<ID=MIN_QUAL,Description="Quality is less than 20, 25, 50">
 ##FILTER=<ID=MIN_VDB,Description="Variant distance bias is less than 0.00001">
-##FILTER=<ID=STRAND_BIAS,Description="Strand bias. One strand is more than 10 times the other">
+##FILTER=<ID=STRAND_BIAS,Description="Strand bias. Requires at least 10% of reads on each strand">
 ##FILTER=<ID=STRAND_MISMATCH,Description="Strand mismatch. Top alleles (defined as those within 2 of max depth) on forward and reverse strands are different">
 ##FILTER=<ID=MIN_FRS,Description="Fraction of reads supporting the main allele is less than 0.8, 0.8, 0.65 (compared to other alleles)">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	ERR9030326_aligned.sorted.sam
