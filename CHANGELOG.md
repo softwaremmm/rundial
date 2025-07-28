@@ -1,21 +1,29 @@
-## New
+## 0.5.0
 
-- Fix issue with multithreaded mpileup which gave different results based on number of threads
+### Feat
+- stop producing final.full.fasta
 - Add filter and consensus params to clair3 pipeline
 - add MIN_AF filter for clair3 (similar to MIN_FRS but for ref calls only)
 - add dorado 5.0.0 models for clair3
-- Any row with minor allele gets output to main vcf
 - MIN_VDB from bcftools can override clair3 and set site to null
-- interpret MIN_FRS with minor population to mean het
+
 - Calculate mixed site counts for indels and snps separately
 - Mark mixed sites using INFO field, and count clusters
+
+- interpret MIN_FRS with minor population to mean het
+- Minor alleles which fail strand bias test are now removed (only impacts bcftools workflow)
+- Any row with minor allele gets output to main vcf
+
+### Fix
+
+- Fix issue with multithreaded mpileup which gave different results based on number of threads
+- INVALID_INDELS now always filtered
+- update to cargo 1.88
 - use own container for clair3
 - use container prefix param
 - use same container name for both registries
-- stop producing final.full.fasta
-- INVALID_INDELS now always filtered
-- update to cargo 1.88
-- Minor alleles which fail strand bias test are now removed (only impacts bcftools workflow)
+
+
 
 ## 0.4.2 (2024-09-03)
 
