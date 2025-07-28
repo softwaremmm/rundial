@@ -532,6 +532,6 @@ fn test_classify_minor_population() {
     let mut tmp_record = record.clone();
     assert!(!c.classify(&mut tmp_record).has_minor_population);
     assert_eq!(tmp_record.to_string(),
-        "ref\t1\tid\tT\t.\t244.589\tPASS\tDP=101;ADF=50;ADR=45;FILTERED_MINOR_ALLELES=1:4\tGT:AD\t0/0:95"
+        "ref\t1\tid\tT\t.\t244.589\tPASS\tDP=101;ADF=50;ADR=45;FILTERED_MINOR_ALLELES=A(1:4)\tGT:AD\t0/0:95"
     );
 }

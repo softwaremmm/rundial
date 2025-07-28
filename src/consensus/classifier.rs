@@ -283,13 +283,14 @@ impl Classifier {
                     }
                     let total_depth = forward_depth + reverse_depth;
                     if total_depth >= minor_threshold {
+                        let alt = record.get_allele_bases(i).expect("Allele bases not found");
                         let passed_quality_check = (*forward_depth as f32 / total_depth as f32)
                             >= strand_bias
                             && (*reverse_depth as f32 / total_depth as f32) >= strand_bias;
                         minor_alleles.push((
                             i,
                             passed_quality_check,
-                            format!("{forward_depth}:{reverse_depth}"),
+                            format!("{alt}({forward_depth}:{reverse_depth})"),
                         ));
                     }
                 }
@@ -300,7 +301,8 @@ impl Classifier {
                         continue; // Skip alleles in GT
                     }
                     if *depth >= minor_threshold {
-                        minor_alleles.push((i, true, format!("{depth}")));
+                        let alt = record.get_allele_bases(i).expect("Allele bases not found");
+                        minor_alleles.push((i, true, format!("{alt}({depth})")));
                     }
                 }
             }

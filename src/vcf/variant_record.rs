@@ -432,6 +432,17 @@ impl VariantRecord {
 
         self.update_depths();
     }
+
+    pub fn get_allele_bases(&self, allele: i32) -> Option<&str> {
+        if allele == 0 {
+            return Some(&self.ref_bases);
+        }
+        let allele_u = allele as usize;
+        if allele_u > self.alt.len() {
+            return None;
+        }
+        return Some(&self.alt[allele_u - 1]);
+    }
 }
 
 fn str_to_info(
