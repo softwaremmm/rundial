@@ -1,16 +1,16 @@
 # ---- Rust Build Stage ----
-FROM rust:1.88-slim as chef
+FROM rust:1.88-slim AS chef
 
 RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-chef
 WORKDIR /app
 
-FROM chef as planner
+FROM chef AS planner
 COPY Cargo.* .
 COPY src ./src
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef as builder
+FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
@@ -20,7 +20,7 @@ COPY src ./src
 RUN cargo build --release
 
 # ---- Conda Build Stage ----
-FROM continuumio/miniconda3 as conda_builder
+FROM continuumio/miniconda3 AS conda_builder
 WORKDIR /app
 
 COPY env.yml /app/env.yml
@@ -28,7 +28,7 @@ RUN conda env update -n base --file env.yml && conda clean -afy
 
 
 # ---- Conda Build Stage ----
-FROM conda_builder as runtime
+FROM conda_builder AS runtime
 WORKDIR /app
 
 ENV PATH="/opt/conda/bin:$PATH"
