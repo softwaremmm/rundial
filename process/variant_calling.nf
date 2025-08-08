@@ -1,7 +1,7 @@
 params.test_cpus = ""
 
 process minimap2 {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:d2ee083' : params.test_container_rundial
     }
@@ -30,7 +30,7 @@ process minimap2 {
 }
 
 process call_snps {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:d2ee083' : params.test_container_rundial
     }
@@ -76,7 +76,7 @@ process call_snps {
 }
 
 process call_all {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:d2ee083' : params.test_container_rundial
     }
@@ -153,7 +153,7 @@ process get_clair3_model {
 }
 
 process clair3 {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "_" + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:d2ee083' : params.test_container_rundial
     }
