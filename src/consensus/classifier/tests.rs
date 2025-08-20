@@ -98,7 +98,6 @@ fn make_classifier() -> Classifier {
         overriding_filters: None,
         minor_pop_threshold: Some(5),
         support_minor_pop_threshold: None,
-        minor_pop_strand_bias: Some(0.05),
         main_caller: None,
         support_caller: None,
     };
@@ -509,29 +508,4 @@ fn test_classify_minor_population() {
     )
     .unwrap();
     assert!(!c.classify(&mut record).has_minor_population);
-
-    // minor allele strand bias
-    c.minor_pop_threshold = Some(2);
-    let record = VariantRecord::from_string(
-        &header,
-        "ref\t1\tid\tT\tA\t244.589\tPASS\tDP=101;ADF=50,1;ADR=45,4\tGT:AD\t0/0:95,5",
-    )
-    .unwrap();
-
-    // Pass strand bias test
-    c.params.minor_pop_strand_bias = Some(0.20);
-    let mut tmp_record = record.clone();
-    assert!(c.classify(&mut tmp_record).has_minor_population);
-    assert_eq!(
-        tmp_record.to_string(),
-        "ref\t1\tid\tT\tA\t244.589\tPASS\tDP=101;ADF=50,1;ADR=45,4\tGT:AD\t0/0:95,5"
-    );
-
-    // Fail strand bias test
-    c.params.minor_pop_strand_bias = Some(0.21);
-    let mut tmp_record = record.clone();
-    assert!(!c.classify(&mut tmp_record).has_minor_population);
-    assert_eq!(tmp_record.to_string(),
-        "ref\t1\tid\tT\t.\t244.589\tPASS\tDP=101;ADF=50;ADR=45;FILTERED_MINOR_ALLELES=A(1:4)\tGT:AD\t0/0:95"
-    );
 }

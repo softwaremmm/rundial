@@ -388,7 +388,7 @@ impl VCFHeader {
                 let is_present = self.infos.contains_key(&h.id);
                 self.infos.insert(h.id.clone(), h.clone());
                 self.lines.retain(|l| match l {
-                    HeaderLine::Filter(f) => f.id != h.id,
+                    HeaderLine::Info(f) => f.id != h.id,
                     _ => true,
                 });
                 self.lines.push(new_line);
@@ -398,7 +398,7 @@ impl VCFHeader {
                 let is_present = self.formats.contains_key(&h.id);
                 self.formats.insert(h.id.clone(), h.clone());
                 self.lines.retain(|l| match l {
-                    HeaderLine::Filter(f) => f.id != h.id,
+                    HeaderLine::Format(f) => f.id != h.id,
                     _ => true,
                 });
                 self.lines.push(new_line);

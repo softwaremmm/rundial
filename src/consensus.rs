@@ -42,8 +42,7 @@ const CALLER_DESC: &str = "The variant caller that made the call.";
 const MIXED: &str = "MIXED";
 const MIXED_DESC: &str = "This variant is counted as a mixed call.";
 
-const BAD_MINOR_ALLELE: &str = "FILTERED_MINOR_ALLELES";
-const BAD_MINOR_ALLELE_DESC: &str = "Depths for Minor alleles which failed quality checks.";
+use crate::filter_vcf::BAD_MINOR_ALLELE;
 
 fn apply_variant(
     chrom: &str,
@@ -675,12 +674,17 @@ fn write_vcf(
         SNP_IN_SUPPORT_VCF_DESC.to_string(),
     );
 
-    header.add_info_line(
-        BAD_MINOR_ALLELE.to_owned(),
-        HeaderNumber::Unknown,
-        HeaderType::String,
-        BAD_MINOR_ALLELE_DESC.to_owned(),
-    );
+    // Copy some info lines from main and support vcf
+    for file in [Some(main_vcf), support_vcf].iter().flatten() {
+        let reader = VCFReader::from_path(file)?;
+        for line in reader.header().lines.iter() {
+            if let HeaderLine::Info(info_line) = line {
+                if info_line.id == BAD_MINOR_ALLELE {
+                    header.add_header_line(line.clone());
+                }
+            }
+        }
+    }
 
     header.add_info_line(
         CALLER.to_owned(),

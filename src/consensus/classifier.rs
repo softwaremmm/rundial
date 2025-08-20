@@ -4,7 +4,7 @@ use crate::vcf::VariantRecord;
 
 use super::MIXED;
 use super::{Bed, ConsensusParams, HetOption};
-use super::{BAD_MINOR_ALLELE, FILTERED, HET, MASKED, NULL};
+use super::{FILTERED, HET, MASKED, NULL};
 
 pub fn repeat_char(c: char, n: usize) -> String {
     std::iter::repeat_n(c, n).collect()
@@ -269,67 +269,18 @@ impl Classifier {
         let gt = record.genotype().expect("Genotype not found").clone();
 
         if let Some(minor_threshold) = self.minor_pop_threshold {
-            let mut minor_alleles = Vec::new();
-
-            if let (Some((forward, reverse)), Some(strand_bias)) =
-                (record.strand_depths(), self.params.minor_pop_strand_bias)
-            {
-                for (i, (forward_depth, reverse_depth)) in
-                    forward.iter().zip(reverse.iter()).enumerate()
-                {
-                    let i = i as i32;
-                    if i == gt.allele1 || i == gt.allele2 {
-                        continue; // Skip alleles in GT
-                    }
-                    let total_depth = forward_depth + reverse_depth;
-                    if total_depth >= minor_threshold {
-                        let alt = record.get_allele_bases(i).expect("Allele bases not found");
-                        let passed_quality_check = (*forward_depth as f32 / total_depth as f32)
-                            >= strand_bias
-                            && (*reverse_depth as f32 / total_depth as f32) >= strand_bias;
-                        minor_alleles.push((
-                            i,
-                            passed_quality_check,
-                            format!("{alt}({forward_depth}:{reverse_depth})"),
-                        ));
-                    }
-                }
-            } else if let Some(allelic_depths) = record.allele_depths() {
+            if let Some(allelic_depths) = record.allele_depths() {
                 for (i, depth) in allelic_depths.iter().enumerate() {
                     let i = i as i32;
                     if i == gt.allele1 || i == gt.allele2 {
                         continue; // Skip alleles in GT
                     }
                     if *depth >= minor_threshold {
-                        let alt = record.get_allele_bases(i).expect("Allele bases not found");
-                        minor_alleles.push((i, true, format!("{alt}({depth})")));
+                        classification.has_minor_population = true;
+                        break;
                     }
                 }
             }
-
-            let (good_minors, bad_minors): (Vec<_>, Vec<_>) = minor_alleles
-                .into_iter()
-                .partition(|(_, passed_quality_check, _)| *passed_quality_check);
-
-            if !bad_minors.is_empty() {
-                // Remove bad minor alleles
-                for (allele, _, _) in bad_minors.iter().rev() {
-                    record.remove_allele(*allele);
-                }
-
-                // Add to Info field
-                record.info.insert(
-                    BAD_MINOR_ALLELE.to_string(),
-                    crate::vcf::RecordValue::StringArray(
-                        bad_minors
-                            .into_iter()
-                            .map(|(_, _, depth_str)| depth_str)
-                            .collect::<Vec<String>>(),
-                    ),
-                );
-            }
-
-            classification.has_minor_population = !good_minors.is_empty();
         }
 
         classification.is_het = gt.is_het();
