@@ -494,7 +494,8 @@ pub fn filter_vcf(
     let indel_filterer = Filterer::create_from_params(&params.indel_parameters);
     let fix_gt: bool = params.fix_gt.unwrap_or(false);
 
-    let allowed_filters_for_minor_allele_filtering = [MIN_FRS.to_string(), MIN_AF.to_string()];
+    // No point checking minor alleles on completely filtered records
+    let allowed_filters_for_minor_allele_filtering = [MIN_FRS, MIN_AF, MIN_IDV, MIN_IMF];
 
     if verbose {
         println!("Filtering VCF file");
@@ -526,7 +527,7 @@ pub fn filter_vcf(
         if let Some(minor_allele_params) = &params.minor_allele_params {
             if new_filters
                 .iter()
-                .all(|x| allowed_filters_for_minor_allele_filtering.contains(x))
+                .all(|x| allowed_filters_for_minor_allele_filtering.contains(&x.as_str()))
             {
                 filter_minor_alleles(&mut record, minor_allele_params);
             }
