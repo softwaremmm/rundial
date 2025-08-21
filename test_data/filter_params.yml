@@ -26,4 +26,9 @@ indel_parameters:
   MIN_IMF: 0.60 # min fraction of reads supporting an indel as bcftools calculates
   MIN_FRS: 0.65 # min fraction of reads supporting variant
 
+minor_allele_params:
+  threshold: 5 # min number of reads to consider minor allele
+  strand_bias: 0.01 # min strand bias for a minor allele
+  min_frs: 0.05 # min fraction of reads supporting a minor allele
+
 fix_gt: true # If true, will fix GT field to match AD field

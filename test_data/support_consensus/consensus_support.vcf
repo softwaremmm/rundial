@@ -40,6 +40,7 @@
 ##FILTER=<ID=PASS,Description="All filters passed">
 ##FILTER=<ID=STRAND_BIAS,Description="Require proportion of hq reads on each strand to be 0.01, for called allele">
 ##FILTER=<ID=STRAND_MISMATCH,Description="Flagged when each strand calls a different base.">
+##INFO=<ID=FILTERED_MINOR_ALLELES,Number=.,Type=String,Description="Depths for Minor alleles which failed quality checks.">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample
 ref	1	.	T	.	244.589	PASS	DP=28;ADF=10;ADR=8;SCR=11;MQSBZ=0.0;FS=0.0;MQ0F=0.0;AN=2;DP4=10,8,0,0;MQ=53	GT:SP:AD	0/0:0:18
 ref	2	.	T	.	244.589	PASS	DP=28;ADF=10;ADR=8;SCR=11;MQSBZ=0.0;FS=0.0;MQ0F=0.0;AN=2;DP4=10,8,0,0;MQ=53	GT:SP:AD	0/0:0:18

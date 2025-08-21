@@ -24,7 +24,6 @@ pub struct ConsensusParams {
 
     pub minor_pop_threshold: Option<i32>, // min depth of non-GT allele to be considered a minor population
     pub support_minor_pop_threshold: Option<i32>,
-    pub minor_pop_strand_bias: Option<f32>, // require at least this percent of reads on each strand to be considered a minor population
 
     pub main_caller: Option<String>, // If set will use this Caller on records from main vcf
     pub support_caller: Option<String>, // If set will use this Caller on records from support vcf

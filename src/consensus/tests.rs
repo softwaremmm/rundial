@@ -356,7 +356,6 @@ fn make_classifier() -> Classifier {
         overriding_filters: None,
         minor_pop_threshold: Some(5),
         support_minor_pop_threshold: None,
-        minor_pop_strand_bias: Some(0.05),
         main_caller: None,
         support_caller: None,
     };
