@@ -230,6 +230,7 @@ fn is_strand_bias_for_allele(
     use_min_dp_1: bool,
 ) -> bool {
     if let Some((forward, reverse)) = record.strand_depths() {
+        // use min_dp 1 to avoid cases like 0,5 being considered biased, when they are statistically likely
         let min_dp = if use_min_dp_1 { 1 } else { 0 };
         let forward_depth = max(min_dp, forward[allele_index]) as f32;
         let reverse_depth = max(min_dp, reverse[allele_index]) as f32;
