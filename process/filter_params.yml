@@ -2,7 +2,6 @@ parameters:
   # These apply to all rows
   MIN_DP: 5
   MIN_HQ_DP: 3 # min depth of high-quality base calls
-  MIN_QUAL: 20 # minimum QUAL value required
   MIN_MQ: 30 # min mapping quality
   STRAND_MISMATCH: 2
   # A strand mismatch is when +strand supports one allele, and -strange a different allele.
