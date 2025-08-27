@@ -7,6 +7,7 @@
 - add dorado 5.0.0 models for clair3
 - Filters from bcftools can override clair3 and set site to null (if requested in params).
 - Stop using VDB filter for bcftools
+- Stop using MIN_QUAL filter for bcftools (doesn't work well with minor alleles)
 
 - Minor alleles can be removed (in filter vcf step) based on fraction of reads and strand bias
 - interpret MIN_FRS with minor population to mean het
