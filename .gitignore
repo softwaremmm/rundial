@@ -9,6 +9,7 @@ results/
 
 */*egg-info
 
+work/
 .nextflow/
 .nextflow*log*
 .nf-test/

@@ -18,7 +18,6 @@ indel_parameters:
 
 # These apply only for snp calls based on genotype (so GT!=0/0).
 snp_parameters:
-  MIN_VDB: 0.00001 # This is the variant distance bias, it flags varants that appear in the same place in all reads, and so are likely an artifact
   MIN_FRS: 0.90 # min fraction of reads supporting variant
   STRAND_BIAS: 2 # Need at least this percentage of reads on each strand
 

@@ -74,6 +74,8 @@ Currently MIN_AF is only used for clair3 when checking that ref calls have suffi
 Note that MIN_FRS + minor population is taken to mean a het call rather than a simple filter fail. Any other filters will keep the variant as a filter fail.
 
 #### Low_VDB Overriding filters
+Note: not currently using VDB. As with ONT it triggers in the rough proximity of SNV to h37rv so excludes SNPs found in Illumina.
+
 VDB is Variant distance bias. A low VDB indicates that the variant (snp/indel) appears in the same position in all the alignements. Equivalently all the reads seem to start or end their alignment at the same place which is odd as we'd expect this to be random.
 
 It works as an extra check for something funny with alignments even when mapping quality is good.
