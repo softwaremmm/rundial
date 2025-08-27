@@ -1,4 +1,4 @@
-## New
+## 0.5.0
 
 ### Feat
 - stop producing final.full.fasta
@@ -8,11 +8,9 @@
 - Filters from bcftools can override clair3 and set site to null (if requested in params).
 - Stop using VDB filter for bcftools
 - Stop using MIN_QUAL filter for bcftools (doesn't work well with minor alleles)
-
 - Minor alleles can be removed (in filter vcf step) based on fraction of reads and strand bias
 - interpret MIN_FRS with minor population to mean het
-- Any row with minor allele gets output to main vcf
-
+- Any row with minor allele gets output to main vcf in consensus step
 - Calculate mixed site counts for indels and snps separately
 - Mark mixed sites using INFO field, and count clusters
 
@@ -21,7 +19,7 @@
 - Fix issue with multithreaded mpileup which gave different results based on number of threads
 - INVALID_INDELS now always filtered
 - update to cargo 1.88
-- use own container for clair3
+- add clair3 to rundial container
 - use container prefix param
 - use same container name for both registries
 
