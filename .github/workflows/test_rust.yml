@@ -3,7 +3,7 @@ name: Rust Test
 on:
   pull_request:
     branches:
-      - "**"
+      - "*"
 
 jobs:
   test:
@@ -19,6 +19,12 @@ jobs:
           toolchain: stable
           profile: minimal
           components: clippy
+
+      - name: Print versions
+        run: |
+          rustc --version
+          cargo --version
+          cargo clippy --version
 
       - name: Run clippy
         run: cargo clippy --all --all-features --tests -- -D warnings

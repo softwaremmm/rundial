@@ -28,10 +28,7 @@ fn test_apply(
         ref_bases: ref_bases.to_string(),
         new_bases: new_bases.to_string(),
         change,
-        is_het: false,
-        has_minor_population: false,
-        is_filtered: false,
-        has_indel_alleles: false,
+        ..Default::default()
     };
     let set_sites = apply_variant("chrom", &variant, &mut chrom_seq, &processed_sites);
     return (chrom_seq["chrom"].iter().collect(), set_sites);
@@ -174,10 +171,7 @@ fn test_overlap() {
             ref_bases: ref_bases.to_string(),
             new_bases: ref_bases.to_string(),
             change,
-            is_het: false,
-            has_minor_population: false,
-            is_filtered: false,
-            has_indel_alleles: false,
+            ..Default::default()
         }
     }
     let simple_changes = [Change::Ref, Change::Snp, Change::Null, Change::Mnp];
@@ -185,7 +179,7 @@ fn test_overlap() {
     let del_changes = [Change::Del, Change::ComplexDel];
     for c1 in simple_changes.iter().chain(del_changes.iter()) {
         for c2 in simple_changes.iter().chain(del_changes.iter()) {
-            println!("{:?} {:?}", c1, c2);
+            println!("{c1:?} {c2:?}");
             assert_eq!(
                 overlaps(
                     &make_classification(1, "A", c1.clone()),
@@ -359,12 +353,13 @@ fn make_classifier() -> Classifier {
         het_indel_option: HetOption::Mask,
         use_filters: true,
         filter_ignore_list: None,
-        het_pc_threshold: None,
+        overriding_filters: None,
         minor_pop_threshold: Some(5),
+        support_minor_pop_threshold: None,
         main_caller: None,
         support_caller: None,
     };
-    return Classifier::new(&params);
+    return Classifier::new(&params, false);
 }
 
 #[test]
@@ -429,10 +424,9 @@ fn test_mark_overlaps() {
             ref_bases: "TCG".to_owned(),
             new_bases: "FFF".to_owned(),
             change: Change::Null,
-            is_het: false,
-            has_minor_population: false,
             is_filtered: true,
             has_indel_alleles: true,
+            ..Default::default()
         }
     );
 
@@ -514,28 +508,23 @@ fn test_clean_fasta_characters() {
 #[test]
 fn test_write_creation_report() {
     let seq = read_fasta("test_data/simple.fasta").unwrap();
-    let het_count: Option<i32> = None;
 
-    write_creation_report(&seq, het_count, "tests/test_outputs/creation_report_1.json").unwrap();
+    // mock data does not actually match fasta
+    let het_snp_sites = HashMapSet::from([("chrom_1".to_string(), HashSet::from([5]))]);
+    let het_indel_sites = HashMapSet::from([("chrom_2".to_string(), HashSet::from([1, 2]))]);
+
+    write_creation_report(
+        &seq,
+        &het_snp_sites,
+        &het_indel_sites,
+        "tests/test_outputs/creation_report_1.json",
+    )
+    .unwrap();
     let report = std::fs::read_to_string("tests/test_outputs/creation_report_1.json").unwrap();
     let expected_report = std::fs::read_to_string("test_data/creation_report.json").unwrap();
     let report_json: serde_json::Value = serde_json::from_str(&report).unwrap();
     let expected_report_json: serde_json::Value = serde_json::from_str(&expected_report).unwrap();
     assert_eq!(report_json, expected_report_json);
-
-    let het_count: Option<i32> = Some(5);
-    write_creation_report(&seq, het_count, "tests/test_outputs/creation_report_2.json").unwrap();
-    let report = std::fs::read_to_string("tests/test_outputs/creation_report_2.json").unwrap();
-    let report_json: serde_json::Value = serde_json::from_str(&report).unwrap();
-    println!("{:?}", report_json);
-    assert_eq!(
-        report_json
-            .get("Sequencing Quality")
-            .unwrap()
-            .get("Mixed calls")
-            .unwrap(),
-        5
-    );
 }
 
 #[test]
@@ -559,4 +548,31 @@ fn test_write_vcf() {
     let output = std::fs::read_to_string("tests/test_outputs/write_vcf.vcf").unwrap();
     let expected_output = std::fs::read_to_string("test_data/write_vcf.vcf").unwrap();
     assert_eq!(output, expected_output);
+}
+
+#[test]
+fn test_process_overriding_filters() {
+    let mut consensus = make_simple_chrom("ATTAAAAA");
+    let overriding_filters = HashMap::from([
+        (("chrom".to_string(), 1usize), vec!["MIN_VDB".to_string()]),
+        (("chrom".to_string(), 3usize), vec!["MIN_VDB".to_string()]),
+        (("chrom".to_string(), 4usize), vec!["MIN_VDB".to_string()]),
+    ]);
+
+    let header = standard_header();
+    let mut records: Vec<VariantRecord> = [
+        "chrom\t2\tid\tA\tT\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
+        "chrom\t3\tid\tA\tT\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
+        "chrom\t5\tid\tAAA\tA\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
+    ]
+    .iter()
+    .map(|r| VariantRecord::from_string(&header, r).unwrap())
+    .collect();
+
+    process_overriding_filters(&mut consensus, &overriding_filters, &mut records, true);
+
+    assert_eq!(consensus["chrom"], "AFTAFFFA".chars().collect::<Vec<_>>());
+    assert_eq!(records[0].filter, vec!["MIN_VDB".to_string()]);
+    assert!(records[1].filter.is_empty());
+    assert_eq!(records[2].filter, vec!["MIN_VDB".to_string()]);
 }

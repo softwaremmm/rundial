@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 
 use rundial::consensus::make_consensus;
+use rundial::dorado_to_clair3_model::map_model_name;
 use rundial::filter_vcf::filter_vcf;
 
 #[derive(Parser, Debug)]
@@ -52,6 +53,14 @@ enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+    #[command(
+        name = "dorado_to_clair3_model",
+        about = "Convert dorado model name to clair3 model name"
+    )]
+    DoradoToClair3Model {
+        #[arg(value_name = "MODEL_NAME")]
+        model_name: String,
+    },
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -86,6 +95,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             verbose,
         } => {
             filter_vcf(in_vcf, out_vcf, params, overwrite, verbose)?;
+        }
+        Commands::DoradoToClair3Model { model_name } => {
+            if let Some(mapped_name) = map_model_name(&model_name) {
+                println!("{mapped_name}");
+            } else {
+                println!("failed");
+            }
         }
     }
 

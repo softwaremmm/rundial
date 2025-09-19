@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{fmt, panic};
 
 use indexmap::IndexMap;
 use std::{
@@ -33,24 +33,24 @@ pub struct VariantRecord {
 }
 
 // Implementing PartialEq, Eq, and Hash for References to VariantRecord
-impl<'a> PartialEq for &'a VariantRecord {
+impl PartialEq for &VariantRecord {
     fn eq(&self, other: &Self) -> bool {
         return std::ptr::eq(*self, *other);
     }
 }
-impl<'a> Eq for &'a VariantRecord {}
-impl<'a> Hash for &'a VariantRecord {
+impl Eq for &VariantRecord {}
+impl Hash for &VariantRecord {
     fn hash<H: Hasher>(&self, state: &mut H) {
         std::ptr::hash(*self, state);
     }
 }
-impl<'a> PartialEq for &'a mut VariantRecord {
+impl PartialEq for &mut VariantRecord {
     fn eq(&self, other: &Self) -> bool {
         return std::ptr::eq(*self, *other);
     }
 }
-impl<'a> Eq for &'a mut VariantRecord {}
-impl<'a> Hash for &'a mut VariantRecord {
+impl Eq for &mut VariantRecord {}
+impl Hash for &mut VariantRecord {
     fn hash<H: Hasher>(&self, state: &mut H) {
         std::ptr::hash(*self, state);
     }
@@ -97,7 +97,7 @@ impl fmt::Display for VariantRecord {
                 if let RecordValue::Flag = v {
                     return k.to_string();
                 }
-                format!("{}={}", k, v)
+                format!("{k}={v}")
             })
             .collect::<Vec<String>>()
             .join(";");
@@ -153,7 +153,7 @@ impl fmt::Display for VariantRecord {
 
 impl fmt::Debug for VariantRecord {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Record: {}", self)
+        write!(f, "Record: {self}")
     }
 }
 
@@ -250,13 +250,23 @@ impl VariantRecord {
             record.format = str_to_format(header, fields[8], fields[9])?;
 
             // find genotypes
-            if let Some(RecordValue::String(genotype_str)) = record.format.get("GT") {
-                record.genotype = Some(Genotype::from_string(genotype_str)?);
-            } else {
-                return Err(VCFError::InvalidRecord(format!(
-                    "Genotype field not found in VCF row: {line}"
-                ))
-                .into());
+            match record.format.get("GT") {
+                Some(RecordValue::String(genotype_str)) => {
+                    record.genotype = Some(Genotype::from_string(genotype_str)?);
+                }
+                Some(RecordValue::Missing) => {
+                    // Missing genotype
+                    record.genotype = Some(Genotype {
+                        allele1: -1,
+                        allele2: -1,
+                    });
+                }
+                _ => {
+                    return Err(VCFError::InvalidRecord(format!(
+                        "Genotype field not found in VCF row: {line}"
+                    ))
+                    .into());
+                }
             }
 
             if fields.len() > 10 {
@@ -335,6 +345,10 @@ impl VariantRecord {
             self.depth = Some(*dp);
         }
 
+        if let Some(RecordValue::Integer(dp)) = self.format.get("DP") {
+            self.depth = Some(*dp);
+        }
+
         if let Some(forward) = self.info.get("ADF") {
             if let Some(reverse) = self.info.get("ADR") {
                 if let (RecordValue::IntegerArray(f), RecordValue::IntegerArray(r)) =
@@ -373,6 +387,61 @@ impl VariantRecord {
 
     pub fn strand_depths(&self) -> &Option<(Vec<i32>, Vec<i32>)> {
         return &self.strand_depths;
+    }
+
+    pub fn remove_allele(&mut self, allele: i32) {
+        let allele_u = allele as usize;
+        if allele == 0 {
+            panic!("Cannot remove reference allele");
+        }
+        if allele_u > self.alt.len() {
+            panic!(
+                "Cannot remove allele {allele} from record with only {} alt alleles",
+                self.alt.len()
+            );
+        }
+
+        // Remove alt allele
+        self.alt.remove(allele_u - 1);
+
+        // Shift genotype
+        if let Some(mut genotype) = self.genotype.clone() {
+            if allele == genotype.allele1 || allele == genotype.allele2 {
+                panic!("Cannot remove allele that is in genotype");
+            }
+            if genotype.allele1 > allele {
+                genotype.allele1 -= 1;
+            }
+            if genotype.allele2 > allele {
+                genotype.allele2 -= 1;
+            }
+            self.set_genotype(genotype);
+        }
+
+        for tag in ["ADF", "ADR"] {
+            if let Some(RecordValue::IntegerArray(arr)) = self.info.get_mut(tag) {
+                arr.remove(allele_u);
+            }
+        }
+        if let Some(RecordValue::IntegerArray(arr)) = self.format.get_mut("AD") {
+            arr.remove(allele_u);
+        }
+
+        // Leave DP unchanged, as non-reported alleles still contribute to depth
+        // DP4 is not updated, as it is not used in this repo
+
+        self.update_depths();
+    }
+
+    pub fn get_allele_bases(&self, allele: i32) -> Option<&str> {
+        if allele == 0 {
+            return Some(&self.ref_bases);
+        }
+        let allele_u = allele as usize;
+        if allele_u > self.alt.len() {
+            return None;
+        }
+        return Some(&self.alt[allele_u - 1]);
     }
 }
 
@@ -492,6 +561,71 @@ pub mod tests {
             number: HeaderNumber::R,
             header_type: HeaderType::Integer,
             desc: String::from("Allelic depths"),
+        }));
+
+        return header;
+    }
+
+    pub fn clair3_header() -> VCFHeader {
+        let mut header = VCFHeader::new();
+        header.samples.push(String::from("sample"));
+        header.add_header_line(HeaderLine::Filter(FilterHeader {
+            id: String::from("PASS"),
+            desc: String::from("All filters passed"),
+        }));
+        header.add_header_line(HeaderLine::Filter(FilterHeader {
+            id: String::from("LowQual"),
+            desc: String::from("Low quality"),
+        }));
+        header.add_header_line(HeaderLine::Filter(FilterHeader {
+            id: String::from("RefCall"),
+            desc: String::from("Ref call"),
+        }));
+
+        // Add Info headers
+        header.add_header_line(HeaderLine::Info(InfoHeader {
+            id: String::from("P"),
+            number: HeaderNumber::Flag,
+            header_type: HeaderType::Flag,
+            desc: String::from("Result from pileup calling"),
+        }));
+        header.add_header_line(HeaderLine::Info(InfoHeader {
+            id: String::from("F"),
+            number: HeaderNumber::Flag,
+            header_type: HeaderType::Flag,
+            desc: String::from("Result from alignment"),
+        }));
+
+        // Add format headers
+        header.add_header_line(HeaderLine::Format(FormatHeader {
+            id: String::from("GT"),
+            number: HeaderNumber::One,
+            header_type: HeaderType::String,
+            desc: String::from("Genotype"),
+        }));
+        header.add_header_line(HeaderLine::Format(FormatHeader {
+            id: String::from("GQ"),
+            number: HeaderNumber::One,
+            header_type: HeaderType::Integer,
+            desc: String::from("genotype quality"),
+        }));
+        header.add_header_line(HeaderLine::Format(FormatHeader {
+            id: String::from("DP"),
+            number: HeaderNumber::One,
+            header_type: HeaderType::Integer,
+            desc: String::from("depth"),
+        }));
+        header.add_header_line(HeaderLine::Format(FormatHeader {
+            id: String::from("AD"),
+            number: HeaderNumber::R,
+            header_type: HeaderType::Integer,
+            desc: String::from("Allelic depths"),
+        }));
+        header.add_header_line(HeaderLine::Format(FormatHeader {
+            id: String::from("AF"),
+            number: HeaderNumber::One,
+            header_type: HeaderType::Float,
+            desc: String::from("allele frequency"),
         }));
 
         return header;
@@ -677,6 +811,31 @@ pub mod tests {
         assert_eq!(
             record.strand_depths(),
             &Some((vec![1, 2, 3], vec![2, 3, 4]))
+        );
+    }
+
+    #[test]
+    fn test_remove_allele() {
+        let std_header = standard_header();
+        let mut record: VariantRecord = VariantRecord::from_string(
+            &std_header,
+            "ref\t1\tid\tT\tG,C\t244.589\tF1;F2\tDP=28;ADF=1,2,3;ADR=2,3,4;DP4=1,2,5,7;MQ=53.0\tGT:AD\t0/2:3,5,7",
+        ).unwrap();
+
+        record.remove_allele(1);
+        assert_eq!(record.alt, vec!["C".to_string()]);
+        assert_eq!(
+            record.genotype().unwrap(),
+            &Genotype {
+                allele1: 0,
+                allele2: 1
+            }
+        );
+        assert_eq!(record.allele_depths(), &Some(vec![3, 7]));
+        assert_eq!(record.strand_depths(), &Some((vec![1, 3], vec![2, 4])));
+        assert_eq!(
+            record.to_string(),
+            "ref\t1\tid\tT\tC\t244.589\tF1;F2\tDP=28;ADF=1,3;ADR=2,4;DP4=1,2,5,7;MQ=53.0\tGT:AD\t0/1:3,7"
         );
     }
 }

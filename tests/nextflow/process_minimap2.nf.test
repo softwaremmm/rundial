@@ -1,0 +1,21 @@
+nextflow_process {
+    name "Test Process minimap2"
+    script "process/variant_calling.nf"
+    process "minimap2"
+
+    test("Process run successfully and produce alignment") {
+        when {
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/ont_simple.fastq.gz")]
+                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.sorted_alignment[0][1].contains('final.bam')
+        }
+    }
+}

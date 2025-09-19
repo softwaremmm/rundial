@@ -1,0 +1,43 @@
+nextflow_process {
+    name "Test Process Apply filters"
+    script "process/consensus.nf"
+    process "apply_filters"
+
+    test("Process run successfully and produce filtered vcfs") {
+        when {
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/unfiltered.vcf")]
+                input[1] = file("$projectDir/test_data/filter_params.yml")
+                input[2] = ""
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            with(process.out.filtered_gvcf) {
+                assert get(0)[1].contains('filtered.gvcf.gz')
+                assert path(get(0)[1]).md5 == path("$projectDir/test_data/filtered.vcf").md5
+            }
+        }
+    }
+
+
+    test("Process should generate error if files do not exist") {
+        when {
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/not_exist.vcf")]
+                input[1] = file("$projectDir/test_data/filter_params.yml")
+                input[2] = ""
+                """
+            }
+        }
+
+        then {
+            assert process.failed
+        }
+    }
+
+}

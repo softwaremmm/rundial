@@ -1,0 +1,35 @@
+nextflow_process {
+    name "Test Process get_clair3_model"
+    script "process/variant_calling.nf"
+    process "get_clair3_model"
+
+    test("Clair3 model present") {
+        when {
+            process{
+                """
+                input[0] = "dna_r10.4.1_e8.2_400bps_sup@v4.3.0"
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out[0][0] == "r1041_e82_400bps_sup_v430"
+        }
+    }
+
+    test("Clair3 model absent") {
+        when {
+            process{
+                """
+                input[0] = "missing"
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out[0][0] == "failed"
+        }
+    }
+}

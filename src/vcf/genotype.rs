@@ -19,8 +19,8 @@ impl fmt::Display for Genotype {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match (self.allele1, self.allele2) {
             (-1, -1) => return write!(f, "./."),
-            (a1, -1) => return write!(f, "{}/.", a1),
-            (-1, a2) => return write!(f, "./{}", a2),
+            (a1, -1) => return write!(f, "{a1}/."),
+            (-1, a2) => return write!(f, "./{a2}"),
             (a1, a2) => return write!(f, "{a1}/{a2}"),
         }
     }

@@ -34,10 +34,7 @@ fn test_filter_vcf() {
 
     if output_lines != expected_output_lines {
         println!("Output does not match expectation for filtered vcf");
-        println!(
-            "expectation: {}, result: {}",
-            expected_output_path, output_path
-        );
+        println!("expectation: {expected_output_path}, result: {output_path}");
         panic!();
     }
 }

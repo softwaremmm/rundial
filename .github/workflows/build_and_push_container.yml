@@ -1,0 +1,88 @@
+name: Build and Push Container
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+      - '*.*.*-rc*'
+      - '*.*.*\+*'
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+
+env:
+  REGISTRY: lhr.ocir.io
+  IMAGE_NAME: lrbvkel2wjot/gpas/rundial
+  IMAGE_NAME_GPAS_LTD: lr3yhdniv6gu/gpas/rundial
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: "Build docker containers"
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          token: "${{ secrets.PAT_TOKEN }}"
+          fetch-depth: 0
+
+      - name: Determine the tag to use
+        id: image-tag
+        run: |
+          if [[ -n "${{ inputs.tag }}" ]]; then
+            echo "tag=${{ inputs.tag }}" >> $GITHUB_ENV
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to OCR
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.OCR_USERNAME }}
+          password: ${{ secrets.OCR_TOKEN }}
+
+      - name: Set full image registry tag
+        run: |
+          echo "RUNDIAL_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.tag }}" >> $GITHUB_ENV
+          echo "RUNDIAL_TAG: ${{ env.RUNDIAL_TAG }}"
+
+      - name: Build and push
+        id: build_and_push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          file: Dockerfile
+          tags: |
+            ${{ env.RUNDIAL_TAG }}
+
+      - name: Login to gpasltd OCIR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.OCR_CONTAINER_USERNAME_GPASLTD }}
+          password: ${{ secrets.OCR_CONTAINER_TOKEN_GPASLTD }}
+
+      - name: Set full image registry tag for gpasltd
+        run: |
+          echo "RUNDIAL_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_GPAS_LTD }}:${{ env.tag }}" >> $GITHUB_ENV
+          echo "RUNDIAL_TAG: ${{ env.RUNDIAL_TAG }}"
+
+      - name: Build and push
+        id: build_and_push_gpasltd
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          file: Dockerfile
+          tags: |
+            ${{ env.RUNDIAL_TAG }}

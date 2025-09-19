@@ -1,0 +1,40 @@
+nextflow_process {
+    name "Test Process clair3"
+    script "process/variant_calling.nf"
+    process "clair3"
+
+    test("Process run successfully and produce vcfs") {
+        when {
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam")]
+                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                input[2] = "$projectDir/data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz"
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.vcf[0][1].contains('clair3.vcf.gz')
+            assert path(process.out.vcf[0][1]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/clair3_calls.vcf.gz").linesGzip[40..-1]
+        }
+    }
+
+    test("Process should generate error if files do not exist") {
+        when {
+            process{
+                """
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/non_exist.bam")]
+                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                input[2] = "$projectDir/data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz"
+                """
+            }
+        }
+
+        then {
+            assert process.failed
+        }
+    }
+
+}

@@ -2,11 +2,12 @@ use std::iter;
 
 use crate::vcf::VariantRecord;
 
+use super::MIXED;
 use super::{Bed, ConsensusParams, HetOption};
 use super::{FILTERED, HET, MASKED, NULL};
 
 pub fn repeat_char(c: char, n: usize) -> String {
-    std::iter::repeat(c).take(n).collect()
+    std::iter::repeat_n(c, n).collect()
 }
 
 /// Simplifies ref-alt pair by removing matching trailing and leading bases.
@@ -85,8 +86,9 @@ fn simplify_ref_alt(ref_bases: &str, alt_bases: &str) -> (usize, String, String)
     (counter, new_ref, new_alt)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Change {
+    #[default]
     Null,
     HetMask,
     Ref,
@@ -141,10 +143,10 @@ pub struct Classification {
     pub change: Change,
     pub ref_bases: String,
     pub new_bases: String,
-    pub is_het: bool,
-    pub has_minor_population: bool,
-    pub is_filtered: bool,
-    pub has_indel_alleles: bool, // Either ref or alt has multiple bases, gets processed later
+    pub is_het: bool, // Check if GT is heterozygous OR has minor population and only filter is MIN_FRS
+    pub has_minor_population: bool, // Alleles which are not in GT but have depth >= minor_pop_threshold
+    pub is_filtered: bool,          // Has any (non-ignored) filter. MIN_FRS alone is considered het
+    pub has_indel_alleles: bool,    // Either ref or alt has multiple bases, gets processed later
 }
 impl Default for Classification {
     fn default() -> Self {
@@ -177,15 +179,22 @@ impl Classification {
 pub struct Classifier {
     pub params: ConsensusParams,
     pub mask: Option<Bed>,
+    pub minor_pop_threshold: Option<i32>,
 }
 
 impl Classifier {
-    pub fn new(params: &ConsensusParams) -> Self {
+    pub fn new(params: &ConsensusParams, is_support: bool) -> Self {
         let mask: Option<Bed> = params.mask.as_ref().map(|s| Bed::from_file(s));
+        let minor_pop_threshold = if is_support {
+            params.support_minor_pop_threshold
+        } else {
+            params.minor_pop_threshold
+        };
 
         Classifier {
             params: params.clone(),
             mask,
+            minor_pop_threshold,
         }
     }
 
@@ -213,6 +222,26 @@ impl Classifier {
         return flags;
     }
 
+    /// Returns a list of overriding flags for the record
+    /// These are flags in the support vcf which should be applied to the consensus
+    /// even if the main vcf lacks them
+    pub fn get_overriding_flags(&self, record: &VariantRecord) -> Option<Vec<String>> {
+        if let Some(overriding_flags) = &self.params.overriding_filters {
+            let flags: Vec<String> = self
+                .get_flags(record)
+                .into_iter()
+                .filter(|filter| overriding_flags.contains(filter))
+                .collect();
+            if flags.is_empty() {
+                return None;
+            }
+
+            return Some(flags);
+        }
+
+        return None;
+    }
+
     pub fn is_masked(&self, record: &VariantRecord) -> bool {
         if let Some(mask) = &self.mask {
             return mask.contains(&record.chrom, &(record.pos - 1));
@@ -237,21 +266,39 @@ impl Classifier {
             ..Default::default()
         };
 
-        let gt = record.genotype().expect("Genotype not found");
-        classification.is_het = gt.is_het();
+        let gt = record.genotype().expect("Genotype not found").clone();
 
-        if let (Some(allelic_depths), Some(minor_threshold)) =
-            (record.allele_depths(), self.params.minor_pop_threshold)
-        {
-            // look for alleles not in GT which have depth >= minor_pop_threshold
-            classification.has_minor_population =
-                allelic_depths.iter().enumerate().any(|(i, depth)| {
+        if let Some(minor_threshold) = self.minor_pop_threshold {
+            if let Some(allelic_depths) = record.allele_depths() {
+                for (i, depth) in allelic_depths.iter().enumerate() {
                     let i = i as i32;
                     if i == gt.allele1 || i == gt.allele2 {
-                        return false;
+                        continue; // Skip alleles in GT
                     }
-                    return *depth >= minor_threshold;
-                });
+                    if *depth >= minor_threshold {
+                        classification.has_minor_population = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        classification.is_het = gt.is_het();
+
+        // special check for het via minor population
+        if classification.has_minor_population
+            && record.filter.contains(&"MIN_FRS".to_string())
+            && record.filter.len() == 1
+        {
+            classification.is_het = true;
+            classification.is_filtered = false; // treat as het rather than filtered
+        }
+
+        if classification.is_het {
+            // Then add this to the info field of the record
+            record
+                .info
+                .insert(MIXED.to_string(), crate::vcf::RecordValue::Flag);
         }
 
         /// Indel is standard if ref and all alts start with the same base
@@ -274,15 +321,15 @@ impl Classifier {
 
         // Case match based on genotype.
         // Hets for indels vs snps may be handled different based on parameters
-        match (gt.allele1, gt.allele2) {
-            (-1, -1) => {
+        match (classification.is_het, gt.allele1, gt.allele2) {
+            (_, -1, -1) => {
                 classification.change = Change::Null;
                 classification.new_bases = repeat_char(NULL, record.ref_bases.len());
             }
-            (-1, _) | (_, -1) => {
+            (_, -1, _) | (_, _, -1) => {
                 panic!("Does not support partial null GT like ./1")
             }
-            (0, 0) => {
+            (false, 0, 0) => {
                 classification.change = Change::Ref;
                 if classification.has_indel_alleles
                     && is_standard_indel(&record.ref_bases, &record.alt)
@@ -297,11 +344,14 @@ impl Classifier {
                 }
                 classification.new_bases = classification.ref_bases.clone();
             }
-            (i, j) if i == j => {
+            (false, i, j) if i == j => {
                 classification
                     .set_ref_alt_and_simplify(&record.ref_bases, &record.alt[(i - 1) as usize]);
             }
-            (i, j) => {
+            (false, i, j) => {
+                panic!("Not considered het yet alleles are not equal: {i} {j}");
+            }
+            (true, i, j) => {
                 // Difficult het case
                 classification.is_het = true;
                 let het_option = if record.is_indel() {

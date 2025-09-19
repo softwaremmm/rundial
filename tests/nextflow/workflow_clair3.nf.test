@@ -1,0 +1,66 @@
+nextflow_workflow {
+    name "Test workflow rundial (with clair3)"
+    script "main.nf"
+    workflow "rundial"
+
+    test("Workflow runs successfully") {
+        when {
+            workflow{
+                """
+                input[0] = Channel.of(['sample', file("$projectDir/test_data/assemblers/ont_simple.fastq.gz")])
+                input[1] = "$projectDir/data/h37rv_20231215.fa.gz"
+                input[2] = "$projectDir/data/clair3_models"
+                input[3] = "dna_r10.4.1_e8.2_400bps_sup@v4.3.0"
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.out.final_fasta[0][1].contains('final.fasta')
+            assert workflow.out.final_vcf[0][1].contains('final.vcf')
+            assert workflow.out.full_vcf[0][1].contains('final.full.vcf')
+            assert workflow.out.creation_report_json[0][1].contains('genome_creation_report.json')
+        }
+    }
+
+    test("Workflow runs falls back to sundial succesfully") {
+        when {
+            workflow{
+                """
+                input[0] = Channel.of(['sample', file("$projectDir/test_data/assemblers/ont_simple.fastq.gz")])
+                input[1] = "$projectDir/data/h37rv_20231215.fa.gz"
+                input[2] = "$projectDir/data/clair3_models"
+                input[3] = "invalid"
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert workflow.out.final_fasta[0][1].contains('final.fasta')
+            assert workflow.out.final_vcf[0][1].contains('final.vcf')
+            assert workflow.out.full_vcf[0][1].contains('final.full.vcf')
+            assert workflow.out.creation_report_json[0][1].contains('genome_creation_report.json')
+        }
+    }
+
+
+    test("Workflow should generate error if files do not exist") {
+        when {
+            workflow{
+                """
+                input[0] = ['sample', file("$projectDir/tests/samples/non_existent.fastq.gz")]
+                input[1] = "$projectDir/data/h37rv_20231215.fa.gz"
+                input[2] = "$projectDir/data/clair3_models"
+                input[3] = "dna_r10.4.1_e8.2_400bps_sup@v4.3.0"
+                """
+            }
+        }
+
+        then {
+            assert workflow.failed
+        }
+    }
+
+}

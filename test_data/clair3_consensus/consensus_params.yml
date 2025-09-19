@@ -1,0 +1,15 @@
+skip_indels: False
+mask_missing_sites: True # Sites not in the input vcfs are set to N
+
+use_filters: True # Filtered sites are replaced with F
+filter_ignore_list:
+  - "RefCall"
+
+minor_pop_threshold: 5 # Minimum number of reads for an allele to be considered a minor population
+
+# Het options are "Ref", "Alt", "Best" (which will select the major allele), or "Mask" to replace with Z
+het_snp_option: "Mask"
+het_indel_option: "Mask"
+
+main_caller: "clair3"
+support_caller: "bcftools"
