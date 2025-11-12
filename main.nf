@@ -37,9 +37,9 @@ workflow {
         [
             it[0],
             it[1],
+            file(params.ref_fasta),
             params.reference,
             params.accession,
-            file(params.ref_fasta),
         ]
     }
 
@@ -68,6 +68,8 @@ workflow rundial {
     main:
 
     ref_name_ch = fastq_files.map { it -> [it[0], it[2]] }
+
+    ref_path_ch = fastq_files.map { it -> [it[0], it[4]] }
 
     fastq_files = fastq_files.map { it -> tuple(it[0], it[1], it[4]) }
 
@@ -106,6 +108,8 @@ workflow rundial {
 
     consensus_params = Channel.fromPath("${moduleDir}/process/clair3_consensus_params.yml").first()
     calls = apply_filters.out.filtered_gvcf.join(apply_filters_clair3.out.filtered_gvcf)
+                                           .join(ref_path_ch) 
+    calls.view { "Calls channel: ${it}" }
     make_clair3_consensus(calls, consensus_params)
 
     emit:

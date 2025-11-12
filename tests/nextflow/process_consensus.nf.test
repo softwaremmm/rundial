@@ -7,9 +7,8 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/single_consensus/consensus_input.vcf")]
-                input[1] = file("$projectDir/test_data/single_consensus/consensus_ref.fasta")
-                input[2] = file("$projectDir/test_data/single_consensus/consensus_params.yml")
+                input[0] = ['sample', file("$projectDir/test_data/single_consensus/consensus_input.vcf"), file("$projectDir/test_data/single_consensus/consensus_ref.fasta")]
+                input[1] = file("$projectDir/test_data/single_consensus/consensus_params.yml")
                 """
             }
         }
@@ -27,9 +26,8 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/single_consensus/non_existent.vcf")]
-                input[1] = file("$projectDir/test_data/single_consensus/consensus_ref.fasta")
-                input[2] = file("$projectDir/test_data/single_consensus/consensus_params.yml")
+                input[0] = ['sample', file("$projectDir/test_data/single_consensus/non_existent.vcf"), file("$projectDir/test_data/single_consensus/non_existent.fasta")]
+                input[1] = file("$projectDir/test_data/single_consensus/consensus_params.yml")
                 """
             }
         }

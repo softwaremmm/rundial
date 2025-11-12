@@ -16,10 +16,10 @@ This is included in the `data` folder. Just run `get_clair3_models.sh` to downlo
 Can run with bcftools or with clair3
 ```bash
 nextflow run . --workflow bcftools --input_dir test_data/assemblers --publish_dir results \
-	--ref-fasta data/h37rv_20231215.fa.gz
+	--ref-fasta data/NC_000962.3.fa.gz
 
 nextflow run . --workflow clair3 --input_dir test_data/assemblers --publish_dir results \
-	--ref-fasta data/h37rv_20231215.fa.gz --clair3_models_dir data/clair3_models \
+	--ref-fasta data/NC_000962.3.fa.gz --clair3_models_dir data/clair3_models \
   --basecalling_model dna_r10.4.1_e8.2_400bps_sup@v4.3.0
 ```
 

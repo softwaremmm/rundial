@@ -10,8 +10,7 @@ nextflow_process {
             }
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam"), file("$projectDir/data/NC_000962.3.fa.gz")]
                 """
             }
         }
@@ -30,8 +29,7 @@ nextflow_process {
             }
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam"), file("$projectDir/data/NC_000962.3.fa.gz")]
                 """
             }
         }
@@ -48,8 +46,7 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/not_exist.fastq.gz")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/not_exist.fastq.gz"), file("$projectDir/data/NC_000962.3.fa.gz")]
                 """
             }
         }
