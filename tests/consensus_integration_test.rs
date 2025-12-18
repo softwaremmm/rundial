@@ -25,9 +25,9 @@ fn compare_files(expected: &str, result: &str) {
         if update_expectations() {
             std::fs::write(expected, &result_content).expect("Failed to update expected file");
             println!("Updated expected file: {expected}");
+        } else {
+            assert_eq!(expected_content, result_content);
         }
-
-        assert_eq!(expected_content, result_content);
     }
 }
 
