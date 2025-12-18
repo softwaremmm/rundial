@@ -1,4 +1,4 @@
-## New
+## 0.6.0
 
 - Mixed sites are now counted differently, to better match what Illumina counts and to be more representative.
     - Mixed sites now counts both hets (from GT=0/1 say) and having a minor population
