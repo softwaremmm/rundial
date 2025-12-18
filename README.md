@@ -43,6 +43,18 @@ UPDATE_EXPECTATIONS=1 cargo test
 ```
 
 ## Parameters and Thresholds
+
+### Note on Hets and minor populations
+First to note that rundial distinguishes minor populations from het calls
+- A minor population is simply when the non-major allele also has read support above a certain threshold
+- A het call requires the genotype to be mixed (0/1) or for the row to have a MIN_FRS flag and have a minor population
+
+The difference being that only het calls are subject to being masked etc. With ONT it is not uncommon to get COV of 100 to 5 for major vs minor allele, which can pass all the filters but still be a minor population. Hets will be a subset of minor populations.
+
+The Mixed snps/indels in the creation report count both kinds.
+
+hets/minors from the support vcf will only get counted if `support_minor_pop_threshold` is set.
+
 ### Minimap 2
 No secondary alignments are output, and ont standard params are used.
 

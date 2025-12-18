@@ -510,13 +510,20 @@ fn test_write_creation_report() {
     let seq = read_fasta("test_data/simple.fasta").unwrap();
 
     // mock data does not actually match fasta
-    let het_snp_sites = HashMapSet::from([("chrom_1".to_string(), HashSet::from([5]))]);
-    let het_indel_sites = HashMapSet::from([("chrom_2".to_string(), HashSet::from([1, 2]))]);
+    let hets_and_minors = HashMapSet::from([
+        (
+            "chrom_1".to_string(),
+            HashSet::from([(5, true, true, false)]),
+        ),
+        (
+            "chrom_2".to_string(),
+            HashSet::from([(1, true, true, true), (2, false, true, true)]),
+        ),
+    ]);
 
     write_creation_report(
         &seq,
-        &het_snp_sites,
-        &het_indel_sites,
+        &hets_and_minors,
         "tests/test_outputs/creation_report_1.json",
     )
     .unwrap();

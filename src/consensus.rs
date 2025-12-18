@@ -269,8 +269,7 @@ struct MainVCFResults {
     output_records: Vec<VariantRecord>,
     insertions: Vec<(VariantRecord, Classification)>,
     processed_positions: HashMapSet<usize>,
-    het_snp_sites: HashMapSet<usize>,
-    het_indel_sites: HashMapSet<usize>,
+    hets_and_minors: HashMapSet<(usize, bool, bool, bool)>, // pos, is_het, has_minor_population, is_indel
 }
 
 // Assumes rows are split for snps vs indels
@@ -293,10 +292,6 @@ fn process_main_vcf(
         seen_sites.insert(chrom.clone(), HashSet::new());
         results
             .processed_positions
-            .insert(chrom.clone(), HashSet::new());
-        results.het_snp_sites.insert(chrom.clone(), HashSet::new());
-        results
-            .het_indel_sites
             .insert(chrom.clone(), HashSet::new());
     }
 
@@ -347,6 +342,15 @@ fn process_main_vcf(
         if c.is_filtered {
             continue;
         }
+        // Count hets and minors
+        if c.is_het || c.has_minor_population {
+            results.hets_and_minors.insert_loc(
+                &r.chrom,
+                (c.pos, c.is_het, c.has_minor_population, c.has_indel_alleles),
+            );
+        }
+
+        // Insertions only get applied at the very end, due to changing consensus length
         if c.change == Change::Ins || c.change == Change::ComplexIns {
             results.insertions.push((r.clone(), c.clone()));
             continue;
@@ -356,18 +360,6 @@ fn process_main_vcf(
         results
             .processed_positions
             .extend_chrom(&r.chrom, &affected_sites);
-
-        if c.is_het {
-            if c.has_indel_alleles {
-                results
-                    .het_indel_sites
-                    .extend_chrom(&r.chrom, &affected_sites);
-            } else {
-                results
-                    .het_snp_sites
-                    .extend_chrom(&r.chrom, &affected_sites);
-            }
-        }
 
         results.output_records.push(r.clone());
     }
@@ -433,8 +425,8 @@ fn process_main_vcf(
 struct SupportVCFResults {
     output_records: Vec<VariantRecord>,
     processed_positions: HashMapSet<usize>,
-    het_sites: HashMapSet<usize>,
     overriding_filters: HashMap<(String, usize), Vec<String>>,
+    hets_and_minors: HashMapSet<(usize, bool, bool, bool)>, // pos, is_het, has_minor_population, is_indel
 }
 
 /// Reads support vcf file to provide data on sites not in main vcf
@@ -513,7 +505,7 @@ fn process_support_vcf(
             continue;
         }
 
-        // marks snps and hets
+        // mark snps and hets
         if classification.change == Change::Snp {
             classification.change = Change::Null;
             classification.is_filtered = true;
@@ -523,7 +515,20 @@ fn process_support_vcf(
             record
                 .info
                 .insert(HET_IN_SUPPORT_VCF.to_string(), RecordValue::Flag);
-            results.het_sites.insert_loc(&record.chrom, &pos);
+        }
+
+        if !classification.is_filtered
+            && (classification.is_het || classification.has_minor_population)
+        {
+            results.hets_and_minors.insert_loc(
+                &record.chrom,
+                (
+                    pos,
+                    classification.is_het,
+                    classification.has_minor_population,
+                    false,
+                ),
+            );
         }
 
         // Apply the changes, which we know are single base changes
@@ -579,8 +584,7 @@ fn process_overriding_filters(
 
 fn write_creation_report(
     consensus: &HashMap<String, Vec<char>>,
-    het_snp_sites: &HashMapSet<usize>,
-    het_indel_sites: &HashMapSet<usize>,
+    hets_and_minors: &HashMapSet<(usize, bool, bool, bool)>, // pos, is_het, has_minor_population, is_indel
     output_file: &str,
 ) -> Result<()> {
     let mut letter_counts: HashMap<char, i32> = HashMap::new();
@@ -598,26 +602,31 @@ fn write_creation_report(
     }
     let fixed_cov: f32 = 100.0 * (total_length - all_null_counts) as f32 / total_length as f32;
 
-    let het_snp_count = het_snp_sites.values().map(|s| s.len()).sum::<usize>() as i32;
-    let het_indel_count = het_indel_sites.values().map(|s| s.len()).sum::<usize>() as i32;
-
-    // Also want to count how many het snp clusters there are
+    // Count mixtures. For time being we mix hets and minor populations together
+    let mut mixed_snps = 0;
+    let mut mixed_indels = 0;
+    let mut mixed_clusters = 0;
     let cluster_size = 50;
-    let mut het_snp_clusters = 0;
-    for (_, sites) in het_snp_sites.iter() {
+
+    for (_, sites) in hets_and_minors.iter() {
         if sites.is_empty() {
             continue;
         }
 
-        // sort the sites
-        let mut sorted_sites: Vec<usize> = sites.iter().cloned().collect();
+        mixed_snps += sites
+            .iter()
+            .filter(|(_, _, _, is_indel)| !*is_indel)
+            .count();
+        mixed_indels += sites.iter().filter(|(_, _, _, is_indel)| *is_indel).count();
+
+        let mut sorted_sites: Vec<usize> = sites.iter().map(|(pos, _, _, _)| *pos).collect();
         sorted_sites.sort_unstable();
         let mut last_site = sorted_sites[0];
-        het_snp_clusters = 1; // first site is always a new cluster
+        mixed_clusters += 1; // first site is always a new cluster
         for site in sorted_sites.iter().skip(1) {
             if site - last_site > cluster_size {
                 // new cluster
-                het_snp_clusters += 1;
+                mixed_clusters += 1;
             }
             last_site = *site;
         }
@@ -626,10 +635,10 @@ fn write_creation_report(
     let quality_stats = SequencingQuality {
         genome_length: total_length,
         null_calls: all_null_counts,
-        mixed_snps: het_snp_count,
-        mixed_snps_clusters: het_snp_clusters,
-        mixed_indels: het_indel_count,
-        mixed_calls: het_snp_count + het_indel_count,
+        mixed_snps: mixed_snps as i32,
+        mixed_indels: mixed_indels as i32,
+        mixed_clusters,
+        mixed_calls: (mixed_snps + mixed_indels) as i32,
         fixed_coverage: fixed_cov,
         null_genotype_calls: *letter_counts.get(&NULL).unwrap_or(&0),
         filtered_calls: *letter_counts.get(&FILTERED).unwrap_or(&0),
@@ -845,8 +854,8 @@ pub fn make_consensus(
     output_records.extend(support_results.output_records);
     processed_positions.extend_all_chroms(support_results.processed_positions);
     main_results
-        .het_snp_sites
-        .extend_all_chroms(support_results.het_sites);
+        .hets_and_minors
+        .extend_all_chroms(support_results.hets_and_minors);
 
     process_overriding_filters(
         &mut consensus,
@@ -898,8 +907,7 @@ pub fn make_consensus(
 
     write_creation_report(
         &consensus,
-        &main_results.het_snp_sites,
-        &main_results.het_indel_sites,
+        &main_results.hets_and_minors,
         &(output_root.to_owned() + ".report.json"),
     )?;
 
