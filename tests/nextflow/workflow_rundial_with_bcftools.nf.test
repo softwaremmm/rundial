@@ -7,8 +7,11 @@ nextflow_workflow {
         when {
             workflow{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/ont_simple.fastq.gz")]
-                input[1] = "$projectDir/data/h37rv_20231215.fa.gz"
+                input[0] = Channel.of(['sample', 
+                            file("$projectDir/test_data/assemblers/ont_simple.fastq.gz"), 
+                            file("$projectDir/data/NC_000962.3.fa.gz"),
+                            'Mycobacterium tuberculosis', 
+                            'NC_000962.3'])
                 """
             }
         }
@@ -26,9 +29,12 @@ nextflow_workflow {
     test("Workflow should generate error if files do not exist") {
         when {
             workflow{
-                """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/non_existent.fastq.gz")]
-                input[1] = "$projectDir/data/h37rv_20231215.fa.gz"
+                """                
+                input[0] = Channel.of(['sample', 
+                                       file("$projectDir/test_data/assemblers/non_existent.fastq.gz"), 
+                                       file("$projectDir/data/NC_000962.3.fa.gz"),
+                                       'Mycobacterium tuberculosis', 
+                                       'NC_000962.3'])
                 """
             }
         }

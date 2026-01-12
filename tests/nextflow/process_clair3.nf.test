@@ -7,9 +7,8 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
-                input[2] = "$projectDir/data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz"
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam"), file("$projectDir/data/NC_000962.3.fa.gz")]
+                input[1] = "$projectDir/data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz"
                 """
             }
         }
@@ -25,9 +24,8 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/non_exist.bam")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
-                input[2] = "$projectDir/data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz"
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/non_exist.bam"), file("$projectDir/data/NC_000962.3.fa.gz")]
+                input[1] = "$projectDir/data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz"
                 """
             }
         }

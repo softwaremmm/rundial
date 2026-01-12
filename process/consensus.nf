@@ -36,8 +36,7 @@ process make_consensus {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(filtered_gvcf)
-    path reference
+    tuple val(sample_name), path(filtered_gvcf), path(reference)
     path consensus_params
 
     output:
@@ -76,8 +75,7 @@ process make_clair3_consensus {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path("filtered.gvcf.gz"), path("clair3.vcf.gz")
-    path reference
+    tuple val(sample_name), path("filtered.gvcf.gz"), path("clair3.vcf.gz"), path(reference)
     path consensus_params
 
     output:

@@ -7,8 +7,7 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/ont_simple.fastq.gz")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                input[0] = ['sample', file("$projectDir/test_data/assemblers/ont_simple.fastq.gz"), file("$projectDir/data/NC_000962.3.fa.gz")]
                 """
             }
         }

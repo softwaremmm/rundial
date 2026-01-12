@@ -1,8 +1,8 @@
 ##fileformat=VCFv4.2
 ##source=Clair3
 ##clair3_version=1.0.4
-##cmdline=/home/ubuntu/miniconda3/envs/clair3/bin/run_clair3.sh --bam_fn=/home/ubuntu/pipelines/sundial/MHall_comparison/assembly/ont/4.sorted.bam --ref_fn=/home/ubuntu/pipelines/sundial/data/h37rv_20231215.fa.gz --threads=8 --platform=ont --model_path=/home/ubuntu/miniconda3/envs/clair3/bin/models/r941_prom_sup_g5014 --include_all_ctgs --print_ref_calls --gvcf --no_phasing_for_fa --output=clair_out/4
-##reference=/home/ubuntu/pipelines/sundial/data/h37rv_20231215.fa.gz
+##cmdline=/home/ubuntu/miniconda3/envs/clair3/bin/run_clair3.sh --bam_fn=/home/ubuntu/pipelines/sundial/MHall_comparison/assembly/ont/4.sorted.bam --ref_fn=/home/ubuntu/pipelines/sundial/data/NC_000962.3.fa.gz --threads=8 --platform=ont --model_path=/home/ubuntu/miniconda3/envs/clair3/bin/models/r941_prom_sup_g5014 --include_all_ctgs --print_ref_calls --gvcf --no_phasing_for_fa --output=clair_out/4
+##reference=/home/ubuntu/pipelines/sundial/data/NC_000962.3.fa.gz
 ##FILTER=<ID=PASS,Description="All filters passed">
 ##FILTER=<ID=LowQual,Description="Low quality variant">
 ##FILTER=<ID=RefCall,Description="Reference call">

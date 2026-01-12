@@ -14,11 +14,10 @@ process minimap2 {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(fq)
-    path reference
+    tuple val(sample_name), path(fq), path(reference)
 
     output:
-    tuple val(sample_name), path("final.bam"), emit: sorted_alignment
+    tuple val(sample_name), path("final.bam"), path(reference), emit: sorted_alignment
 
     script:
     """
@@ -43,8 +42,7 @@ process call_snps {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(sorted_alignment)
-    path reference
+    tuple val(sample_name), path(sorted_alignment), path(reference)
 
     output:
     tuple val(sample_name), path("calls.gvcf.gz"), emit: gvcf
@@ -89,8 +87,7 @@ process call_all {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(sorted_alignment)
-    path reference
+    tuple val(sample_name), path(sorted_alignment), path(reference)
 
     output:
     tuple val(sample_name), path("calls.gvcf.gz"), emit: gvcf
@@ -99,8 +96,10 @@ process call_all {
     """
     echo "Running bcftools mpileup in parallel"
 
+    gunzip -c ${reference} > ref.fasta # Handle gzipped (but not bgzipped) reference input
+
     # script also makes indexes
-    multithreaded_bcftools -a ${sorted_alignment} -r ${reference} \
+    multithreaded_bcftools -a ${sorted_alignment} -r ref.fasta \
         -o pileup.bcf -t ${task.cpus} \
         --settings "-x -Q 10 -a INFO/SCR,INFO/ADR,INFO/ADF,FORMAT/SP,FORMAT/AD -h100 -M10000"
 
@@ -109,10 +108,10 @@ process call_all {
     # Report all alleles during calling
     bcftools call --threads ${task.cpus} --ploidy 1 -m -A -V indels pileup.bcf \
         | bcftools filter -e 'DP==0' \
-        | bcftools norm -d exact -f ${reference} -Oz -o snps.gvcf.gz
+        | bcftools norm -d exact -f ref.fasta -Oz -o snps.gvcf.gz
     bcftools call --threads ${task.cpus} --ploidy 1 -m -A -v -V snps pileup.bcf \
         | bcftools filter -e 'DP==0' \
-        | bcftools norm -d exact -f ${reference} -Oz -o indels.gvcf.gz
+        | bcftools norm -d exact -f ref.fasta -Oz -o indels.gvcf.gz
     bcftools index snps.gvcf.gz
     bcftools index indels.gvcf.gz
     bcftools concat -a snps.gvcf.gz indels.gvcf.gz -o calls.gvcf
@@ -166,8 +165,7 @@ process clair3 {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(bam)
-    path reference
+    tuple val(sample_name), path(bam), path(reference)
     path model
 
     output:

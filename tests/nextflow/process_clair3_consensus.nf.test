@@ -7,9 +7,8 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/clair3_consensus/bcftools.vcf"), file("$projectDir/test_data/clair3_consensus/clair3.vcf")]
-                input[1] = file("$projectDir/test_data/clair3_consensus/ref.fasta.gz")
-                input[2] = file("$projectDir/test_data/clair3_consensus/consensus_params.yml")
+                input[0] = ['sample', file("$projectDir/test_data/clair3_consensus/bcftools.vcf"), file("$projectDir/test_data/clair3_consensus/clair3.vcf"), file("$projectDir/test_data/clair3_consensus/ref.fasta.gz")]
+                input[1] = file("$projectDir/test_data/clair3_consensus/consensus_params.yml")
                 """
             }
         }
@@ -31,9 +30,8 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/non_existent.vcf")]
-                input[1] = file("$projectDir/test_data/test_ref.fasta.gz")
-                input[2] = file("$projectDir/test_data/clair3_consensus/consensus_params.yml")
+                input[0] = ['sample', file("$projectDir/test_data/non_existent.vcf"), file("$projectDir/test_data/test_ref.fasta.gz")]
+                input[1] = file("$projectDir/test_data/clair3_consensus/consensus_params.yml")
                 """
             }
         }
