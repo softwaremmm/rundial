@@ -20,9 +20,9 @@ nextflow_process {
                 assert get(0)[1].contains('final.fasta')
                 assert path(get(0)[1]).md5 == path("$projectDir/test_data/clair3_consensus/final.fasta").md5
             }
-            with(process.out.full_vcf) {
-                assert get(0)[1].contains('final.full.vcf')
-                assert path(get(0)[1]).md5 == path("$projectDir/test_data/clair3_consensus/final.full.vcf").md5
+            with(process.out.all_calls_vcf) {
+                assert get(0)[1].contains('all_calls.vcf')
+                assert path(get(0)[1]).md5 == path("$projectDir/test_data/clair3_consensus/all_calls.vcf").md5
             }
         }
     }
