@@ -4,6 +4,8 @@
     - Mixed sites now counts both hets (from GT=0/1 say) and having a minor population
     - Mixed indels nows counts mutations rather than sites effected. So a large het deletion is still just 1
     - Mixed clusters now uses both snps and indels
+- Rename final.vcf to variants.vcf, and associated channels
+- Rename final.full.vcf to all_calls.vcf, and associated channels
 
 ## 0.5.0
 
