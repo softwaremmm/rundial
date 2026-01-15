@@ -53,7 +53,7 @@ process make_consensus {
         -p ${consensus_params} \
         --ref-fasta ${reference} \
         -i ${filtered_gvcf} \
-        -o final
+        -o variants
 
     mv variants.vcf all_calls.vcf
     bcftools view -v snps,indels all_calls.vcf > variants.vcf
@@ -94,7 +94,7 @@ process make_clair3_consensus {
         --ref-fasta ${reference} \
         -i clair3.vcf.gz \
         -s filtered.gvcf.gz \
-        -o final
+        -o variants
 
     mv variants.vcf all_calls.vcf
     bcftools view -v snps,indels all_calls.vcf > variants.vcf
