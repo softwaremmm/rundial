@@ -14,14 +14,14 @@ process apply_filters {
     val file_prefix
 
     output:
-    tuple val(sample_name), path("filtered.gvcf.gz"), emit: filtered_gvcf
+    tuple val(sample_name), path("alternate-bcftools.vcf.gz"), emit: alternate_bcftools_vcf
 
     script:
     """
     rundial filter --verbose --overwrite \
         -p ${filter_params} \
-        -o filtered.gvcf -i ${gvcf}
-    bgzip filtered.gvcf
+        -o alternate-bcftools.vcf -i ${gvcf}
+    bgzip alternate-bcftools.vcf
     """
 }
 
@@ -36,7 +36,7 @@ process make_consensus {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(filtered_gvcf)
+    tuple val(sample_name), path(alternate_bcftools_vcf)
     path reference
     path consensus_params
 
@@ -52,7 +52,7 @@ process make_consensus {
     rundial consensus --verbose \
         -p ${consensus_params} \
         --ref-fasta ${reference} \
-        -i ${filtered_gvcf} \
+        -i ${alternate_bcftools_vcf} \
         -o consensus
 
     bcftools view -v snps,indels consensus.vcf > variants.vcf
@@ -80,7 +80,7 @@ process make_clair3_consensus {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path("filtered.gvcf.gz"), path("clair3.vcf.gz")
+    tuple val(sample_name), path("alternate-bcftools.vcf.gz"), path("clair3.vcf.gz")
     path reference
     path consensus_params
 
@@ -97,7 +97,7 @@ process make_clair3_consensus {
         -p ${consensus_params} \
         --ref-fasta ${reference} \
         -i clair3.vcf.gz \
-        -s filtered.gvcf.gz \
+        -s alternate-bcftools.vcf.gz \
         -o consensus
 
     bcftools view -v snps,indels consensus.vcf > variants.vcf

@@ -91,7 +91,7 @@ workflow rundial {
 
 
     consensus_params = Channel.fromPath("${moduleDir}/process/clair3_consensus_params.yml").first()
-    calls = apply_filters.out.filtered_gvcf.join(apply_filters_clair3.out.filtered_gvcf)
+    calls = apply_filters.out.alternate_bcftools_vcf.join(apply_filters_clair3.out.alternate_bcftools_vcf)
     make_clair3_consensus(calls, ref, consensus_params)
 
     emit:
@@ -118,12 +118,12 @@ workflow rundial_with_bcftools {
     call_all(minimap2.out.sorted_alignment, ref)
     apply_filters(call_all.out.gvcf, filter_params, "")
 
-    calls = apply_filters.out.filtered_gvcf
+    calls = apply_filters.out.alternate_bcftools_vcf
     make_consensus(calls, ref, consensus_params)
 
     emit:
     alignment = minimap2.out.sorted_alignment
-    gvcf = apply_filters.out.filtered_gvcf
+    gvcf = apply_filters.out.alternate_bcftools_vcf
     final_fasta = make_consensus.out.final_fasta
     variable_length_fasta = make_consensus.out.variable_length_fasta
     variants_vcf = make_consensus.out.variants_vcf
