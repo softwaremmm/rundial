@@ -57,7 +57,7 @@ process make_consensus {
 
     mv variants.vcf all_calls.vcf
     bcftools view -v snps,indels all_calls.vcf > variants.vcf
-    mv final.report.json genome_creation_report.json
+    mv variants.report.json genome_creation_report.json
 
     # replace header of fasta files
     sed -i "s/^>/>${sample_name}:/" final.fasta
@@ -98,7 +98,7 @@ process make_clair3_consensus {
 
     mv variants.vcf all_calls.vcf
     bcftools view -v snps,indels all_calls.vcf > variants.vcf
-    mv final.report.json genome_creation_report.json
+    mv variants.report.json genome_creation_report.json
 
     # replace header of fasta files
     sed -i "s/^>/>${sample_name}:/" final.fasta
