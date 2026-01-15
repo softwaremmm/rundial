@@ -43,7 +43,7 @@ process make_consensus {
     output:
     tuple val(sample_name), path("final.fasta"), emit: final_fasta
     tuple val(sample_name), path("final.variable_length.fasta"), emit: variable_length_fasta
-    tuple val(sample_name), path("final.vcf"), emit: final_vcf
+    tuple val(sample_name), path("variants.vcf"), emit: variants_vcf
     tuple val(sample_name), path("final.full.vcf"), emit: full_vcf
     tuple val(sample_name), path("genome_creation_report.json"), emit: report_json
 
@@ -55,8 +55,8 @@ process make_consensus {
         -i ${filtered_gvcf} \
         -o final
 
-    mv final.vcf final.full.vcf
-    bcftools view -v snps,indels final.full.vcf > final.vcf
+    mv variants.vcf final.full.vcf
+    bcftools view -v snps,indels final.full.vcf > variants.vcf
     mv final.report.json genome_creation_report.json
 
     # replace header of fasta files
@@ -83,7 +83,7 @@ process make_clair3_consensus {
     output:
     tuple val(sample_name), path("final.fasta"), emit: final_fasta
     tuple val(sample_name), path("final.variable_length.fasta"), emit: variable_length_fasta
-    tuple val(sample_name), path("final.vcf"), emit: final_vcf
+    tuple val(sample_name), path("variants.vcf"), emit: variants_vcf
     tuple val(sample_name), path("final.full.vcf"), emit: full_vcf
     tuple val(sample_name), path("genome_creation_report.json"), emit: report_json
 
@@ -96,8 +96,8 @@ process make_clair3_consensus {
         -s filtered.gvcf.gz \
         -o final
 
-    mv final.vcf final.full.vcf
-    bcftools view -v snps,indels final.full.vcf > final.vcf
+    mv variants.vcf final.full.vcf
+    bcftools view -v snps,indels final.full.vcf > variants.vcf
     mv final.report.json genome_creation_report.json
 
     # replace header of fasta files

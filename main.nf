@@ -99,7 +99,7 @@ workflow rundial {
     gvcf = rundial_with_bcftools.out.gvcf.concat(clair3.out.vcf)
     final_fasta = rundial_with_bcftools.out.final_fasta.concat(make_clair3_consensus.out.final_fasta)
     variable_length_fasta = rundial_with_bcftools.out.variable_length_fasta.concat(make_clair3_consensus.out.variable_length_fasta)
-    final_vcf = rundial_with_bcftools.out.final_vcf.concat(make_clair3_consensus.out.final_vcf)
+    variants_vcf = rundial_with_bcftools.out.variants_vcf.concat(make_clair3_consensus.out.variants_vcf)
     full_vcf = rundial_with_bcftools.out.full_vcf.concat(make_clair3_consensus.out.full_vcf)
     creation_report_json = rundial_with_bcftools.out.creation_report_json.concat(make_clair3_consensus.out.report_json)
 }
@@ -126,7 +126,7 @@ workflow rundial_with_bcftools {
     gvcf = apply_filters.out.filtered_gvcf
     final_fasta = make_consensus.out.final_fasta
     variable_length_fasta = make_consensus.out.variable_length_fasta
-    final_vcf = make_consensus.out.final_vcf
+    variants_vcf = make_consensus.out.variants_vcf
     full_vcf = make_consensus.out.full_vcf
     creation_report_json = make_consensus.out.report_json
 }
