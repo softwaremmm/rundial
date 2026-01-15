@@ -53,11 +53,15 @@ process make_consensus {
         -p ${consensus_params} \
         --ref-fasta ${reference} \
         -i ${filtered_gvcf} \
-        -o variants
+        -o consensus
 
-    mv variants.vcf all_calls.vcf
-    bcftools view -v snps,indels all_calls.vcf > variants.vcf
-    mv variants.report.json genome_creation_report.json
+    bcftools view -v snps,indels consensus.vcf > variants.vcf
+
+    # Rename files to match output specification
+    mv consensus.vcf all_calls.vcf
+    mv consensus.report.json genome_creation_report.json
+    mv consensus.fasta final.fasta
+    mv consensus.variable_length.fasta final.variable_length.fasta
 
     # replace header of fasta files
     sed -i "s/^>/>${sample_name}:/" final.fasta
@@ -94,11 +98,15 @@ process make_clair3_consensus {
         --ref-fasta ${reference} \
         -i clair3.vcf.gz \
         -s filtered.gvcf.gz \
-        -o variants
+        -o consensus
 
-    mv variants.vcf all_calls.vcf
-    bcftools view -v snps,indels all_calls.vcf > variants.vcf
-    mv variants.report.json genome_creation_report.json
+    bcftools view -v snps,indels consensus.vcf > variants.vcf
+
+    # Rename files to match output specification
+    mv consensus.vcf all_calls.vcf
+    mv consensus.report.json genome_creation_report.json
+    mv consensus.fasta final.fasta
+    mv consensus.variable_length.fasta final.variable_length.fasta
 
     # replace header of fasta files
     sed -i "s/^>/>${sample_name}:/" final.fasta
