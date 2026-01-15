@@ -6,6 +6,7 @@
     - Mixed clusters now uses both snps and indels
 - Rename final.vcf to variants.vcf, and associated channels
 - Rename final.full.vcf to all_calls.vcf, and associated channels
+- Rename filtered.gvcf to alternate-bcftools.vcf, and associated channels
 
 ## 0.5.0
 
