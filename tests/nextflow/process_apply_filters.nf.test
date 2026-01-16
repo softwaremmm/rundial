@@ -16,8 +16,8 @@ nextflow_process {
 
         then {
             assert process.success
-            with(process.out.filtered_gvcf) {
-                assert get(0)[1].contains('filtered.gvcf.gz')
+            with(process.out.alternate_bcftools_vcf) {
+                assert get(0)[1].contains('alternate-bcftools.vcf.gz')
                 assert path(get(0)[1]).md5 == path("$projectDir/test_data/filtered.vcf").md5
             }
         }

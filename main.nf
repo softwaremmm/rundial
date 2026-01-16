@@ -91,7 +91,7 @@ workflow rundial {
 
 
     consensus_params = Channel.fromPath("${moduleDir}/process/clair3_consensus_params.yml").first()
-    calls = apply_filters.out.filtered_gvcf.join(apply_filters_clair3.out.filtered_gvcf)
+    calls = apply_filters.out.alternate_bcftools_vcf.join(apply_filters_clair3.out.alternate_bcftools_vcf)
     make_clair3_consensus(calls, ref, consensus_params)
 
     emit:
@@ -99,8 +99,8 @@ workflow rundial {
     gvcf = rundial_with_bcftools.out.gvcf.concat(clair3.out.vcf)
     final_fasta = rundial_with_bcftools.out.final_fasta.concat(make_clair3_consensus.out.final_fasta)
     variable_length_fasta = rundial_with_bcftools.out.variable_length_fasta.concat(make_clair3_consensus.out.variable_length_fasta)
-    final_vcf = rundial_with_bcftools.out.final_vcf.concat(make_clair3_consensus.out.final_vcf)
-    full_vcf = rundial_with_bcftools.out.full_vcf.concat(make_clair3_consensus.out.full_vcf)
+    variants_vcf = rundial_with_bcftools.out.variants_vcf.concat(make_clair3_consensus.out.variants_vcf)
+    all_calls_vcf = rundial_with_bcftools.out.all_calls_vcf.concat(make_clair3_consensus.out.all_calls_vcf)
     creation_report_json = rundial_with_bcftools.out.creation_report_json.concat(make_clair3_consensus.out.report_json)
 }
 
@@ -118,15 +118,15 @@ workflow rundial_with_bcftools {
     call_all(minimap2.out.sorted_alignment, ref)
     apply_filters(call_all.out.gvcf, filter_params, "")
 
-    calls = apply_filters.out.filtered_gvcf
+    calls = apply_filters.out.alternate_bcftools_vcf
     make_consensus(calls, ref, consensus_params)
 
     emit:
     alignment = minimap2.out.sorted_alignment
-    gvcf = apply_filters.out.filtered_gvcf
+    gvcf = apply_filters.out.alternate_bcftools_vcf
     final_fasta = make_consensus.out.final_fasta
     variable_length_fasta = make_consensus.out.variable_length_fasta
-    final_vcf = make_consensus.out.final_vcf
-    full_vcf = make_consensus.out.full_vcf
+    variants_vcf = make_consensus.out.variants_vcf
+    all_calls_vcf = make_consensus.out.all_calls_vcf
     creation_report_json = make_consensus.out.report_json
 }
