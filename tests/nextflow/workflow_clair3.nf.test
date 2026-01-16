@@ -18,8 +18,8 @@ nextflow_workflow {
         then {
             assert workflow.success
             assert workflow.out.final_fasta[0][1].contains('final.fasta')
-            assert workflow.out.final_vcf[0][1].contains('final.vcf')
-            assert workflow.out.full_vcf[0][1].contains('final.full.vcf')
+            assert workflow.out.variants_vcf[0][1].contains('variants.vcf')
+            assert workflow.out.all_calls_vcf[0][1].contains('all_calls.vcf')
             assert workflow.out.creation_report_json[0][1].contains('genome_creation_report.json')
         }
     }
@@ -39,8 +39,8 @@ nextflow_workflow {
         then {
             assert workflow.success
             assert workflow.out.final_fasta[0][1].contains('final.fasta')
-            assert workflow.out.final_vcf[0][1].contains('final.vcf')
-            assert workflow.out.full_vcf[0][1].contains('final.full.vcf')
+            assert workflow.out.variants_vcf[0][1].contains('variants.vcf')
+            assert workflow.out.all_calls_vcf[0][1].contains('all_calls.vcf')
             assert workflow.out.creation_report_json[0][1].contains('genome_creation_report.json')
         }
     }
