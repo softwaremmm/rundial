@@ -1,4 +1,4 @@
-## New
+## 0.7.0
 
 - Rename final.vcf to variants.vcf, and associated channels
 - Rename final.full.vcf to all_calls.vcf, and associated channels
