@@ -482,7 +482,7 @@ fn test_write_creation_report() {
 }
 
 #[test]
-fn test_write_vcf() {
+fn test_simplify_and_write_vcf() {
     let header = standard_header();
     let records: Vec<VariantRecord> = [
         "ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
@@ -490,6 +490,10 @@ fn test_write_vcf() {
     ]
     .iter()
     .map(|r| VariantRecord::from_string(&header, r).unwrap())
+    .map(|mut r| {
+        simplify_record(&mut r);
+        r
+    })
     .collect();
 
     write_vcf(

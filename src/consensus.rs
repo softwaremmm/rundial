@@ -260,6 +260,13 @@ fn process_main_vcf(
             continue;
         }
 
+        // Add caller name to all records
+        if let Some(caller) = caller_name {
+            record
+                .info
+                .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
+        }
+
         // Need 0-based position
         let pos: usize = record.pos_idx();
 
@@ -271,9 +278,9 @@ fn process_main_vcf(
         }
 
         let classification = classifier.classify(&mut record);
-        // if classification.is_simple_ref() {
-        //     continue;
-        // }
+
+        // simplify record to reduce ram
+        simplify_record(&mut record);
 
         potential_output_records.push((record, classification));
     }
@@ -291,14 +298,6 @@ fn process_main_vcf(
         }
         return true;
     });
-
-    // Add caller name to all records
-    if let Some(caller) = caller_name {
-        for (r, _) in potential_output_records.iter_mut() {
-            r.info
-                .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
-        }
-    }
 
     // We now apply all filtered records as we can write over the unfiltered variants afterwards
     for (r, c) in potential_output_records.iter() {
@@ -393,11 +392,6 @@ fn process_support_vcf(
 
         let mut classification = classifier.classify(&mut record);
 
-        // See if it is a simple ref that can be skipped
-        // if classification.is_simple_ref() {
-        //     continue;
-        // }
-
         // mark snps if not calling them
         if classification.change == Change::Snp && !classifier.params.call_snps_in_support {
             classification.change = Change::Null;
@@ -419,6 +413,9 @@ fn process_support_vcf(
                 .info
                 .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
         }
+
+        // simplify record to reduce ram
+        simplify_record(&mut record);
 
         if classification.has_minor_population {
             results.minors.push(record.clone());
@@ -491,6 +488,66 @@ fn write_creation_report(
     std::fs::write(output_file, json_report)?;
 
     Ok(())
+}
+
+fn simplify_record(record: &mut VariantRecord) {
+    let mut new_info = IndexMap::new();
+    for key in [CALLER, MIXED, REMOVED_MINORS] {
+        if let Some(value) = record.info.get(key) {
+            new_info.insert(key.to_owned(), value.clone());
+        }
+    }
+    record.info = new_info;
+
+    let mut format = IndexMap::new();
+    format.insert(
+        "GT".to_owned(),
+        RecordValue::String(record.genotype().unwrap().to_string()),
+    );
+
+    format.insert(
+        "DP".to_owned(),
+        if let Some(dp) = record.depth() {
+            RecordValue::Integer(*dp)
+        } else {
+            RecordValue::Integer(0)
+        },
+    );
+
+    if let Some((adf, adr)) = record.strand_depths() {
+        format.insert("ADF".to_owned(), RecordValue::IntegerArray(adf.clone()));
+        format.insert("ADR".to_owned(), RecordValue::IntegerArray(adr.clone()));
+    }
+    if let Some(ad) = record.allele_depths() {
+        format.insert("COV".to_owned(), RecordValue::IntegerArray(ad.clone()));
+    }
+    record.format = format;
+}
+
+/// Makes an empty record for a site which is missing from the vcf
+///
+/// expects 1-based position input
+fn make_empty_record(chrom: &str, pos: u32, ref_bases: &str) -> VariantRecord {
+    let mut record = VariantRecord::empty_record();
+    record.chrom = chrom.to_owned();
+    record.pos = pos;
+    record.ref_bases = ref_bases.to_owned();
+    record.set_genotype(Genotype::new());
+
+    record
+        .format
+        .insert("DP".to_string(), RecordValue::Integer(0));
+    record
+        .format
+        .insert("ADF".to_string(), RecordValue::IntegerArray(vec![0]));
+    record
+        .format
+        .insert("ADR".to_string(), RecordValue::IntegerArray(vec![0]));
+    record
+        .format
+        .insert("COV".to_string(), RecordValue::IntegerArray(vec![0]));
+
+    return record;
 }
 
 fn write_vcf(
@@ -575,39 +632,7 @@ fn write_vcf(
     // Now write records
     let mut writer = VCFWriter::to_path(output_file, header)?;
     for record in records.iter() {
-        let mut output_record = record.clone();
-        output_record.info = IndexMap::new();
-
-        for key in [CALLER, MIXED, REMOVED_MINORS] {
-            if let Some(value) = record.info.get(key) {
-                output_record.info.insert(key.to_owned(), value.clone());
-            }
-        }
-
-        let mut format = IndexMap::new();
-        format.insert(
-            "GT".to_owned(),
-            RecordValue::String(record.genotype().unwrap().to_string()),
-        );
-
-        format.insert(
-            "DP".to_owned(),
-            if let Some(dp) = record.depth() {
-                RecordValue::Integer(*dp)
-            } else {
-                RecordValue::Integer(0)
-            },
-        );
-
-        if let Some((adf, adr)) = record.strand_depths() {
-            format.insert("ADF".to_owned(), RecordValue::IntegerArray(adf.clone()));
-            format.insert("ADR".to_owned(), RecordValue::IntegerArray(adr.clone()));
-        }
-        if let Some(ad) = record.allele_depths() {
-            format.insert("COV".to_owned(), RecordValue::IntegerArray(ad.clone()));
-        }
-        output_record.format = format;
-        writer.write_record(&output_record)?;
+        writer.write_record(record)?;
     }
     Ok(())
 }
@@ -684,28 +709,6 @@ pub fn make_consensus(
         .extend_all_chroms(support_results.processed_positions);
     main_results.minors.extend(support_results.minors);
 
-    fn make_empty_record(chrom: &str, pos: &usize, ref_bases: &str) -> VariantRecord {
-        let mut record = VariantRecord::empty_record();
-        record.chrom = chrom.to_owned();
-        record.pos = *pos as u32 + 1;
-        record.ref_bases = ref_bases.to_owned();
-        record.set_genotype(Genotype::new());
-        record
-            .info
-            .insert("DP".to_string(), RecordValue::Integer(0));
-        record
-            .info
-            .insert("ADF".to_string(), RecordValue::IntegerArray(vec![0]));
-        record
-            .info
-            .insert("ADR".to_string(), RecordValue::IntegerArray(vec![0]));
-        record
-            .format
-            .insert("AD".to_string(), RecordValue::IntegerArray(vec![0]));
-        record.update_depths();
-        return record;
-    }
-
     // Mask missing sites
     if params.mask_missing_sites {
         for (chrom, seq) in consensus.iter_mut() {
@@ -715,7 +718,7 @@ pub fn make_consensus(
                 for i in all_sites.difference(processed_sites) {
                     main_results.output_records.push(make_empty_record(
                         chrom,
-                        i,
+                        (i + 1) as u32,
                         &seq[*i].to_string(),
                     ));
                     seq[*i] = NULL;
@@ -724,7 +727,7 @@ pub fn make_consensus(
                 for i in all_sites {
                     main_results.output_records.push(make_empty_record(
                         chrom,
-                        &i,
+                        (i + 1) as u32,
                         &seq[i].to_string(),
                     ));
                     seq[i] = NULL;
