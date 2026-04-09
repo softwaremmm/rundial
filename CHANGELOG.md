@@ -1,12 +1,14 @@
-## new
+## New
 
 - add MIN_HQ_DP filter of 5 to clair3
+- set MIN_FRS for clair3 indels to 0.9 to match SNPs
 - add "caller" parameter to filter_process to name output file
 - Simplify consensus calling process
 - All hets genotypes are treated as if they had MIN_FRS flag, and genotype set to the first allele. Idea is just to use the notion of minor populations
 - minor populations are detected in the consensus step, not the filtering step.
 - Addition options about how to include/exclude minor population calls from main/support vcf
 - Produces a true gvcf with all positions in consistent format.
+- Reduce ram usage now that gvcf produced
 
 ## 0.7.0
 

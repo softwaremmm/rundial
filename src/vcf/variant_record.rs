@@ -369,10 +369,10 @@ impl VariantRecord {
             self.allele_depths = Some(depths);
         }
 
-        if self.depth.is_none() {
-            if let Some(depths) = self.allele_depths.as_ref() {
-                self.depth = Some(depths.iter().sum());
-            }
+        if self.depth.is_none()
+            && let Some(depths) = self.allele_depths.as_ref()
+        {
+            self.depth = Some(depths.iter().sum());
         }
     }
 
