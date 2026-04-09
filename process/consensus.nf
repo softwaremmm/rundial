@@ -1,8 +1,9 @@
 process apply_filters {
-    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + file_prefix + filename }
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:4901a4c' : params.test_container_rundial
     }
+    cpus 1
 
     pod label: "name", value: "rundial:apply_filters"
     pod label: "sample_id", value: "${params.sample_id}"
@@ -11,17 +12,17 @@ process apply_filters {
     input:
     tuple val(sample_name), path(gvcf)
     path filter_params
-    val file_prefix
+    val caller
 
     output:
-    tuple val(sample_name), path("alternate-bcftools.vcf.gz"), emit: alternate_bcftools_vcf
+    tuple val(sample_name), path("alternate-${caller}.vcf.gz"), emit: filtered_vcf
 
     script:
     """
     rundial filter --verbose --overwrite \
         -p ${filter_params} \
-        -o alternate-bcftools.vcf -i ${gvcf}
-    bgzip alternate-bcftools.vcf
+        -o alternate-${caller}.vcf -i ${gvcf}
+    bgzip alternate-${caller}.vcf
     """
 }
 
@@ -30,6 +31,8 @@ process make_consensus {
     container {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:4901a4c' : params.test_container_rundial
     }
+    cpus 1
+    memory "4 GB"
 
     pod label: "name", value: "rundial:make_consensus"
     pod label: "sample_id", value: "${params.sample_id}"
@@ -74,6 +77,8 @@ process make_clair3_consensus {
     container {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:4901a4c' : params.test_container_rundial
     }
+    cpus 1
+    memory "3 GB"
 
     pod label: "name", value: "rundial:make_clair3_consensus"
     pod label: "sample_id", value: "${params.sample_id}"

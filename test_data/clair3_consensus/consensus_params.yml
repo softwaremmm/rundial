@@ -5,11 +5,15 @@ use_filters: True # Filtered sites are replaced with F
 filter_ignore_list:
   - "RefCall"
 
-minor_pop_threshold: 5 # Minimum number of reads for an allele to be considered a minor population
+# Minimum support for considering an allele a minor allele
+minor_pop_thresholds:
+  threshold: 5
+  strand_bias: 0.01
+  min_frs: 0.05
 
-# Het options are "Ref", "Alt", "Best" (which will select the major allele), or "Mask" to replace with Z
-het_snp_option: "Mask"
-het_indel_option: "Mask"
+remove_sub_minor_pops: True
+call_snps_in_support: False
+remove_minor_pops_in_support: False
 
 main_caller: "clair3"
 support_caller: "bcftools"

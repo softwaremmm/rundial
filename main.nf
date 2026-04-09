@@ -82,16 +82,16 @@ workflow rundial {
     clair3(minimap2.out.sorted_alignment, ref, model_path)
 
     clair3_filter_params = Channel.fromPath("${moduleDir}/process/clair3_filter_params.yml").first()
-    apply_filters_clair3(clair3.out.vcf, clair3_filter_params, "clair3_")
+    apply_filters_clair3(clair3.out.vcf, clair3_filter_params, "clair3")
 
     // Still use normal params with bcftools support vcf
     filter_params = Channel.fromPath("${moduleDir}/process/filter_params.yml").first()
     call_snps(minimap2.out.sorted_alignment, ref)
-    apply_filters(call_snps.out.gvcf, filter_params, "bcftools_")
+    apply_filters(call_snps.out.gvcf, filter_params, "bcftools")
 
 
     consensus_params = Channel.fromPath("${moduleDir}/process/clair3_consensus_params.yml").first()
-    calls = apply_filters.out.alternate_bcftools_vcf.join(apply_filters_clair3.out.alternate_bcftools_vcf)
+    calls = apply_filters.out.filtered_vcf.join(apply_filters_clair3.out.filtered_vcf)
     make_clair3_consensus(calls, ref, consensus_params)
 
     emit:
@@ -116,14 +116,14 @@ workflow rundial_with_bcftools {
 
     minimap2(fastq_files, ref)
     call_all(minimap2.out.sorted_alignment, ref)
-    apply_filters(call_all.out.gvcf, filter_params, "")
+    apply_filters(call_all.out.gvcf, filter_params, "bcftools")
 
-    calls = apply_filters.out.alternate_bcftools_vcf
+    calls = apply_filters.out.filtered_vcf
     make_consensus(calls, ref, consensus_params)
 
     emit:
     alignment = minimap2.out.sorted_alignment
-    gvcf = apply_filters.out.alternate_bcftools_vcf
+    gvcf = apply_filters.out.filtered_vcf
     final_fasta = make_consensus.out.final_fasta
     variable_length_fasta = make_consensus.out.variable_length_fasta
     variants_vcf = make_consensus.out.variants_vcf
