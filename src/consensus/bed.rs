@@ -43,10 +43,10 @@ impl Bed {
 
     /// Check if a position is in the bed file
     pub fn contains(&self, chrom: &str, pos: &u32) -> bool {
-        if let Some(region) = self.regions.get(chrom) {
-            if region.contains(pos) {
-                return true;
-            }
+        if let Some(region) = self.regions.get(chrom)
+            && region.contains(pos)
+        {
+            return true;
         }
         false
     }

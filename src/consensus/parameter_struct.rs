@@ -3,29 +3,26 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub enum HetOption {
-    #[default]
-    Mask, // Will set bases to Z
-    Ref,  // will use ref if possible, else highest depth
-    Alt,  // will use alt if possible, else highest depth
-    Best, // will use highest depth allele, use first allele if tie
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct ConsensusParams {
-    pub skip_indels: bool, // Will skip any vcf row with indels
-    pub mask: Option<String>,
+    pub skip_indels: bool,        // Will skip any vcf row with indels
     pub mask_missing_sites: bool, // If true set sites to N if not in vcf
-    pub het_snp_option: HetOption,
-    pub het_indel_option: HetOption,
-    pub use_filters: bool, // If true will mask sites which have filters
+    pub use_filters: bool,        // If true will mask sites which have filters
     pub filter_ignore_list: Option<Vec<String>>, // If set will allow these filters
 
-    pub minor_pop_threshold: Option<i32>, // min depth of non-GT allele to be considered a minor population
-    pub support_minor_pop_threshold: Option<i32>,
+    pub minor_pop_thresholds: Option<MinorPopParams>, // requirements for non-GT allele to be considered a minor population
+    pub remove_sub_minor_pops: bool, // If true will remove minor alleles which are below thresholds. Applies to main and support vcf
+    pub call_snps_in_support: bool,  // If false will filter these rows
+    pub remove_minor_pops_in_support: bool,
 
     pub main_caller: Option<String>, // If set will use this Caller on records from main vcf
     pub support_caller: Option<String>, // If set will use this Caller on records from support vcf
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct MinorPopParams {
+    pub threshold: i32,
+    pub strand_bias: Option<f32>,
+    pub min_frs: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -40,22 +37,14 @@ pub struct SequencingQuality {
     pub genome_length: i32,
     #[serde(rename = "Null calls")]
     pub null_calls: i32,
+    #[serde(rename = "Deleted calls")]
+    pub deleted_calls: i32,
+    #[serde(rename = "Fixed coverage")]
+    pub fixed_coverage: f32,
     #[serde(rename = "Mixed calls")]
     pub mixed_calls: i32,
     #[serde(rename = "Mixed snps")]
     pub mixed_snps: i32,
-    #[serde(rename = "Mixed indels")]
-    pub mixed_indels: i32,
-    #[serde(rename = "Mixed clusters")]
-    pub mixed_clusters: i32,
-    #[serde(rename = "Fixed coverage")]
-    pub fixed_coverage: f32,
-    #[serde(rename = "Null Genotype calls")]
-    pub null_genotype_calls: i32,
-    #[serde(rename = "Filtered calls")]
-    pub filtered_calls: i32,
-    #[serde(rename = "Masked calls")]
-    pub masked_calls: i32,
-    #[serde(rename = "Deleted calls")]
-    pub deleted_calls: i32,
+    #[serde(rename = "Mixed snp clusters")]
+    pub mixed_snp_clusters: i32,
 }

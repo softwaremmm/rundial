@@ -10,23 +10,20 @@ use crate::vcf::vcf_header::{HeaderLine, HeaderNumber, HeaderType};
 use crate::vcf::{Genotype, RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
 
 pub mod parameter_struct;
-pub use parameter_struct::{ConsensusParams, GenomeCreationReport, HetOption, SequencingQuality};
+pub use parameter_struct::{ConsensusParams, GenomeCreationReport, SequencingQuality};
 pub mod bed;
 pub use bed::Bed;
 mod classifier;
-use classifier::{repeat_char, Change, Classification, Classifier};
+use classifier::{Change, Classification, Classifier, repeat_char};
 mod contig_set;
 use contig_set::ContigSet;
 mod fasta_tools;
-use fasta_tools::{clean_fasta_characters, read_fasta, save_fasta};
+use fasta_tools::{read_fasta, save_fasta};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 type HashMapSet<T> = HashMap<String, HashSet<T>>;
 
 const NULL: char = 'N';
-const FILTERED: char = 'F';
-const HET: char = 'Z';
-const MASKED: char = 'M';
 const DELETED: char = '-';
 
 const OVERLAP_FILTER: &str = "OVERLAP_BETTER_VARIANT";
@@ -34,23 +31,21 @@ const OVERLAP_FILTER_DESC: &str = "This variant overlaps with a higher priority 
 const SNP_IN_SUPPORT_VCF: &str = "SNP_IN_SUPPORT_VCF";
 const SNP_IN_SUPPORT_VCF_DESC: &str =
     "This variant is a SNP in the support VCF, which should only be used for information of nulls.";
-const HET_IN_SUPPORT_VCF: &str = "HET_IN_SUPPORT_VCF";
-const HET_IN_SUPPORT_VCF_DESC: &str =
-    "This variant is a HET in the support VCF, which may be undesired.";
 const CALLER: &str = "CALLER";
 const CALLER_DESC: &str = "The variant caller that made the call.";
 const MIXED: &str = "MIXED";
 const MIXED_DESC: &str = "This variant is counted as a mixed call.";
+const HET_GT: &str = "HET_GT";
+const HET_GT_DESC: &str = "Het genotypes are treated like MIN_FRS.";
+const REMOVED_MINORS: &str = "REMOVED_MINOR_ALLELES";
+const REMOVED_MINORS_DESC: &str = "Minor alleles which were removed due to being below thresholds.";
 
-use crate::filter_vcf::BAD_MINOR_ALLELE;
-
-fn apply_variant(
+/// Apply variant to consensus sequence, overwriting any existing changes
+fn apply_variant_simple(
     chrom: &str,
     classification: &Classification,
     chrom_seq: &mut HashMap<String, Vec<char>>,
-    processed_sites: &HashMapSet<usize>,
-) -> HashSet<usize> {
-    let mut sites_set: HashSet<usize> = HashSet::new();
+) {
     let pos = classification.pos;
 
     // select the correct chromosome sequence
@@ -62,31 +57,16 @@ fn apply_variant(
         Change::Null => {
             assert!(classification.ref_bases.len() == classification.new_bases.len());
             for (i, base) in classification.new_bases.chars().enumerate() {
-                if processed_sites.contains_loc(chrom, &(pos + i)) {
-                    continue;
-                }
                 chrom_seq[pos + i] = base;
-                sites_set.insert(pos + i);
-            }
-        }
-        Change::HetMask => {
-            assert!(classification.ref_bases.len() == classification.new_bases.len());
-            for (i, base) in classification.new_bases.chars().enumerate() {
-                chrom_seq[pos + i] = base;
-                sites_set.insert(pos + i);
             }
         }
         Change::Ref => {
-            for i in 0..classification.ref_bases.len() {
-                if processed_sites.contains_loc(chrom, &(pos + i)) {
-                    continue;
-                }
-                sites_set.insert(pos + i);
+            for (i, base) in classification.ref_bases.chars().enumerate() {
+                chrom_seq[pos + i] = base;
             }
         }
         Change::Snp => {
             assert!(classification.ref_bases.len() == 1 && classification.new_bases.len() == 1);
-            sites_set.insert(pos);
             chrom_seq[pos] = classification
                 .new_bases
                 .chars()
@@ -102,11 +82,9 @@ fn apply_variant(
                     classification.ref_bases.len() - classification.new_bases.len(),
                 );
             for (i, base) in replacement_str.chars().enumerate() {
-                sites_set.insert(pos + i);
                 chrom_seq[pos + i] = base;
             }
         }
-        // sites_set does not make sense for indels which change consensus length
         Change::Ins | Change::ComplexIns => {
             // We assume that ref and alt have already been simplified
             let new_bases = classification.new_bases.chars();
@@ -114,36 +92,13 @@ fn apply_variant(
             chrom_seq.splice(pos..pos + ref_length, new_bases);
         }
     }
-    return sites_set;
 }
 
-fn _check_indel_ref_matches_seq(
-    chrom_seq: &[char],
-    pos: usize, // 0-based pos
-    expected_ref_bases: &str,
-    skip_first: bool,
-) -> bool {
-    let null_sites = [NULL, FILTERED, HET, MASKED];
-    let skip_num = if skip_first { 1 } else { 0 };
-    for (i, base) in expected_ref_bases.chars().skip(skip_num).enumerate() {
-        if null_sites.contains(&chrom_seq[pos + i]) {
-            continue;
-        }
-        if chrom_seq[pos + i] != base {
-            return false;
-        }
-    }
-    true
-}
-
+// Score variants for marking overlaps. Overlaps are caused by indels
 fn score_variant(
     record: &VariantRecord,
     classification: &Classification,
-) -> (i32, i32, OrderedFloat<f32>, i32) {
-    let filter_score = if !classification.is_filtered { 2 } else { 0 };
-
-    // If filtered, then snps > indels > null gt calls
-    // otherwise: snps (and het snps) > indels > hom ref snp > hom ref indel > null gt calls
+) -> (i32, OrderedFloat<f32>, i32) {
     let type_score = match (
         classification.is_filtered,
         record.genotype(),
@@ -151,12 +106,12 @@ fn score_variant(
     ) {
         (_, None, _) => 0,
         (_, Some(gt), _) if gt.is_null() => 0,
-        (true, _, true) => 1,
-        (true, _, false) => 2,
-        (false, Some(gt), true) if gt.is_hom_ref() => 1,
-        (false, Some(gt), false) if gt.is_hom_ref() => 2,
-        (false, _, true) => 3,
-        (false, _, false) => 4,
+        (false, Some(gt), true) if !gt.is_hom_ref() => 10, // clear indel
+        (true, Some(gt), true) if !gt.is_hom_ref() => 9,   // clear indel filtered
+        (false, _, false) => 8,                            // snp/ref call
+        (false, _, true) => 7,                             // minor indel
+        (true, _, true) => 6,                              // minor indel filtered
+        (true, _, false) => 5,                             // snp/ref call filtered
     };
 
     let qual_score = match record.qual {
@@ -167,7 +122,7 @@ fn score_variant(
         Some(d) => *d,
         _ => 0,
     };
-    return (filter_score, type_score, qual_score, depth_score);
+    return (type_score, qual_score, depth_score);
 }
 
 fn overlaps(this: &Classification, other: &Classification) -> bool {
@@ -178,7 +133,6 @@ fn overlaps(this: &Classification, other: &Classification) -> bool {
         // deletion at base 2-3 would be 2.0-3.0
         return match c.change {
             Change::Null
-            | Change::HetMask
             | Change::Ref
             | Change::Snp
             | Change::Mnp
@@ -213,45 +167,44 @@ fn overlaps(this: &Classification, other: &Classification) -> bool {
     }
 }
 
-/// Adds "OverlapsBetterVariant" to Filter column for indels that overlap with other indels
-/// that have a higher score
+/// Adds "OverlapsBetterVariant" to Filter column to variants overlapping a higher priority variant
+/// Priority:
+/// 1. Clear indels (gt!=0/0)
+/// 2. snps/refs calls
+/// 3. Filtered indels
+/// 4. Filtered snps/refs calls
 fn mark_overlaps(records: &mut [(VariantRecord, Classification)], classifier: &Classifier) {
     records.sort_by_key(|(r, c)| (r.chrom.clone(), c.pos));
 
-    // let mut processed_variants: Vec<(VariantRecord, Classification)> = Vec::new();
     let mut current_variants: Vec<(&mut VariantRecord, &mut Classification)> = Vec::new();
 
     for (record, classification) in records.iter_mut() {
         // Discard variants which are too far back to possibly overlap with current variant
-        let (mut in_range, _out_of_range): (Vec<_>, Vec<_>) =
-            current_variants.into_iter().partition(|(other_r, _)| {
-                if other_r.chrom != record.chrom {
-                    return false;
-                }
-                if other_r.pos_idx() + other_r.ref_bases.len() < record.pos_idx() - 1 {
-                    return false;
-                }
-
-                return true;
-            });
+        current_variants.retain(|(other_r, _)| {
+            other_r.chrom == record.chrom
+                && other_r.pos_idx() + other_r.ref_bases.len() >= record.pos_idx() - 1
+        });
 
         // Check for clashes and filter accordingly
         let score = score_variant(record, classification);
-        for (other_r, other_c) in in_range.iter_mut() {
+        for (other_r, other_c) in current_variants.iter_mut() {
             if !overlaps(classification, other_c) {
                 continue;
             }
 
             let other_score = score_variant(other_r, other_c);
-            if score <= other_score && !record.filter.contains(&OVERLAP_FILTER.to_string()) {
-                record.filter.push(OVERLAP_FILTER.to_string());
-            }
-            if score >= other_score && !other_r.filter.contains(&OVERLAP_FILTER.to_string()) {
-                other_r.filter.push(OVERLAP_FILTER.to_string());
+            // arbitrarily we favour the earlier variant in a tie
+            if score <= other_score {
+                if !record.filter.contains(&OVERLAP_FILTER.to_string()) {
+                    record.filter.push(OVERLAP_FILTER.to_string());
+                }
+            } else {
+                if !other_r.filter.contains(&OVERLAP_FILTER.to_string()) {
+                    other_r.filter.push(OVERLAP_FILTER.to_string());
+                }
             }
         }
 
-        current_variants = in_range;
         current_variants.push((record, classification));
     }
 
@@ -265,11 +218,11 @@ fn mark_overlaps(records: &mut [(VariantRecord, Classification)], classifier: &C
 
 /// Wrap the results from processing support vcf
 #[derive(Debug, Default)]
-struct MainVCFResults {
+struct VCFResults {
     output_records: Vec<VariantRecord>,
-    insertions: Vec<(VariantRecord, Classification)>,
     processed_positions: HashMapSet<usize>,
-    hets_and_minors: HashMapSet<(usize, bool, bool, bool)>, // pos, is_het, has_minor_population, is_indel
+    insertions: Vec<(VariantRecord, Classification)>,
+    minors: Vec<VariantRecord>,
 }
 
 // Assumes rows are split for snps vs indels
@@ -278,18 +231,16 @@ fn process_main_vcf(
     consensus: &mut HashMap<String, Vec<char>>,
     classifier: &Classifier,
     skip_indels: bool,
+    caller_name: &Option<String>,
     verbose: bool,
-) -> Result<MainVCFResults> {
+) -> Result<VCFResults> {
     let vcf_reader = VCFReader::from_path(vcf_file)?;
 
-    let mut results = MainVCFResults::default();
+    let mut results = VCFResults::default();
 
     let mut potential_output_records: Vec<(VariantRecord, Classification)> = Vec::new();
-    // All sites seen in the vcf. Used to mark sites that are not in the vcf
-    let mut seen_sites: HashMapSet<usize> = HashMap::new();
 
     for chrom in consensus.keys() {
-        seen_sites.insert(chrom.clone(), HashSet::new());
         results
             .processed_positions
             .insert(chrom.clone(), HashSet::new());
@@ -304,50 +255,62 @@ fn process_main_vcf(
         if !consensus.contains_key(&record.chrom) {
             return Err(format!("Chrom {} not found in consensus", record.chrom).into());
         }
-        let chrom_seq: &mut Vec<char> = consensus
-            .get_mut(&record.chrom)
-            .expect("Chrom not found in consensus");
-
-        // Need to convert to 0-based
-        let pos: usize = record.pos_idx();
-        if classifier.is_masked(&record) {
-            for i in 0..record.ref_bases.len() {
-                chrom_seq[pos + i] = MASKED;
-            }
-            continue;
-        }
 
         if skip_indels && record.is_indel() {
             continue;
         }
 
-        // Update seen sites
+        // Need 0-based position
+        let pos: usize = record.pos_idx();
+
+        // Update processed sites
         for i in 0..record.ref_bases.len() {
-            seen_sites.insert_loc(&record.chrom, pos + i);
+            results
+                .processed_positions
+                .insert_loc(&record.chrom, pos + i);
         }
 
         let classification = classifier.classify(&mut record);
-        if classification.is_simple_ref() {
-            results.processed_positions.insert_loc(&record.chrom, &pos);
-            continue;
-        }
+        // if classification.is_simple_ref() {
+        //     continue;
+        // }
 
         potential_output_records.push((record, classification));
     }
 
     mark_overlaps(&mut potential_output_records, classifier);
 
-    // Apply unfiltered records
+    // Any simple ref call which is overlapping with another variant can be ignored
+    // The remaining variants are all informative
+    potential_output_records.retain(|(r, c)| {
+        if r.genotype().unwrap().is_hom_ref()
+            && !c.has_minor_population
+            && r.filter.contains(&OVERLAP_FILTER.to_string())
+        {
+            return false;
+        }
+        return true;
+    });
+
+    // Add caller name to all records
+    if let Some(caller) = caller_name {
+        for (r, _) in potential_output_records.iter_mut() {
+            r.info
+                .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
+        }
+    }
+
+    // We now apply all filtered records as we can write over the unfiltered variants afterwards
+    for (r, c) in potential_output_records.iter() {
+        if !c.is_filtered {
+            continue;
+        }
+        apply_variant_simple(&r.chrom, c, consensus);
+    }
+    // Apply all non filtered records (which we've gauranteed don't overlap) apart from insertions
     for (r, c) in potential_output_records.iter() {
         if c.is_filtered {
             continue;
-        }
-        // Count hets and minors
-        if c.is_het || c.has_minor_population {
-            results.hets_and_minors.insert_loc(
-                &r.chrom,
-                (c.pos, c.is_het, c.has_minor_population, c.has_indel_alleles),
-            );
         }
 
         // Insertions only get applied at the very end, due to changing consensus length
@@ -356,76 +319,21 @@ fn process_main_vcf(
             continue;
         }
 
-        let affected_sites = apply_variant(&r.chrom, c, consensus, &results.processed_positions);
-        results
-            .processed_positions
-            .extend_chrom(&r.chrom, &affected_sites);
-
-        results.output_records.push(r.clone());
+        apply_variant_simple(&r.chrom, c, consensus);
     }
 
-    // Apply filtered non-indel changes records
-    // We don't look for hets in this section due to filters
-    for (r, c) in potential_output_records.iter() {
-        if !c.is_filtered || r.is_indel() {
-            continue;
-        }
+    results.minors = potential_output_records
+        .iter()
+        .filter(|(_, c)| c.has_minor_population)
+        .map(|(r, _)| r.clone())
+        .collect();
 
-        let affected_sites = apply_variant(&r.chrom, c, consensus, &results.processed_positions);
-        // Don't output filtered records that don't change the consensus
-        if affected_sites.is_empty() {
-            continue;
-        }
-
-        results
-            .processed_positions
-            .extend_chrom(&r.chrom, affected_sites);
-        results.output_records.push(r.clone());
-    }
-
-    // Apply filtered indels
-    for (r, c) in potential_output_records.iter() {
-        if !c.is_filtered || !r.is_indel() {
-            continue;
-        }
-
-        let affected_sites = apply_variant(&r.chrom, c, consensus, &results.processed_positions);
-
-        // Don't output filtered records that don't change the consensus
-        if affected_sites.is_empty() {
-            // Unless the only filters are MIN_FRS and overlaps
-            let allowed_filters: HashSet<String> = HashSet::from([
-                "MIN_FRS".to_owned(),
-                "OverlapWithSnp".to_owned(),
-                "OverlapWithIndel".to_owned(),
-                OVERLAP_FILTER.to_owned(),
-            ]);
-            if r.filter.iter().all(|f| allowed_filters.contains(f)) {
-                results.output_records.push(r.clone());
-            }
-            continue;
-        }
-
-        results
-            .processed_positions
-            .extend_chrom(&r.chrom, affected_sites);
-        results.output_records.push(r.clone());
-    }
-
-    // Now add simple_ref sites to processed sites
-    for (chrom, sites) in seen_sites.iter() {
-        results.processed_positions.extend_chrom(chrom, sites);
-    }
+    results.output_records = potential_output_records
+        .into_iter()
+        .map(|(r, _)| r)
+        .collect();
 
     return Ok(results);
-}
-
-/// Wrap the results from processing support vcf
-#[derive(Debug, Default)]
-struct SupportVCFResults {
-    output_records: Vec<VariantRecord>,
-    processed_positions: HashMapSet<usize>,
-    hets_and_minors: HashMapSet<(usize, bool, bool, bool)>, // pos, is_het, has_minor_population, is_indel
 }
 
 /// Reads support vcf file to provide data on sites not in main vcf
@@ -438,23 +346,29 @@ fn process_support_vcf(
     positions_already_processed: &HashMapSet<usize>,
     caller_name: &Option<String>,
     verbose: bool,
-) -> Result<SupportVCFResults> {
+) -> Result<VCFResults> {
     let vcf_reader = VCFReader::from_path(vcf_file)?;
 
-    let mut results = SupportVCFResults::default();
+    let mut results = VCFResults::default();
 
     for (count, record) in vcf_reader.enumerate() {
         if verbose && count % 100000 == 0 && count != 0 {
             println!("Processed {count} records of support vcf");
         }
         let mut record = record?;
+
+        // Skips indels in support vcf
+        if record.is_indel() {
+            continue;
+        }
+
         // Need to convert to 0-based
         let pos: usize = record.pos_idx();
 
-        if let Some(processed_sites) = positions_already_processed.get(&record.chrom) {
-            if processed_sites.contains(&pos) {
-                continue;
-            }
+        if let Some(processed_sites) = positions_already_processed.get(&record.chrom)
+            && processed_sites.contains(&pos)
+        {
+            continue;
         }
 
         if !consensus.contains_key(&record.chrom) {
@@ -463,17 +377,6 @@ fn process_support_vcf(
         let chrom_seq: &mut Vec<char> = consensus
             .get_mut(&record.chrom)
             .expect("Chrom not found in consensus, but just checked that it is!");
-
-        if classifier.is_masked(&record) {
-            for i in 0..record.ref_bases.len() {
-                chrom_seq[pos + i] = MASKED;
-            }
-        }
-
-        // Skips indels in support vcf
-        if record.is_indel() {
-            continue;
-        }
 
         // By this point we know it is a single nucleotide ref or change
         if results
@@ -491,34 +394,16 @@ fn process_support_vcf(
         let mut classification = classifier.classify(&mut record);
 
         // See if it is a simple ref that can be skipped
-        if classification.is_simple_ref() {
-            continue;
-        }
+        // if classification.is_simple_ref() {
+        //     continue;
+        // }
 
-        // mark snps and hets
-        if classification.change == Change::Snp {
+        // mark snps if not calling them
+        if classification.change == Change::Snp && !classifier.params.call_snps_in_support {
             classification.change = Change::Null;
             classification.is_filtered = true;
-            classification.new_bases = repeat_char(FILTERED, record.ref_bases.len());
+            classification.new_bases = NULL.to_string();
             record.filter.push(SNP_IN_SUPPORT_VCF.to_string());
-        } else if classification.is_het {
-            record
-                .info
-                .insert(HET_IN_SUPPORT_VCF.to_string(), RecordValue::Flag);
-        }
-
-        if !classification.is_filtered
-            && (classification.is_het || classification.has_minor_population)
-        {
-            results.hets_and_minors.insert_loc(
-                &record.chrom,
-                (
-                    pos,
-                    classification.is_het,
-                    classification.has_minor_population,
-                    false,
-                ),
-            );
         }
 
         // Apply the changes, which we know are single base changes
@@ -535,6 +420,10 @@ fn process_support_vcf(
                 .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
         }
 
+        if classification.has_minor_population {
+            results.minors.push(record.clone());
+        }
+
         results.output_records.push(record);
     }
 
@@ -543,66 +432,56 @@ fn process_support_vcf(
 
 fn write_creation_report(
     consensus: &HashMap<String, Vec<char>>,
-    hets_and_minors: &HashMapSet<(usize, bool, bool, bool)>, // pos, is_het, has_minor_population, is_indel
+    minors: &[VariantRecord],
+    cluster_window: usize,
     output_file: &str,
 ) -> Result<()> {
     let mut letter_counts: HashMap<char, i32> = HashMap::new();
-    let mut total_length: i32 = 0;
+    let mut genome_length: i32 = 0;
     for (_, seq) in consensus.iter() {
-        total_length += seq.len() as i32;
+        genome_length += seq.len() as i32;
         for base in seq.iter() {
             *letter_counts.entry(*base).or_insert(0) += 1;
         }
     }
 
-    let mut all_null_counts = 0;
-    for base in [NULL, FILTERED, HET, MASKED].iter() {
-        all_null_counts += letter_counts.get(base).unwrap_or(&0);
-    }
-    let fixed_cov: f32 = 100.0 * (total_length - all_null_counts) as f32 / total_length as f32;
+    let null_calls = *letter_counts.get(&NULL).unwrap_or(&0);
+    let fixed_coverage: f32 = 100.0 * (genome_length - null_calls) as f32 / genome_length as f32;
 
     // Count mixtures. For time being we mix hets and minor populations together
-    let mut mixed_snps = 0;
-    let mut mixed_indels = 0;
-    let mut mixed_clusters = 0;
-    let cluster_size = 50;
+    let mixed_calls = minors.len() as i32;
+    let mut mixed_snp_clusters = 0;
 
-    for (_, sites) in hets_and_minors.iter() {
-        if sites.is_empty() {
-            continue;
-        }
+    let mut snps: Vec<(String, usize)> = minors
+        .iter()
+        .filter(|r| !r.is_indel())
+        .map(|r| (r.chrom.clone(), r.pos_idx()))
+        .collect();
 
-        mixed_snps += sites
-            .iter()
-            .filter(|(_, _, _, is_indel)| !*is_indel)
-            .count();
-        mixed_indels += sites.iter().filter(|(_, _, _, is_indel)| *is_indel).count();
+    snps.sort_unstable();
+    let mixed_snps = snps.len() as i32;
 
-        let mut sorted_sites: Vec<usize> = sites.iter().map(|(pos, _, _, _)| *pos).collect();
-        sorted_sites.sort_unstable();
-        let mut last_site = sorted_sites[0];
-        mixed_clusters += 1; // first site is always a new cluster
-        for site in sorted_sites.iter().skip(1) {
-            if site - last_site > cluster_size {
+    if mixed_snps > 0 {
+        let (mut last_chrom, mut last_site) = snps[0].clone();
+        mixed_snp_clusters += 1; // first site is always a new cluster
+        for (chrom, site) in snps.into_iter().skip(1) {
+            if chrom != last_chrom || site - last_site > cluster_window {
                 // new cluster
-                mixed_clusters += 1;
+                mixed_snp_clusters += 1;
             }
-            last_site = *site;
+            last_site = site;
+            last_chrom = chrom;
         }
     }
 
     let quality_stats = SequencingQuality {
-        genome_length: total_length,
-        null_calls: all_null_counts,
-        mixed_snps: mixed_snps as i32,
-        mixed_indels: mixed_indels as i32,
-        mixed_clusters,
-        mixed_calls: (mixed_snps + mixed_indels) as i32,
-        fixed_coverage: fixed_cov,
-        null_genotype_calls: *letter_counts.get(&NULL).unwrap_or(&0),
-        filtered_calls: *letter_counts.get(&FILTERED).unwrap_or(&0),
-        masked_calls: *letter_counts.get(&MASKED).unwrap_or(&0),
+        genome_length,
+        null_calls,
         deleted_calls: *letter_counts.get(&DELETED).unwrap_or(&0),
+        fixed_coverage,
+        mixed_snps,
+        mixed_snp_clusters,
+        mixed_calls,
     };
     let report = GenomeCreationReport {
         sequencing_quality: quality_stats,
@@ -641,18 +520,7 @@ fn write_vcf(
         SNP_IN_SUPPORT_VCF.to_string(),
         SNP_IN_SUPPORT_VCF_DESC.to_string(),
     );
-
-    // Copy some info lines from main and support vcf
-    for file in [Some(main_vcf), support_vcf].iter().flatten() {
-        let reader = VCFReader::from_path(file)?;
-        for line in reader.header().lines.iter() {
-            if let HeaderLine::Info(info_line) = line {
-                if info_line.id == BAD_MINOR_ALLELE {
-                    header.add_header_line(line.clone());
-                }
-            }
-        }
-    }
+    header.add_filter_line(HET_GT.to_string(), HET_GT_DESC.to_string());
 
     header.add_info_line(
         CALLER.to_owned(),
@@ -661,16 +529,16 @@ fn write_vcf(
         CALLER_DESC.to_owned(),
     );
     header.add_info_line(
-        HET_IN_SUPPORT_VCF.to_owned(),
-        HeaderNumber::Flag,
-        HeaderType::Flag,
-        HET_IN_SUPPORT_VCF_DESC.to_owned(),
-    );
-    header.add_info_line(
         MIXED.to_owned(),
         HeaderNumber::Flag,
         HeaderType::Flag,
         MIXED_DESC.to_owned(),
+    );
+    header.add_info_line(
+        REMOVED_MINORS.to_owned(),
+        HeaderNumber::One,
+        HeaderType::String,
+        REMOVED_MINORS_DESC.to_owned(),
     );
 
     header.add_format_line(
@@ -710,7 +578,7 @@ fn write_vcf(
         let mut output_record = record.clone();
         output_record.info = IndexMap::new();
 
-        for key in [CALLER, HET_IN_SUPPORT_VCF, MIXED, BAD_MINOR_ALLELE] {
+        for key in [CALLER, MIXED, REMOVED_MINORS] {
             if let Some(value) = record.info.get(key) {
                 output_record.info.insert(key.to_owned(), value.clone());
             }
@@ -759,29 +627,27 @@ pub fn make_consensus(
     let mut consensus = read_fasta(ref_fasta)?;
     let classifier = Classifier::new(&params, false);
 
-    let skip_indels: bool = params.skip_indels;
-
-    let mut main_results =
-        process_main_vcf(main_vcf, &mut consensus, &classifier, skip_indels, verbose)?;
-    let mut output_records = main_results.output_records;
-    let mut insertions = main_results.insertions;
-    let mut processed_positions = main_results.processed_positions;
-    if let Some(caller) = &params.main_caller {
-        for r in output_records.iter_mut() {
-            r.info
-                .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
-        }
-        for (r, _) in insertions.iter_mut() {
-            r.info
-                .insert(CALLER.to_owned(), RecordValue::String(caller.to_owned()));
-        }
-    }
+    let mut main_results = process_main_vcf(
+        main_vcf,
+        &mut consensus,
+        &classifier,
+        params.skip_indels,
+        &params.main_caller,
+        verbose,
+    )?;
+    // let mut output_records = main_results.output_records;
+    // let mut insertions = main_results.insertions;
+    // let mut processed_positions = main_results.processed_positions;
     if verbose {
-        let num_process_positions = processed_positions.values().map(|s| s.len()).sum::<usize>();
+        let num_process_positions = main_results
+            .processed_positions
+            .values()
+            .map(|s| s.len())
+            .sum::<usize>();
         println!(
             "From main VCF: Processed {} sites. Found {} records to output",
             num_process_positions,
-            output_records.len(),
+            main_results.output_records.len(),
         );
     }
 
@@ -791,11 +657,11 @@ pub fn make_consensus(
             file,
             &mut consensus,
             &classifier,
-            &processed_positions,
+            &main_results.processed_positions,
             &params.support_caller,
             verbose,
         )?,
-        None => SupportVCFResults::default(),
+        None => VCFResults::default(),
     };
     if verbose {
         let num_process_positions = support_results
@@ -810,11 +676,13 @@ pub fn make_consensus(
         );
     }
 
-    output_records.extend(support_results.output_records);
-    processed_positions.extend_all_chroms(support_results.processed_positions);
     main_results
-        .hets_and_minors
-        .extend_all_chroms(support_results.hets_and_minors);
+        .output_records
+        .extend(support_results.output_records);
+    main_results
+        .processed_positions
+        .extend_all_chroms(support_results.processed_positions);
+    main_results.minors.extend(support_results.minors);
 
     fn make_empty_record(chrom: &str, pos: &usize, ref_bases: &str) -> VariantRecord {
         let mut record = VariantRecord::empty_record();
@@ -843,14 +711,22 @@ pub fn make_consensus(
         for (chrom, seq) in consensus.iter_mut() {
             let all_sites: HashSet<usize> = (0..seq.len()).collect();
 
-            if let Some(processed_sites) = processed_positions.get(chrom) {
+            if let Some(processed_sites) = main_results.processed_positions.get(chrom) {
                 for i in all_sites.difference(processed_sites) {
-                    output_records.push(make_empty_record(chrom, i, &seq[*i].to_string()));
+                    main_results.output_records.push(make_empty_record(
+                        chrom,
+                        i,
+                        &seq[*i].to_string(),
+                    ));
                     seq[*i] = NULL;
                 }
             } else {
                 for i in all_sites {
-                    output_records.push(make_empty_record(chrom, &i, &seq[i].to_string()));
+                    main_results.output_records.push(make_empty_record(
+                        chrom,
+                        &i,
+                        &seq[i].to_string(),
+                    ));
                     seq[i] = NULL;
                 }
             }
@@ -859,40 +735,35 @@ pub fn make_consensus(
 
     write_creation_report(
         &consensus,
-        &main_results.hets_and_minors,
+        &main_results.minors,
+        12,
         &(output_root.to_owned() + ".report.json"),
     )?;
 
-    clean_fasta_characters(&mut consensus);
     save_fasta(&consensus, &(output_root.to_owned() + ".fasta"))?;
 
     // Apply insertion changes in reverse order!
     let mut variable_len_consensus = consensus;
-    insertions.sort_by_key(|(_r, c)| c.pos);
-    insertions.reverse();
-    for (record, classification) in insertions.into_iter() {
+    main_results.insertions.sort_by_key(|(_r, c)| c.pos);
+    main_results.insertions.reverse();
+    for (record, classification) in main_results.insertions.into_iter() {
         if classification.is_filtered {
             panic!("Filtered insertions should have been removed earlier");
         }
 
-        apply_variant(
-            &record.chrom,
-            &classification,
-            &mut variable_len_consensus,
-            &processed_positions,
-        );
-        output_records.push(record);
+        apply_variant_simple(&record.chrom, &classification, &mut variable_len_consensus);
     }
-    clean_fasta_characters(&mut variable_len_consensus);
     save_fasta(
         &variable_len_consensus,
         &(output_root.to_owned() + ".variable_length.fasta"),
     )?;
 
     // Output records to vcf
-    output_records.sort_by_key(|r| (r.chrom.clone(), r.pos, r.is_indel()));
+    main_results
+        .output_records
+        .sort_by_key(|r| (r.chrom.clone(), r.pos, r.is_indel()));
     write_vcf(
-        &output_records,
+        &main_results.output_records,
         &(output_root.to_owned() + ".vcf"),
         main_vcf,
         support_vcf,

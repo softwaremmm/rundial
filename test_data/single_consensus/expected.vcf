@@ -12,24 +12,28 @@
 ##FILTER=<ID=STRAND_MISMATCH,Description="Flagged when each strand calls a different base.">
 ##FILTER=<ID=OVERLAP_BETTER_VARIANT,Description="This variant overlaps with a higher priority variant.">
 ##FILTER=<ID=SNP_IN_SUPPORT_VCF,Description="This variant is a SNP in the support VCF, which should only be used for information of nulls.">
-##INFO=<ID=FILTERED_MINOR_ALLELES,Number=.,Type=String,Description="Depths for Minor alleles which failed quality checks.">
+##FILTER=<ID=HET_GT,Description="Het genotypes are treated like MIN_FRS.">
 ##INFO=<ID=CALLER,Number=1,Type=String,Description="The variant caller that made the call.">
-##INFO=<ID=HET_IN_SUPPORT_VCF,Number=0,Type=Flag,Description="This variant is a HET in the support VCF, which may be undesired.">
 ##INFO=<ID=MIXED,Number=0,Type=Flag,Description="This variant is counted as a mixed call.">
+##INFO=<ID=REMOVED_MINOR_ALLELES,Number=1,Type=String,Description="Minor alleles which were removed due to being below thresholds.">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Basic depth">
 ##FORMAT=<ID=ADF,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles on forward strand">
 ##FORMAT=<ID=ADR,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles on reverse strand">
 ##FORMAT=<ID=COV,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample
+ref	1	.	T	.	244.589	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/0:28:10:8:18
 ref	2	.	T	A	225.417	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
-ref	3	.	T	A,G	225.417	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	2/2:30:0,0,13:0,0,9:0,0,22
-ref	4	.	T	A	225.417	PASS	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	0/1:30:0,13:0,9:0,22
+ref	3	.	T	G	225.417	PASS	CALLER=bcftools;REMOVED_MINOR_ALLELES=A(0)	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
+ref	4	.	T	A	225.417	HET_GT	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	0/0:30:0,13:0,9:0,22
 ref	5	.	T	.	244.589	MIN_DP	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/0:0:0:0:0
-ref	8	.	T	A	20.417	LOW_QUAL	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	0/1:30:0,13:0,9:0,22
+ref	6	.	T	.	244.589	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/0:28:10:8:18
+ref	7	.	T	.	20.589	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/0:28:10:8:18
+ref	8	.	T	A	20.417	LOW_QUAL;HET_GT	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	0/0:30:0,13:0,9:0,22
 ref	9	.	T	.	200.589	MIN_DP	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/0:3:10:8:18
 ref	10	.	T	A	225.417	LOW_HQ_DEPTH	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:20:0,1:0,1:0,2
-ref	12	.	T	A	12.642	LOW_QUAL;MIN_FRS;STRAND_MISMATCH	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	0/1:26:0,8:6,0:6,8
+ref	11	.	T	.	200.589	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	0/0:10:1:1:2
+ref	12	.	T	.	12.642	LOW_QUAL;MIN_FRS;STRAND_MISMATCH;HET_GT	CALLER=bcftools;REMOVED_MINOR_ALLELES=A(8)	GT:DP:ADF:ADR:COV	0/0:26:0:6:6
 ref	13	.	T	A	225.417	LOW_VDB	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	14	.	T	A	225.417	MIN_FRS	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	1/1:30:5,5:5,5:10,10
 ref	15	.	T	A	225.417	LOW_MQ	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
@@ -38,8 +42,8 @@ ref	17	.	TT	T	30.7969	LOW_QUAL	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:
 ref	19	.	TT	T	60.7969	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
 ref	21	.	T	TGGG	60.7969	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
 ref	22	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
-ref	23	.	TTT	T	60.7969	OVERLAP_BETTER_VARIANT	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
-ref	24	.	T	A	225.417	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
+ref	23	.	TTT	T	60.7969	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
+ref	24	.	T	A	225.417	OVERLAP_BETTER_VARIANT	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	25	.	T	A	5.417	LOW_QUAL;OVERLAP_BETTER_VARIANT	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	25	.	T	TG	30.7969	OVERLAP_BETTER_VARIANT	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
 ref	26	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
@@ -47,8 +51,8 @@ ref	27	.	T	TA	30.7969	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
 ref	28	.	T	C	225.417	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	28	.	T	TA	30.7969	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
 ref	29	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
-ref	30	.	T	G	225.417	MIN_FRS	CALLER=bcftools;MIXED;FILTERED_MINOR_ALLELES=A(4/4),C(20/0)	GT:DP:ADF:ADR:COV	0/0:268:100,20:100,20:200,40
-ref	31	.	TTTT	T	60.7969	PASS	CALLER=bcftools	GT:DP:ADF:ADR:COV	1/1:41:5,5:5,5:10,10
+ref	30	.	T	G	225.417	MIN_FRS	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	0/0:268:100,20:100,20:200,40
+ref	31	.	TTTT	T	60.7969	PASS	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	1/1:41:5,5:5,5:10,10
 ref	35	.	TTTT	T	60.7969	MIN_FRS	CALLER=bcftools;MIXED	GT:DP:ADF:ADR:COV	1/1:41:5,5:5,5:10,10
 ref	39	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
 ref	40	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
