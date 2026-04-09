@@ -1,3 +1,8 @@
+## new
+
+- add MIN_HQ_DP filter of 5 to clair3
+- add "caller" parameter to filter_process to name output file
+
 ## 0.7.0
 
 - Rename final.vcf to variants.vcf, and associated channels
