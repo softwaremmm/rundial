@@ -393,7 +393,7 @@ fn process_support_vcf(
         let mut classification = classifier.classify(&mut record);
 
         // mark snps if not calling them
-        if classification.change == Change::Snp && !classifier.params.call_snps_in_support {
+        if !classifier.params.call_snps_in_support && !record.genotype().unwrap().is_hom_ref() {
             classification.change = Change::Null;
             classification.is_filtered = true;
             classification.new_bases = NULL.to_string();
