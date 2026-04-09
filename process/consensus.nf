@@ -3,6 +3,7 @@ process apply_filters {
     container {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:4901a4c' : params.test_container_rundial
     }
+    cpus 1
 
     pod label: "name", value: "rundial:apply_filters"
     pod label: "sample_id", value: "${params.sample_id}"
@@ -30,6 +31,8 @@ process make_consensus {
     container {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:4901a4c' : params.test_container_rundial
     }
+    cpus 1
+    memory "4 GB"
 
     pod label: "name", value: "rundial:make_consensus"
     pod label: "sample_id", value: "${params.sample_id}"
@@ -74,6 +77,8 @@ process make_clair3_consensus {
     container {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:4901a4c' : params.test_container_rundial
     }
+    cpus 1
+    memory "4 GB"
 
     pod label: "name", value: "rundial:make_clair3_consensus"
     pod label: "sample_id", value: "${params.sample_id}"

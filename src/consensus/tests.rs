@@ -496,8 +496,13 @@ fn test_simplify_and_write_vcf() {
     })
     .collect();
 
+    let lines: Vec<_> = records
+        .iter()
+        .map(|r| (r.chrom.clone(), r.pos, r.to_string()))
+        .collect();
+
     write_vcf(
-        &records,
+        &lines,
         "tests/test_outputs/write_vcf.vcf",
         "test_data/example.vcf",
         None,

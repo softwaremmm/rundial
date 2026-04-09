@@ -219,7 +219,7 @@ fn mark_overlaps(records: &mut [(VariantRecord, Classification)], classifier: &C
 /// Wrap the results from processing support vcf
 #[derive(Debug, Default)]
 struct VCFResults {
-    output_records: Vec<VariantRecord>,
+    output_lines: Vec<(String, u32, String)>, // chrom, pos, vcf line
     processed_positions: HashMapSet<usize>,
     insertions: Vec<(VariantRecord, Classification)>,
     minors: Vec<VariantRecord>,
@@ -327,9 +327,9 @@ fn process_main_vcf(
         .map(|(r, _)| r.clone())
         .collect();
 
-    results.output_records = potential_output_records
+    results.output_lines = potential_output_records
         .into_iter()
-        .map(|(r, _)| r)
+        .map(|(r, _)| (r.chrom.clone(), r.pos, r.to_string()))
         .collect();
 
     return Ok(results);
@@ -421,7 +421,9 @@ fn process_support_vcf(
             results.minors.push(record.clone());
         }
 
-        results.output_records.push(record);
+        results
+            .output_lines
+            .push((record.chrom.clone(), record.pos, record.to_string()));
     }
 
     return Ok(results);
@@ -551,7 +553,7 @@ fn make_empty_record(chrom: &str, pos: u32, ref_bases: &str) -> VariantRecord {
 }
 
 fn write_vcf(
-    records: &[VariantRecord],
+    record_lines: &[(String, u32, String)],
     output_file: &str,
     main_vcf: &str,
     support_vcf: Option<&str>,
@@ -631,8 +633,8 @@ fn write_vcf(
 
     // Now write records
     let mut writer = VCFWriter::to_path(output_file, header)?;
-    for record in records.iter() {
-        writer.write_record(record)?;
+    for (_, _, line) in record_lines.iter() {
+        writer.write_line(line)?;
     }
     Ok(())
 }
@@ -672,7 +674,7 @@ pub fn make_consensus(
         println!(
             "From main VCF: Processed {} sites. Found {} records to output",
             num_process_positions,
-            main_results.output_records.len(),
+            main_results.output_lines.len(),
         );
     }
 
@@ -697,13 +699,13 @@ pub fn make_consensus(
         println!(
             "From support VCF: Processed {} sites. Found {} records to output",
             num_process_positions,
-            support_results.output_records.len(),
+            support_results.output_lines.len(),
         );
     }
 
     main_results
-        .output_records
-        .extend(support_results.output_records);
+        .output_lines
+        .extend(support_results.output_lines);
     main_results
         .processed_positions
         .extend_all_chroms(support_results.processed_positions);
@@ -716,19 +718,19 @@ pub fn make_consensus(
 
             if let Some(processed_sites) = main_results.processed_positions.get(chrom) {
                 for i in all_sites.difference(processed_sites) {
-                    main_results.output_records.push(make_empty_record(
-                        chrom,
+                    main_results.output_lines.push((
+                        chrom.to_string(),
                         (i + 1) as u32,
-                        &seq[*i].to_string(),
+                        make_empty_record(chrom, (i + 1) as u32, &seq[*i].to_string()).to_string(),
                     ));
                     seq[*i] = NULL;
                 }
             } else {
                 for i in all_sites {
-                    main_results.output_records.push(make_empty_record(
-                        chrom,
+                    main_results.output_lines.push((
+                        chrom.to_string(),
                         (i + 1) as u32,
-                        &seq[i].to_string(),
+                        make_empty_record(chrom, (i + 1) as u32, &seq[i].to_string()).to_string(),
                     ));
                     seq[i] = NULL;
                 }
@@ -762,11 +764,10 @@ pub fn make_consensus(
     )?;
 
     // Output records to vcf
-    main_results
-        .output_records
-        .sort_by_key(|r| (r.chrom.clone(), r.pos, r.is_indel()));
+    main_results.output_lines.sort();
+
     write_vcf(
-        &main_results.output_records,
+        &main_results.output_lines,
         &(output_root.to_owned() + ".vcf"),
         main_vcf,
         support_vcf,

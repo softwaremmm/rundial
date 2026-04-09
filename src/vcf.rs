@@ -151,6 +151,15 @@ where
         Ok(())
     }
 
+    /// Write line to file.
+    ///
+    /// When specific control wanted
+    pub fn write_line(&mut self, line: &str) -> Result<()> {
+        self.writer.write_all(line.as_bytes())?;
+        self.writer.write_all("\n".as_bytes())?;
+        Ok(())
+    }
+
     /// Provides a reference to the header.
     pub fn header(&self) -> &VCFHeader {
         &self.header
