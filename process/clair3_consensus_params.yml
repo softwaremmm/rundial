@@ -13,7 +13,7 @@ minor_pop_thresholds:
 
 remove_sub_minor_pops: True
 call_snps_in_support: False
-remove_minor_pops_in_support: False # might be worth setting to true
+remove_minor_pops_in_support: True # might be worth setting to true
 
 main_caller: "clair3"
 support_caller: "bcftools"
