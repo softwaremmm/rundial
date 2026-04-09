@@ -662,9 +662,6 @@ pub fn make_consensus(
         &params.main_caller,
         verbose,
     )?;
-    // let mut output_records = main_results.output_records;
-    // let mut insertions = main_results.insertions;
-    // let mut processed_positions = main_results.processed_positions;
     if verbose {
         let num_process_positions = main_results
             .processed_positions
