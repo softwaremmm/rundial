@@ -425,7 +425,6 @@ fn process_main_vcf(
 struct SupportVCFResults {
     output_records: Vec<VariantRecord>,
     processed_positions: HashMapSet<usize>,
-    overriding_filters: HashMap<(String, usize), Vec<String>>,
     hets_and_minors: HashMapSet<(usize, bool, bool, bool)>, // pos, is_het, has_minor_population, is_indel
 }
 
@@ -454,15 +453,6 @@ fn process_support_vcf(
 
         if let Some(processed_sites) = positions_already_processed.get(&record.chrom) {
             if processed_sites.contains(&pos) {
-                //first check if there is overriding filter flag
-                if let Some(flags) = classifier.get_overriding_flags(&record) {
-                    results
-                        .overriding_filters
-                        .entry((record.chrom.clone(), pos))
-                        .or_insert_with(Vec::new)
-                        .extend(flags);
-                }
-
                 continue;
             }
         }
@@ -549,37 +539,6 @@ fn process_support_vcf(
     }
 
     return Ok(results);
-}
-
-fn process_overriding_filters(
-    consensus: &mut HashMap<String, Vec<char>>,
-    overriding_filters: &HashMap<(String, usize), Vec<String>>,
-    output_records: &mut [VariantRecord],
-    verbose: bool,
-) {
-    for record in output_records.iter_mut() {
-        if let Some(filters) = overriding_filters.get(&(record.chrom.clone(), record.pos_idx())) {
-            if verbose {
-                println!(
-                    "Applying overriding filters {:?} to {}:{}",
-                    filters,
-                    record.chrom,
-                    record.pos_idx()
-                );
-            }
-
-            record.filter.extend(filters.clone());
-
-            // need to set consensus to filtered
-            let chrom_seq: &mut Vec<char> = consensus
-                .get_mut(&record.chrom)
-                .expect("Chrom not found in consensus");
-
-            let start = record.pos_idx();
-            let end = start + record.ref_bases.len();
-            chrom_seq[start..end].iter_mut().for_each(|c| *c = FILTERED);
-        }
-    }
 }
 
 fn write_creation_report(
@@ -856,13 +815,6 @@ pub fn make_consensus(
     main_results
         .hets_and_minors
         .extend_all_chroms(support_results.hets_and_minors);
-
-    process_overriding_filters(
-        &mut consensus,
-        &support_results.overriding_filters,
-        &mut output_records,
-        verbose,
-    );
 
     fn make_empty_record(chrom: &str, pos: &usize, ref_bases: &str) -> VariantRecord {
         let mut record = VariantRecord::empty_record();

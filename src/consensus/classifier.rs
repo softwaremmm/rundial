@@ -222,26 +222,6 @@ impl Classifier {
         return flags;
     }
 
-    /// Returns a list of overriding flags for the record
-    /// These are flags in the support vcf which should be applied to the consensus
-    /// even if the main vcf lacks them
-    pub fn get_overriding_flags(&self, record: &VariantRecord) -> Option<Vec<String>> {
-        if let Some(overriding_flags) = &self.params.overriding_filters {
-            let flags: Vec<String> = self
-                .get_flags(record)
-                .into_iter()
-                .filter(|filter| overriding_flags.contains(filter))
-                .collect();
-            if flags.is_empty() {
-                return None;
-            }
-
-            return Some(flags);
-        }
-
-        return None;
-    }
-
     pub fn is_masked(&self, record: &VariantRecord) -> bool {
         if let Some(mask) = &self.mask {
             return mask.contains(&record.chrom, &(record.pos - 1));

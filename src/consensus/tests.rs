@@ -353,7 +353,6 @@ fn make_classifier() -> Classifier {
         het_indel_option: HetOption::Mask,
         use_filters: true,
         filter_ignore_list: None,
-        overriding_filters: None,
         minor_pop_threshold: Some(5),
         support_minor_pop_threshold: None,
         main_caller: None,
@@ -555,31 +554,4 @@ fn test_write_vcf() {
     let output = std::fs::read_to_string("tests/test_outputs/write_vcf.vcf").unwrap();
     let expected_output = std::fs::read_to_string("test_data/write_vcf.vcf").unwrap();
     assert_eq!(output, expected_output);
-}
-
-#[test]
-fn test_process_overriding_filters() {
-    let mut consensus = make_simple_chrom("ATTAAAAA");
-    let overriding_filters = HashMap::from([
-        (("chrom".to_string(), 1usize), vec!["MIN_VDB".to_string()]),
-        (("chrom".to_string(), 3usize), vec!["MIN_VDB".to_string()]),
-        (("chrom".to_string(), 4usize), vec!["MIN_VDB".to_string()]),
-    ]);
-
-    let header = standard_header();
-    let mut records: Vec<VariantRecord> = [
-        "chrom\t2\tid\tA\tT\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
-        "chrom\t3\tid\tA\tT\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
-        "chrom\t5\tid\tAAA\tA\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
-    ]
-    .iter()
-    .map(|r| VariantRecord::from_string(&header, r).unwrap())
-    .collect();
-
-    process_overriding_filters(&mut consensus, &overriding_filters, &mut records, true);
-
-    assert_eq!(consensus["chrom"], "AFTAFFFA".chars().collect::<Vec<_>>());
-    assert_eq!(records[0].filter, vec!["MIN_VDB".to_string()]);
-    assert!(records[1].filter.is_empty());
-    assert_eq!(records[2].filter, vec!["MIN_VDB".to_string()]);
 }
