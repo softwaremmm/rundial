@@ -7,7 +7,7 @@ parameters:
 # If indel add these as well
 indel_parameters:
   # These apply only to indels
-  MIN_FRS: 0.60
+  MIN_FRS: 0.90
 
 # else if a snp (GT != 0/0) add these
 snp_parameters:

@@ -10,7 +10,6 @@ use noodles::fasta::{
 };
 
 use super::Result;
-use super::{FILTERED, HET, MASKED, NULL};
 
 pub fn read_fasta(fasta_file: &str) -> Result<HashMap<String, Vec<char>>> {
     let mut consensus: HashMap<String, Vec<char>> = HashMap::new();
@@ -63,14 +62,4 @@ pub fn save_fasta(consensus: &HashMap<String, Vec<char>>, output_file: &str) -> 
         writer.write_record(&record)?;
     }
     return Ok(());
-}
-
-pub fn clean_fasta_characters(consensus: &mut HashMap<String, Vec<char>>) {
-    for (_, seq) in consensus.iter_mut() {
-        for base in seq.iter_mut() {
-            if [FILTERED, HET, MASKED].contains(base) {
-                *base = NULL;
-            }
-        }
-    }
 }

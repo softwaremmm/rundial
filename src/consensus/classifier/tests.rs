@@ -60,7 +60,7 @@ fn test_change_from_ref_alt() {
     assert_eq!(Change::from_ref_alt("A", "N"), Change::Null);
     assert_eq!(Change::from_ref_alt("A", "AN"), Change::Null);
     assert_eq!(Change::from_ref_alt("A", "AF"), Change::Null);
-    assert_eq!(Change::from_ref_alt("A", "ZZ"), Change::HetMask);
+    assert_eq!(Change::from_ref_alt("A", "ZZ"), Change::Null);
     assert_eq!(Change::from_ref_alt("A", "MA"), Change::Null);
     assert_eq!(Change::from_ref_alt("N", "N"), Change::Null);
 
@@ -89,15 +89,17 @@ fn test_change_from_ref_alt() {
 fn make_classifier() -> Classifier {
     let params = ConsensusParams {
         skip_indels: false,
-        mask: None,
         mask_missing_sites: true,
-        het_snp_option: HetOption::Mask,
-        het_indel_option: HetOption::Mask,
         use_filters: true,
         filter_ignore_list: None,
-        overriding_filters: None,
-        minor_pop_threshold: Some(5),
-        support_minor_pop_threshold: None,
+        minor_pop_thresholds: Some(MinorPopParams {
+            threshold: 5,
+            strand_bias: None,
+            min_frs: None,
+        }),
+        remove_sub_minor_pops: false,
+        call_snps_in_support: false,
+        remove_minor_pops_in_support: false,
         main_caller: None,
         support_caller: None,
     };
@@ -123,22 +125,6 @@ fn test_get_flags() {
 
     c.params.use_filters = false;
     assert_eq!(c.get_flags(&record), Vec::<String>::new());
-}
-
-#[test]
-fn test_is_masked() {
-    let mut c = make_classifier();
-    c.mask = Some(Bed::from_file("test_data/mask.bed"));
-    let mut record = VariantRecord::empty_record();
-    record.chrom = "other_chrom".to_string();
-    record.pos = 1;
-    assert_eq!(c.is_masked(&record), false);
-
-    // remember that bed files are 0-based
-    record.pos = 10;
-    assert_eq!(c.is_masked(&record), false);
-    record.pos = 11;
-    assert_eq!(c.is_masked(&record), true);
 }
 
 #[test]
@@ -234,7 +220,7 @@ fn test_classify_simple() {
     // Masking not applied here
     let mut record = VariantRecord::from_string(
         &header,
-        "other_chrom\t15\tid\tT\t.\t244.589\tF\tDP=28\tGT:AD\t0/0:28",
+        "other_chrom\t15\tid\tT\t.\t244.589\tFilterFlag\tDP=28\tGT:AD\t0/0:28",
     )
     .unwrap();
     assert_eq!(
@@ -242,7 +228,7 @@ fn test_classify_simple() {
         Classification {
             pos: (record.pos - 1) as usize,
             ref_bases: "T".to_string(),
-            new_bases: "F".to_string(),
+            new_bases: "N".to_string(),
             change: Change::Null,
             is_filtered: true,
             ..Default::default()
@@ -303,71 +289,6 @@ fn test_classify_simple() {
 }
 
 #[test]
-fn test_classify_het() {
-    let header = standard_header();
-    let mut c = make_classifier();
-
-    // Masking
-    let mut snp_record = VariantRecord::from_string(
-        &header,
-        "ref\t1\tid\tT\tA\t244.589\t.\tDP=28\tGT:AD\t0/1:1,27",
-    )
-    .unwrap();
-    assert_eq!(
-        c.classify(&mut snp_record),
-        Classification {
-            pos: (snp_record.pos - 1) as usize,
-            ref_bases: "T".to_string(),
-            new_bases: "Z".to_string(),
-            change: Change::HetMask,
-            is_het: true,
-            ..Default::default()
-        }
-    );
-
-    let mut indel_record = VariantRecord::from_string(
-        &header,
-        "ref\t1\tid\tTAA\tT\t244.589\t.\tDP=28\tGT:AD\t0/1:1,27",
-    )
-    .unwrap();
-    assert_eq!(
-        c.classify(&mut indel_record),
-        Classification {
-            pos: (indel_record.pos - 1) as usize + 1,
-            ref_bases: "AA".to_string(),
-            new_bases: "ZZ".to_string(),
-            change: Change::HetMask,
-            is_het: true,
-            has_indel_alleles: true,
-            ..Default::default()
-        }
-    );
-
-    c.params.het_snp_option = HetOption::Ref;
-    c.params.het_indel_option = HetOption::Ref;
-    assert_eq!(c.classify(&mut snp_record).new_bases, "T".to_string());
-    assert_eq!(c.classify(&mut snp_record).is_het, true);
-    assert_eq!(c.classify(&mut indel_record).new_bases, "TAA".to_string());
-    assert_eq!(c.classify(&mut indel_record).is_het, true);
-
-    c.params.het_snp_option = HetOption::Alt;
-    c.params.het_indel_option = HetOption::Alt;
-    assert_eq!(c.classify(&mut snp_record).new_bases, "A".to_string());
-    assert_eq!(c.classify(&mut snp_record).is_het, true);
-    assert_eq!(c.classify(&mut indel_record).ref_bases, "AA".to_string());
-    assert_eq!(c.classify(&mut indel_record).new_bases, "".to_string());
-    assert_eq!(c.classify(&mut indel_record).is_het, true);
-
-    c.params.het_snp_option = HetOption::Best;
-    c.params.het_indel_option = HetOption::Best;
-    assert_eq!(c.classify(&mut snp_record).new_bases, "A".to_string());
-    assert_eq!(c.classify(&mut snp_record).is_het, true);
-    assert_eq!(c.classify(&mut indel_record).ref_bases, "AA".to_string());
-    assert_eq!(c.classify(&mut indel_record).new_bases, "".to_string());
-    assert_eq!(c.classify(&mut indel_record).is_het, true);
-}
-
-#[test]
 fn test_classify_filtered() {
     let header = standard_header();
     let mut c = make_classifier();
@@ -375,7 +296,7 @@ fn test_classify_filtered() {
     // Standard filter
     let mut record = VariantRecord::from_string(
         &header,
-        "ref\t1\tid\tT\t.\t244.589\tF\tDP=28\tGT:AD\t0/0:28",
+        "ref\t1\tid\tT\t.\t244.589\tFilterFlag\tDP=28\tGT:AD\t0/0:28",
     )
     .unwrap();
     assert_eq!(
@@ -383,7 +304,7 @@ fn test_classify_filtered() {
         Classification {
             pos: (record.pos - 1) as usize,
             ref_bases: "T".to_string(),
-            new_bases: "F".to_string(),
+            new_bases: "N".to_string(),
             change: Change::Null,
             is_filtered: true,
             ..Default::default()
@@ -393,7 +314,7 @@ fn test_classify_filtered() {
     // indel filter
     let mut record = VariantRecord::from_string(
         &header,
-        "ref\t1\tid\tTAA\tTA\t244.589\tF\tDP=28\tGT:AD\t0/0:28,1",
+        "ref\t1\tid\tTAA\tTA\t244.589\tFILTER\tDP=28\tGT:AD\t0/0:28,1",
     )
     .unwrap();
     assert_eq!(
@@ -401,7 +322,7 @@ fn test_classify_filtered() {
         Classification {
             pos: (record.pos - 1) as usize,
             ref_bases: "TAA".to_string(),
-            new_bases: "FFF".to_string(),
+            new_bases: "NNN".to_string(),
             change: Change::Null,
             is_filtered: true,
             has_indel_alleles: true,
@@ -461,7 +382,7 @@ fn test_classify_minor_population() {
     .unwrap();
     assert!(c.classify(&mut record).has_minor_population);
 
-    // Het case
+    // Het case will set genotype to first allele
     let mut record = VariantRecord::from_string(
         &header,
         "ref\t1\tid\tT\tA,C\t244.589\tPASS\tDP=28\tGT:AD\t0/1:1,27,5",
@@ -473,7 +394,7 @@ fn test_classify_minor_population() {
         "ref\t1\tid\tT\tA,C\t244.589\tPASS\tDP=28\tGT:AD\t1/2:1,27,5",
     )
     .unwrap();
-    assert!(!c.classify(&mut record).has_minor_population);
+    assert!(c.classify(&mut record).has_minor_population);
 
     // null gt case
     let mut record = VariantRecord::from_string(
@@ -492,7 +413,10 @@ fn test_classify_minor_population() {
     assert!(!c.classify(&mut record).has_minor_population);
 
     // change threshold
-    c.minor_pop_threshold = Some(4);
+    c.minor_pop_threshold = Some(MinorPopParams {
+        threshold: 4,
+        ..Default::default()
+    });
     let mut record = VariantRecord::from_string(
         &header,
         "ref\t1\tid\tT\tA,C\t244.589\tPASS\tDP=28\tGT:AD\t1/1:1,27,4",

@@ -1,7 +1,9 @@
 use std::{fs, io::Read};
 
 use super::*;
-use crate::vcf::variant_record::tests::standard_header;
+use crate::{
+    consensus::parameter_struct::MinorPopParams, vcf::variant_record::tests::standard_header,
+};
 
 use pretty_assertions::assert_eq;
 
@@ -13,15 +15,12 @@ fn make_simple_chrom(seq: &str) -> HashMap<String, Vec<char>> {
 
 fn test_apply(
     ref_seq: &str,
-    _processed_sites: Vec<usize>,
     pos: usize,
     change: Change,
     ref_bases: &str,
     new_bases: &str,
-) -> (String, HashSet<usize>) {
+) -> String {
     let mut chrom_seq = make_simple_chrom(ref_seq);
-    let mut processed_sites: HashMap<String, HashSet<usize>> = HashMap::new();
-    processed_sites.extend_chrom("chrom", _processed_sites);
 
     let variant = Classification {
         pos,
@@ -30,137 +29,72 @@ fn test_apply(
         change,
         ..Default::default()
     };
-    let set_sites = apply_variant("chrom", &variant, &mut chrom_seq, &processed_sites);
-    return (chrom_seq["chrom"].iter().collect(), set_sites);
+    apply_variant_simple("chrom", &variant, &mut chrom_seq);
+    return chrom_seq["chrom"].iter().collect();
 }
 
 #[test]
 fn test_apply_null_variant() {
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 0, Change::Null, "A", "N");
-    assert_eq!(chrom_seq, "AAAAA");
-    assert_eq!(set_sites.len(), 0);
+    let chrom_seq = test_apply("AAAAA", 0, Change::Null, "A", "N");
+    assert_eq!(chrom_seq, "NAAAA");
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 3, Change::Null, "A", "N");
+    let chrom_seq = test_apply("AAAAA", 3, Change::Null, "A", "N");
     assert_eq!(chrom_seq, "AAANA");
-    assert_eq!(set_sites, HashSet::from([3]));
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Null, "AAA", "FFF");
-    assert_eq!(chrom_seq, "AAAFF");
-    assert_eq!(set_sites, HashSet::from([3, 4]));
-}
-
-#[test]
-fn test_apply_hetmask_variant() {
-    let (chrom_seq, set_sites) =
-        test_apply("AAAAA", vec![0, 1, 2], 2, Change::HetMask, "AAA", "ZZZ");
-    assert_eq!(chrom_seq, "AAZZZ");
-    assert_eq!(set_sites, HashSet::from([2, 3, 4]));
+    let chrom_seq = test_apply("AAAAA", 2, Change::Null, "AAA", "FFF");
+    assert_eq!(chrom_seq, "AAFFF");
 }
 
 #[test]
 fn test_apply_ref_variant() {
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 0, Change::Ref, "A", "A");
+    let chrom_seq = test_apply("AAAAA", 0, Change::Ref, "A", "A");
     assert_eq!(chrom_seq, "AAAAA");
-    assert_eq!(set_sites.len(), 0);
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 3, Change::Ref, "A", "A");
+    let chrom_seq = test_apply("AAAAA", 3, Change::Ref, "A", "A");
     assert_eq!(chrom_seq, "AAAAA");
-    assert_eq!(set_sites, HashSet::from([3]));
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Ref, "AAA", "AAA");
+    let chrom_seq = test_apply("AAAAA", 2, Change::Ref, "AAA", "AAA");
     assert_eq!(chrom_seq, "AAAAA");
-    assert_eq!(set_sites, HashSet::from([3, 4]));
 
     // empty change
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 2, Change::Ref, "", "");
+    let chrom_seq = test_apply("AAAAA", 2, Change::Ref, "", "");
     assert_eq!(chrom_seq, "AAAAA");
-    assert_eq!(set_sites, HashSet::from([]));
 }
 
 #[test]
 fn test_apply_snp_variant() {
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1, 2], 0, Change::Snp, "A", "T");
+    let chrom_seq = test_apply("AAAAA", 0, Change::Snp, "A", "T");
     assert_eq!(chrom_seq, "TAAAA");
-    assert_eq!(set_sites, HashSet::from([0]));
 }
 
 #[test]
 fn test_apply_del_variant() {
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1], 2, Change::Del, "AAA", "A");
+    let chrom_seq = test_apply("AAAAA", 2, Change::Del, "AAA", "A");
     assert_eq!(chrom_seq, "AAA--");
-    assert_eq!(set_sites, HashSet::from([2, 3, 4]));
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1], 2, Change::Del, "AA", "");
+    let chrom_seq = test_apply("AAAAA", 2, Change::Del, "AA", "");
     assert_eq!(chrom_seq, "AA--A");
-    assert_eq!(set_sites, HashSet::from([2, 3]));
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1], 0, Change::ComplexDel, "AA", "G");
+    let chrom_seq = test_apply("AAAAA", 0, Change::ComplexDel, "AA", "G");
     assert_eq!(chrom_seq, "G-AAA");
-    assert_eq!(set_sites, HashSet::from([0, 1]));
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1], 0, Change::Mnp, "AA", "GT");
+    let chrom_seq = test_apply("AAAAA", 0, Change::Mnp, "AA", "GT");
     assert_eq!(chrom_seq, "GTAAA");
-    assert_eq!(set_sites, HashSet::from([0, 1]));
 }
 
 #[test]
 fn test_apply_ins_variant() {
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1], 0, Change::Ins, "A", "ATT");
+    let chrom_seq = test_apply("AAAAA", 0, Change::Ins, "A", "ATT");
     assert_eq!(chrom_seq, "ATTAAAA");
-    assert_eq!(set_sites, HashSet::from([]));
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1], 1, Change::Ins, "", "TT");
+    let chrom_seq = test_apply("AAAAA", 1, Change::Ins, "", "TT");
     assert_eq!(chrom_seq, "ATTAAAA");
-    assert_eq!(set_sites, HashSet::from([]));
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1], 0, Change::Ins, "", "TT");
+    let chrom_seq = test_apply("AAAAA", 0, Change::Ins, "", "TT");
     assert_eq!(chrom_seq, "TTAAAAA");
-    assert_eq!(set_sites, HashSet::from([]));
 
-    let (chrom_seq, set_sites) = test_apply("AAAAA", vec![0, 1], 1, Change::ComplexIns, "A", "GT");
+    let chrom_seq = test_apply("AAAAA", 1, Change::ComplexIns, "A", "GT");
     assert_eq!(chrom_seq, "AGTAAA");
-    assert_eq!(set_sites, HashSet::from([]));
-}
-
-#[test]
-fn test_check_indel_ref_matches_seq() {
-    let chrom_seq: Vec<char> = repeat_char('A', 5).chars().collect();
-
-    assert_eq!(
-        _check_indel_ref_matches_seq(&chrom_seq, 0, "A", false),
-        true
-    );
-    assert_eq!(
-        _check_indel_ref_matches_seq(&chrom_seq, 0, "AAA", false),
-        true
-    );
-    assert_eq!(
-        _check_indel_ref_matches_seq(&chrom_seq, 0, "T", false),
-        false
-    );
-    assert_eq!(
-        _check_indel_ref_matches_seq(&chrom_seq, 0, "ATA", false),
-        false
-    );
-    assert_eq!(
-        _check_indel_ref_matches_seq(&chrom_seq, 0, "TAA", false),
-        false
-    );
-    assert_eq!(
-        _check_indel_ref_matches_seq(&chrom_seq, 0, "TAA", true),
-        true
-    );
-
-    // Nulls are allowed
-    let chrom_seq: Vec<char> = "ANNAA".chars().collect();
-    assert_eq!(
-        _check_indel_ref_matches_seq(&chrom_seq, 0, "ATA", false),
-        true
-    );
-    assert_eq!(
-        _check_indel_ref_matches_seq(&chrom_seq, 0, "ATAT", false),
-        false
-    );
 }
 
 #[test]
@@ -347,15 +281,17 @@ fn test_overlap() {
 fn make_classifier() -> Classifier {
     let params = ConsensusParams {
         skip_indels: false,
-        mask: None,
         mask_missing_sites: true,
-        het_snp_option: HetOption::Mask,
-        het_indel_option: HetOption::Mask,
         use_filters: true,
         filter_ignore_list: None,
-        overriding_filters: None,
-        minor_pop_threshold: Some(5),
-        support_minor_pop_threshold: None,
+        minor_pop_thresholds: Some(MinorPopParams {
+            threshold: 5,
+            strand_bias: None,
+            min_frs: None,
+        }),
+        remove_sub_minor_pops: false,
+        call_snps_in_support: false,
+        remove_minor_pops_in_support: false,
         main_caller: None,
         support_caller: None,
     };
@@ -371,30 +307,43 @@ fn test_score_variants() {
         let classification = classifier.classify(&mut record);
         return score_variant(&record, &classification);
     };
-    let filter_indel =
-        record_to_score("ref\t1\tid\tTCG\tTAC\t244.589\tFILTER\tDP=28\tGT:AD\t0/0:0,28");
-    let filter_snp = record_to_score("ref\t1\tid\tT\tC\t244.589\tFILTER\tDP=28\tGT:AD\t0/0:0,28");
-    let null_score = record_to_score("ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t./.:0,28");
-    let ref_indel_score =
-        record_to_score("ref\t1\tid\tTCG\tT\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,0");
-    let ref_snp_score = record_to_score("ref\t1\tid\tC\tT\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,0");
-    let indel_score = record_to_score("ref\t1\tid\tT\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:28,0");
-    let snp_score = record_to_score("ref\t1\tid\tT\tC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:28,0");
-    let high_qual_score =
-        record_to_score("ref\t1\tid\tT\tC\t2440.589\tPASS\tDP=28\tGT:AD\t1/1:28,0");
-    let high_dp_score =
-        record_to_score("ref\t1\tid\tT\tC\t2440.589\tPASS\tDP=280\tGT:AD\t1/1:28,0");
-    assert!(filter_indel < filter_snp);
-    assert!(filter_snp < null_score);
-    assert!(null_score < ref_indel_score);
-    assert!(ref_indel_score < ref_snp_score);
-    assert!(ref_snp_score < indel_score);
-    assert!(indel_score < snp_score);
-    assert!(snp_score < high_qual_score);
-    assert!(high_qual_score < high_dp_score);
 
-    let het_snp_score = record_to_score("ref\t1\tid\tT\tC\t244.589\tPASS\tDP=28\tGT:AD\t0/1:14,14");
-    assert!(het_snp_score == snp_score);
+    let indel = record_to_score("ref\t1\tid\tT\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:28,0");
+    let filter_indel =
+        record_to_score("ref\t1\tid\tTCG\tTAC\t244.589\tFILTER\tDP=28\tGT:AD\t1/1:0,28");
+
+    let snp = record_to_score("ref\t1\tid\tT\tC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:28,0");
+    let ref_snp = record_to_score("ref\t1\tid\tC\tT\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,0");
+
+    let ref_indel = record_to_score("ref\t1\tid\tTCG\tT\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,0");
+    let minor_indel = record_to_score("ref\t1\tid\tTCG\tT\t244.589\tPASS\tDP=28\tGT:AD\t0/0:28,5");
+    let filter_minor_indel =
+        record_to_score("ref\t1\tid\tTCG\tT\t244.589\tFILTER\tDP=28\tGT:AD\t0/0:28,5");
+
+    //het snp will get filter flag
+    let het_snp = record_to_score("ref\t1\tid\tT\tC\t244.589\tPASS\tDP=28\tGT:AD\t0/1:14,14");
+    let filter_snp = record_to_score("ref\t1\tid\tT\tC\t244.589\tFILTER\tDP=28\tGT:AD\t0/0:0,28");
+    let filter_ref = record_to_score("ref\t1\tid\tT\t.\t244.589\tFILTER\tDP=28\tGT:AD\t0/0:1");
+
+    let null = record_to_score("ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t./.:0,28");
+
+    assert!(indel > filter_indel);
+    assert!(filter_indel > snp);
+    assert!(snp == ref_snp);
+    assert!(ref_snp > ref_indel);
+    assert!(ref_indel == minor_indel);
+    assert!(minor_indel > filter_minor_indel);
+    assert!(filter_minor_indel > filter_snp);
+    assert!(filter_snp == het_snp);
+    assert!(filter_snp == filter_ref);
+    assert!(filter_ref > null);
+
+    let std = record_to_score("ref\t1\tid\tT\tC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:28,0");
+    let high_qual = record_to_score("ref\t1\tid\tT\tC\t2440.589\tPASS\tDP=28\tGT:AD\t1/1:28,0");
+    let high_dp = record_to_score("ref\t1\tid\tT\tC\t2440.589\tPASS\tDP=280\tGT:AD\t1/1:28,0");
+
+    assert!(std < high_qual);
+    assert!(high_qual < high_dp);
 }
 
 #[test]
@@ -422,7 +371,7 @@ fn test_mark_overlaps() {
         Classification {
             pos: 0,
             ref_bases: "TCG".to_owned(),
-            new_bases: "FFF".to_owned(),
+            new_bases: "NNN".to_owned(),
             change: Change::Null,
             is_filtered: true,
             has_indel_alleles: true,
@@ -432,7 +381,7 @@ fn test_mark_overlaps() {
 
     assert!(records[1].0.filter.contains(&OVERLAP_FILTER.to_owned()));
     assert!(records[1].1.is_filtered);
-    assert!(records[1].1.new_bases == "FF");
+    assert!(records[1].1.new_bases == "NN");
 
     assert!(!records[2].0.filter.contains(&OVERLAP_FILTER.to_owned()));
     assert!(!records[2].0.filter.contains(&OVERLAP_FILTER.to_owned()));
@@ -444,7 +393,7 @@ fn test_read_write_fasta() {
     assert_eq!(
         seq,
         HashMap::from([
-            ("chrom_1".to_string(), "AAAAANFFZZZMMMM-X".chars().collect()),
+            ("chrom_1".to_string(), "AAAAANNNNNNNNNN-N".chars().collect()),
             ("chrom_2".to_string(), "CCCCC".chars().collect())
         ])
     );
@@ -477,7 +426,7 @@ fn test_read_write_fasta_gzipped() {
     assert_eq!(
         seq,
         HashMap::from([
-            ("chrom_1".to_string(), "AAAAANFFZZZMMMM-X".chars().collect()),
+            ("chrom_1".to_string(), "AAAAANNNNNNNNNN-N".chars().collect()),
             ("chrom_2".to_string(), "CCCCC".chars().collect())
         ])
     );
@@ -493,37 +442,35 @@ fn test_read_write_fasta_gzipped() {
 }
 
 #[test]
-fn test_clean_fasta_characters() {
-    let mut seq = read_fasta("test_data/simple.fasta").unwrap();
-    clean_fasta_characters(&mut seq);
-    assert_eq!(
-        seq,
-        HashMap::from([
-            ("chrom_1".to_string(), "AAAAANNNNNNNNNN-X".chars().collect()),
-            ("chrom_2".to_string(), "CCCCC".chars().collect())
-        ])
-    );
-}
-
-#[test]
 fn test_write_creation_report() {
     let seq = read_fasta("test_data/simple.fasta").unwrap();
 
+    fn simple_minor(chrom: &str, pos: u32, is_indel: bool) -> VariantRecord {
+        let mut record = VariantRecord::empty_record();
+        record.chrom = chrom.to_string();
+        record.pos = pos;
+        if is_indel {
+            record.ref_bases = "A".to_string();
+            record.alt = vec!["AT".to_string()];
+        } else {
+            record.ref_bases = "A".to_string();
+            record.alt = vec!["C".to_string()];
+        }
+        record
+    }
+
     // mock data does not actually match fasta
-    let hets_and_minors = HashMapSet::from([
-        (
-            "chrom_1".to_string(),
-            HashSet::from([(5, true, true, false)]),
-        ),
-        (
-            "chrom_2".to_string(),
-            HashSet::from([(1, true, true, true), (2, false, true, true)]),
-        ),
+    let minors = Vec::from([
+        simple_minor("chrom1", 1, false),
+        simple_minor("chrom1", 5, false),
+        simple_minor("chrom1", 6, true),
+        simple_minor("chrom2", 1, false),
     ]);
 
     write_creation_report(
         &seq,
-        &hets_and_minors,
+        &minors,
+        12,
         "tests/test_outputs/creation_report_1.json",
     )
     .unwrap();
@@ -535,7 +482,7 @@ fn test_write_creation_report() {
 }
 
 #[test]
-fn test_write_vcf() {
+fn test_simplify_and_write_vcf() {
     let header = standard_header();
     let records: Vec<VariantRecord> = [
         "ref\t1\tid\tTCG\tTAC\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
@@ -543,10 +490,19 @@ fn test_write_vcf() {
     ]
     .iter()
     .map(|r| VariantRecord::from_string(&header, r).unwrap())
+    .map(|mut r| {
+        simplify_record(&mut r);
+        r
+    })
     .collect();
 
+    let lines: Vec<_> = records
+        .iter()
+        .map(|r| (r.chrom.clone(), r.pos, r.to_string()))
+        .collect();
+
     write_vcf(
-        &records,
+        &lines,
         "tests/test_outputs/write_vcf.vcf",
         "test_data/example.vcf",
         None,
@@ -555,31 +511,4 @@ fn test_write_vcf() {
     let output = std::fs::read_to_string("tests/test_outputs/write_vcf.vcf").unwrap();
     let expected_output = std::fs::read_to_string("test_data/write_vcf.vcf").unwrap();
     assert_eq!(output, expected_output);
-}
-
-#[test]
-fn test_process_overriding_filters() {
-    let mut consensus = make_simple_chrom("ATTAAAAA");
-    let overriding_filters = HashMap::from([
-        (("chrom".to_string(), 1usize), vec!["MIN_VDB".to_string()]),
-        (("chrom".to_string(), 3usize), vec!["MIN_VDB".to_string()]),
-        (("chrom".to_string(), 4usize), vec!["MIN_VDB".to_string()]),
-    ]);
-
-    let header = standard_header();
-    let mut records: Vec<VariantRecord> = [
-        "chrom\t2\tid\tA\tT\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
-        "chrom\t3\tid\tA\tT\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
-        "chrom\t5\tid\tAAA\tA\t244.589\tPASS\tDP=28\tGT:AD\t1/1:0,28",
-    ]
-    .iter()
-    .map(|r| VariantRecord::from_string(&header, r).unwrap())
-    .collect();
-
-    process_overriding_filters(&mut consensus, &overriding_filters, &mut records, true);
-
-    assert_eq!(consensus["chrom"], "AFTAFFFA".chars().collect::<Vec<_>>());
-    assert_eq!(records[0].filter, vec!["MIN_VDB".to_string()]);
-    assert!(records[1].filter.is_empty());
-    assert_eq!(records[2].filter, vec!["MIN_VDB".to_string()]);
 }

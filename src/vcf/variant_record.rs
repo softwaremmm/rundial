@@ -219,7 +219,7 @@ impl VariantRecord {
                             "Could not parse QUAL={}.\nError: {e:?}",
                             fields[5]
                         ))
-                        .into())
+                        .into());
                     }
                     Ok(f) => {
                         if f.is_nan() {
@@ -349,14 +349,11 @@ impl VariantRecord {
             self.depth = Some(*dp);
         }
 
-        if let Some(forward) = self.info.get("ADF") {
-            if let Some(reverse) = self.info.get("ADR") {
-                if let (RecordValue::IntegerArray(f), RecordValue::IntegerArray(r)) =
-                    (forward, reverse)
-                {
-                    self.strand_depths = Some((f.clone(), r.clone()));
-                }
-            }
+        if let Some(forward) = self.info.get("ADF")
+            && let Some(reverse) = self.info.get("ADR")
+            && let (RecordValue::IntegerArray(f), RecordValue::IntegerArray(r)) = (forward, reverse)
+        {
+            self.strand_depths = Some((f.clone(), r.clone()));
         }
 
         if let Some(depths) = self.format.get("AD") {
@@ -372,10 +369,10 @@ impl VariantRecord {
             self.allele_depths = Some(depths);
         }
 
-        if self.depth.is_none() {
-            if let Some(depths) = self.allele_depths.as_ref() {
-                self.depth = Some(depths.iter().sum());
-            }
+        if self.depth.is_none()
+            && let Some(depths) = self.allele_depths.as_ref()
+        {
+            self.depth = Some(depths.iter().sum());
         }
     }
 
@@ -780,11 +777,14 @@ pub mod tests {
         assert!(str_to_format(&std_header, "GT:AD", "0/1:.").is_ok());
 
         // Check some errors
-        assert!(str_to_format(&std_header, "GT:AD", "0/1").is_err_and(|e| e
-            .to_string()
-            .contains("Mismatching number of keys and values")));
-        assert!(str_to_format(&std_header, "GT:ADR", "0/1:1,2,3")
-            .is_err_and(|e| e.to_string().contains("No header found for key")));
+        assert!(str_to_format(&std_header, "GT:AD", "0/1").is_err_and(|e| {
+            e.to_string()
+                .contains("Mismatching number of keys and values")
+        }));
+        assert!(
+            str_to_format(&std_header, "GT:ADR", "0/1:1,2,3")
+                .is_err_and(|e| e.to_string().contains("No header found for key"))
+        );
     }
 
     #[test]
