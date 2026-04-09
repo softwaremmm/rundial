@@ -175,7 +175,6 @@ pub struct Classifier {
 
 impl Classifier {
     pub fn new(params: &ConsensusParams, is_support: bool) -> Self {
-        println!("{:?}", params.minor_pop_thresholds);
         if is_support {
             return Classifier {
                 params: params.clone(),
@@ -277,15 +276,6 @@ impl Classifier {
 
                 if *depth < minor_threshold.threshold {
                     sub_minor_alleles.push(i);
-                    println!(
-                        "Allele {} at {}:{} below minor population threshold with depth {}. Marking as sub_minor.",
-                        record
-                            .get_allele_bases(i as i32)
-                            .unwrap_or("missing allele"),
-                        record.chrom,
-                        record.pos_idx(),
-                        depth
-                    );
                     continue;
                 }
 
@@ -293,16 +283,6 @@ impl Classifier {
                     let total_depth: i32 = allelic_depths.iter().sum();
                     if total_depth > 0 && (*depth as f32 / total_depth as f32) < min_frs {
                         sub_minor_alleles.push(i);
-                        println!(
-                            "Allele {} at {}:{} below minor population FRS threshold with depth {} and total depth {}. Marking as sub_minor.",
-                            record
-                                .get_allele_bases(i as i32)
-                                .unwrap_or("missing allele"),
-                            record.chrom,
-                            record.pos_idx(),
-                            depth,
-                            total_depth
-                        );
                         continue;
                     }
                 }
@@ -318,39 +298,14 @@ impl Classifier {
 
                     if min_strand / total < strand_bias {
                         sub_minor_alleles.push(i);
-                        println!(
-                            "Allele {} at {}:{} below minor population strand bias threshold with forward depth {}, reverse depth {}, and total depth {}. Marking as sub_minor.",
-                            record
-                                .get_allele_bases(i as i32)
-                                .unwrap_or("missing allele"),
-                            record.chrom,
-                            record.pos_idx(),
-                            forward_depth,
-                            reverse_depth,
-                            total
-                        );
                         continue;
                     }
                 }
-                println!(
-                    "Allele {} at {}:{} meets minor population thresholds with depth {}. Marking as minor.",
-                    record
-                        .get_allele_bases(i as i32)
-                        .unwrap_or("missing allele"),
-                    record.chrom,
-                    record.pos_idx(),
-                    depth
-                );
 
                 // Allele is minor if it passes all thresholds
                 minor_alleles.push(i);
             }
         } else {
-            println!(
-                "No minor population thresholds set or allele depths missing. All non-GT alleles considered sub_minor at {}:{}",
-                record.chrom,
-                record.pos_idx(),
-            );
             // all non-gt alt alleles are considered sub_minor
             for i in 1..record.alt.len() + 1 {
                 if i as i32 == gt.allele1 {

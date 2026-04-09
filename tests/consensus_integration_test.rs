@@ -79,3 +79,32 @@ fn test_make_consensus_support() {
         compare_files(&expected, &output);
     }
 }
+
+#[test]
+fn test_clair3_consensus_support() {
+    let folder = "test_data/clair3_consensus/".to_string();
+    let main_vcf = folder.clone() + "clair3.vcf";
+    let support_vcf = folder.clone() + "bcftools.vcf";
+    let ref_fasta = folder.clone() + "ref.fasta";
+    let params = folder.clone() + "consensus_params.yml";
+    let output_root = "tests/test_outputs/clair3_consensus/output";
+
+    create_dir_all("tests/test_outputs/clair3_consensus").unwrap();
+
+    make_consensus(
+        &main_vcf,
+        Some(&support_vcf),
+        &ref_fasta,
+        output_root,
+        &params,
+        true,
+    )
+    .unwrap();
+
+    let expected_root = "test_data/clair3_consensus/expected";
+    for ending in &[".fasta", ".vcf", ".report.json"] {
+        let output = output_root.to_string() + ending;
+        let expected = expected_root.to_string() + ending;
+        compare_files(&expected, &output);
+    }
+}

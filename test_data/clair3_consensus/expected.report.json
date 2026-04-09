@@ -1,0 +1,11 @@
+{
+  "Sequencing Quality": {
+    "Reference genome length": 35,
+    "Null calls": 29,
+    "Deleted calls": 2,
+    "Fixed coverage": 17.142857,
+    "Mixed calls": 1,
+    "Mixed snps": 1,
+    "Mixed snp clusters": 1
+  }
+}
