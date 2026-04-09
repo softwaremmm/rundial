@@ -24,7 +24,7 @@ nextflow run . --workflow clair3 --input_dir test_data/assemblers --publish_dir 
 ```
 
 If using modification may need to rebuild container and use `-profile local_docker`
-```
+```bash
 make container
 ```
 
@@ -45,15 +45,11 @@ UPDATE_EXPECTATIONS=1 cargo test
 ## Parameters and Thresholds
 
 ### Note on Hets and minor populations
-First to note that rundial distinguishes minor populations from het calls
-- A minor population is simply when the non-major allele also has read support above a certain threshold
-- A het call requires the genotype to be mixed (0/1) or for the row to have a MIN_FRS flag and have a minor population
-
-The difference being that only het calls are subject to being masked etc. With ONT it is not uncommon to get COV of 100 to 5 for major vs minor allele, which can pass all the filters but still be a minor population. Hets will be a subset of minor populations.
-
-The Mixed snps/indels in the creation report count both kinds.
-
-hets/minors from the support vcf will only get counted if `support_minor_pop_threshold` is set.
+Since rundial is focused on bacteria, it doesn't really support het genotypes (like 0/1).
+It will instead convert these to a single genotype and check for minor populations like normal.
+In the filter process this will use the allele with the higest support. In the consensus process it will simply use the first allele.
+A minor population is simply when an allele, other than the GT allele, has reads above a certain threshold.
+There are various parameters in the params file for controlling this threshold, and whether they are taken from support vcfs when making a consensus.
 
 ### Minimap 2
 No secondary alignments are output, and ont standard params are used.
@@ -67,7 +63,6 @@ No secondary alignments are output, and ont standard params are used.
 ### Rundial
 Filtering params described [here](process/filter_params.yml) and consensus making params [here](process/consensus_params.yml).
 Clair3 vcfs have less filtering [here](process/clair3_filter_params.yml) but similar consensus [params](process/clair3_consensus_params.yml).
-Thresholds mainly choosen by trial and error.
 
 Main filters are for:
 - Minimum read depth
@@ -83,17 +78,14 @@ These are not the same! Some potential alleles have low support so never appear 
 
 Currently MIN_AF is only used for clair3 when checking that ref calls have sufficient support.
 
-Note that MIN_FRS + minor population is taken to mean a het call rather than a simple filter fail. Any other filters will keep the variant as a filter fail.
-
 #### Low_VDB Overriding filters
-Note: not currently using VDB. As with ONT it triggers in the rough proximity of SNV to h37rv so excludes SNPs found in Illumina.
+**Note: not currently using VDB.**
+As with ONT it triggers in the rough proximity of SNV to h37rv so excludes SNPs found in Illumina.
 
 VDB is Variant distance bias. A low VDB indicates that the variant (snp/indel) appears in the same position in all the alignements. Equivalently all the reads seem to start or end their alignment at the same place which is odd as we'd expect this to be random.
 
 It works as an extra check for something funny with alignments even when mapping quality is good.
-
-However, only bcftools provides it as a metric. So when taking the clai3 route `Low_VDB` must be set as an overriding filter in the params.yml.
-This way the variant in the clair3 vcf will inherit the `Low_VDB` flag.
+However, only bcftools provides it as a metric.
 
 
 ## Consensus with two VCFs
@@ -102,7 +94,6 @@ As such the bcftools assembly is used to fill in the blanks. It never adds any p
 This provides more explanation for the calls made.
 
 When running in this mode, bcftools only calls snps in the mpileup command.
-
 
 ---
 
@@ -136,19 +127,10 @@ ACCCC -> ACC (pos 2338194) => CC -> "" (pos 2338198)
 However, the front base is special, as it should normally refer to a base which is not affected by the indel (in a normalised form). So AAAA -> AA should have the effect of A--A
 
 ## Row preference
-The way in which rows of the vcf are applied depends on the priority placed on the different kind of changes. This is were all the subtle errors come about.
+Rundial consensus uses a scoring system for determining which variant to apply if multiple affect the same site (e.g. a deletion and a snp).
+Variants are marked with a FILTER flag "OVERLAP_BETTER_VARIANT" if they have been overlapped by a better variant.
 
-One quirk to be aware is that passed indels trump filtered ref calls. So if you have a potential deletion with GT 0/0 followed by a single base ref call with some filter like STRAND_BIAS. The resulting base call will be ref rather than F.
-
-Current ordering (from lowest priority to highest):
-1. Filtered Null call
-2. Filtered indel
-3. Filtered snp/ref
-4. Passed Null call
-5. Passed homologous ref call indel (indel with gt 0/0)
-6. Passed homologous ref call
-7. Passed indel
-8. Passed snp
+See the `score_variant` function in consensus.rs for details.
 
 ---
 

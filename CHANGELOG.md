@@ -1,4 +1,4 @@
-## New
+## 1.0.0
 
 - add MIN_HQ_DP filter of 5 to clair3
 - set MIN_FRS for clair3 indels to 0.9 to match SNPs
