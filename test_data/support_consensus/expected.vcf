@@ -12,26 +12,28 @@
 ##FILTER=<ID=STRAND_MISMATCH,Description="Flagged when each strand calls a different base.">
 ##FILTER=<ID=OVERLAP_BETTER_VARIANT,Description="This variant overlaps with a higher priority variant.">
 ##FILTER=<ID=SNP_IN_SUPPORT_VCF,Description="This variant is a SNP in the support VCF, which should only be used for information of nulls.">
-##INFO=<ID=FILTERED_MINOR_ALLELES,Number=.,Type=String,Description="Depths for Minor alleles which failed quality checks.">
+##FILTER=<ID=HET_GT,Description="Het genotypes are treated like MIN_FRS.">
 ##INFO=<ID=CALLER,Number=1,Type=String,Description="The variant caller that made the call.">
-##INFO=<ID=HET_IN_SUPPORT_VCF,Number=0,Type=Flag,Description="This variant is a HET in the support VCF, which may be undesired.">
 ##INFO=<ID=MIXED,Number=0,Type=Flag,Description="This variant is counted as a mixed call.">
+##INFO=<ID=REMOVED_MINOR_ALLELES,Number=1,Type=String,Description="Minor alleles which were removed due to being below thresholds.">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Basic depth">
 ##FORMAT=<ID=ADF,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles on forward strand">
 ##FORMAT=<ID=ADR,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles on reverse strand">
 ##FORMAT=<ID=COV,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample
+ref	1	.	T	.	244.589	PASS	CALLER=main	GT:DP:ADF:ADR:COV	0/0:28:10:8:18
 ref	2	.	T	A	225.417	PASS	CALLER=main	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
-ref	3	.	T	A,G	225.417	PASS	CALLER=main	GT:DP:ADF:ADR:COV	2/2:30:0,0,13:0,0,9:0,0,22
-ref	4	.	T	A	225.417	PASS	CALLER=main;MIXED	GT:DP:ADF:ADR:COV	0/1:30:0,13:0,9:0,22
+ref	3	.	T	G	225.417	PASS	CALLER=main;REMOVED_MINOR_ALLELES=A(0)	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
+ref	4	.	T	A	225.417	HET_GT	CALLER=main;MIXED	GT:DP:ADF:ADR:COV	0/0:30:0,13:0,9:0,22
 ref	5	.	T	.	244.589	MIN_DP	CALLER=main	GT:DP:ADF:ADR:COV	0/0:0:0:0:0
 ref	6	.	T	TGGG	60.7969	PASS	CALLER=main	GT:DP:ADF:ADR:COV	1/1:41:0,8:1,8:1,16
-ref	7	.	T	.	40.589	PASS	CALLER=support	GT:DP:ADF:ADR:COV	./.:28:10:8:18
+ref	7	.	T	.	40.589	PASS	CALLER=support;MIXED	GT:DP:ADF:ADR:COV	./.:28:10:8:18
 ref	8	.	T	.	4.589	LOW_QUAL	CALLER=support	GT:DP:ADF:ADR:COV	0/0:28:10:8:18
+ref	9	.	T	.	244.589	PASS	CALLER=support	GT:DP:ADF:ADR:COV	0/0:28:10:8:18
 ref	10	.	T	A	225.417	SNP_IN_SUPPORT_VCF	CALLER=support	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	11	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
-ref	12	.	T	A	225.417	LOW_VDB	CALLER=support	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
+ref	12	.	T	A	225.417	LOW_VDB;SNP_IN_SUPPORT_VCF	CALLER=support	GT:DP:ADF:ADR:COV	1/1:30:0,13:0,9:0,22
 ref	13	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
 ref	14	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0
 ref	15	.	T	.	.	PASS	.	GT:DP:ADF:ADR:COV	./.:0:0:0:0

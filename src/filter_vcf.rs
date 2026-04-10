@@ -3,13 +3,13 @@ use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::path::PathBuf;
 
-use crate::vcf::vcf_header::{FilterHeader, HeaderLine, HeaderNumber, HeaderType};
+use crate::vcf::vcf_header::{FilterHeader, HeaderLine};
 use crate::vcf::{Genotype, RecordValue, VCFHeader, VCFReader, VCFWriter, VariantRecord};
 
 use phf::phf_map;
 
 pub mod parameter_struct;
-pub use parameter_struct::{FilterParams, MinorAlleleParams};
+pub use parameter_struct::FilterParams;
 
 const MIN_DP: &str = "MIN_DP";
 const MIN_HQ_DP: &str = "MIN_HQ_DP";
@@ -23,7 +23,6 @@ const MIN_VDB: &str = "MIN_VDB";
 const MIN_IDV: &str = "MIN_IDV";
 const MIN_IMF: &str = "MIN_IMF";
 const MIN_AF: &str = "MIN_AF";
-pub const BAD_MINOR_ALLELE: &str = "FILTERED_MINOR_ALLELES";
 
 static DESCRIPTIONS: phf::Map<&'static str, &'static str> = phf_map! {
     "MIN_DP" => "Basic read depth is less than ?",
@@ -37,7 +36,6 @@ static DESCRIPTIONS: phf::Map<&'static str, &'static str> = phf_map! {
     "MIN_VDB" => "Variant distance bias is less than ?",
     "MIN_IDV" => "Minimum number of raw reads supporting an indel is less than ?",
     "MIN_IMF" => "Maximum fraction of raw reads supporting an indel is less than ?",
-    "FILTERED_MINOR_ALLELES" => "Depths for Minor alleles which failed quality checks."
 };
 
 static RELEVANT_INFO_TAGS: phf::Map<&'static str, &'static str> = phf_map! {
@@ -142,30 +140,30 @@ fn is_low_tag(record: &VariantRecord, threshold: f32, tag: &str, flag: &str) -> 
 
 /// Check if a record has a low quality score.
 fn is_low_qual(record: &VariantRecord, threshold: f32) -> Option<String> {
-    if let Some(quality_score) = record.qual {
-        if quality_score < threshold {
-            return Some(MIN_QUAL.to_string());
-        }
+    if let Some(quality_score) = record.qual
+        && quality_score < threshold
+    {
+        return Some(MIN_QUAL.to_string());
     }
     return None;
 }
 
 /// Check if a record has a low depth.
 fn is_low_depth(record: &VariantRecord, threshold: f32) -> Option<String> {
-    if let Some(depth) = record.depth() {
-        if (*depth as f32) < threshold {
-            return Some(MIN_DP.to_string());
-        }
+    if let Some(depth) = record.depth()
+        && (*depth as f32) < threshold
+    {
+        return Some(MIN_DP.to_string());
     }
     return None;
 }
 
 /// Check if a record has a low high quality depth, based on AD or, ADF and ADR.
 fn is_low_hq_depth(record: &VariantRecord, threshold: f32) -> Option<String> {
-    if let Some(depths) = record.allele_depths() {
-        if (depths.iter().sum::<i32>() as f32) < threshold {
-            return Some(MIN_HQ_DP.to_string());
-        }
+    if let Some(depths) = record.allele_depths()
+        && (depths.iter().sum::<i32>() as f32) < threshold
+    {
+        return Some(MIN_HQ_DP.to_string());
     }
     return None;
 }
@@ -216,10 +214,10 @@ fn is_invalid_indel(record: &VariantRecord, _threshold: f32) -> Option<String> {
 /// Check if a record has many more reads on one strand than the other.
 /// Require at least threshold percent of reads on each strand
 fn is_strand_bias(record: &VariantRecord, threshold: f32) -> Option<String> {
-    if let Some(main_allele) = record.main_allele() {
-        if is_strand_bias_for_allele(record, main_allele as usize, threshold, true) {
-            return Some(STRAND_BIAS.to_string());
-        }
+    if let Some(main_allele) = record.main_allele()
+        && is_strand_bias_for_allele(record, main_allele as usize, threshold, true)
+    {
+        return Some(STRAND_BIAS.to_string());
     }
     return None;
 }
@@ -259,13 +257,13 @@ fn is_strand_mismatch(record: &VariantRecord, threshold: f32) -> Option<String> 
         let top_forward_indexes: HashSet<usize> = forward
             .iter()
             .enumerate()
-            .filter(|(_, &x)| x >= max_forward - threshold)
+            .filter(|(_, x)| **x >= max_forward - threshold)
             .map(|(i, _)| i)
             .collect();
         let top_reverse_indexes: HashSet<usize> = reverse
             .iter()
             .enumerate()
-            .filter(|(_, &x)| x >= max_reverse - threshold)
+            .filter(|(_, x)| **x >= max_reverse - threshold)
             .map(|(i, _)| i)
             .collect();
 
@@ -301,78 +299,6 @@ fn set_gt_to_highest_depth(record: &mut VariantRecord) {
             allele1: max_index as i32,
             allele2: max_index as i32,
         });
-    }
-}
-
-/// Removes failing minor alleles based on the provided parameters.
-fn filter_minor_alleles(record: &mut VariantRecord, params: &MinorAlleleParams) {
-    let gt = record.genotype().expect("Genotype not found").clone();
-
-    let mut minor_alleles_to_remove = Vec::new();
-
-    if let Some(allelic_depths) = record.allele_depths() {
-        for (i_usize, depth) in allelic_depths.iter().enumerate() {
-            let i = i_usize as i32;
-            if i == 0 || i == gt.allele1 || i == gt.allele2 {
-                continue; // Skip alleles in GT or ref
-            }
-
-            if *depth < params.threshold {
-                continue; // Skip alleles below the threshold
-            }
-
-            if let Some(min_frs) = params.min_frs {
-                let total_depth: i32 = allelic_depths.iter().sum();
-                if total_depth == 0 || (*depth as f32 / total_depth as f32) < min_frs {
-                    let alt = record.get_allele_bases(i).expect("Allele bases not found");
-                    if let Some((forward, reverse)) = record.strand_depths() {
-                        minor_alleles_to_remove.push((
-                            i,
-                            format!("{alt}({}/{})", forward[i_usize], reverse[i_usize]),
-                        ));
-                    } else {
-                        minor_alleles_to_remove.push((i, format!("{alt}({depth})")));
-                    }
-                    continue;
-                }
-            }
-
-            if let Some(strand_bias) = params.strand_bias {
-                if let Some((forward, reverse)) = record.strand_depths() {
-                    let forward_depth = forward[i_usize] as f32;
-                    let reverse_depth = reverse[i_usize] as f32;
-
-                    let total = forward_depth + reverse_depth;
-
-                    if forward_depth / total < strand_bias || reverse_depth / total < strand_bias {
-                        let alt = record.get_allele_bases(i).expect("Allele bases not found");
-                        minor_alleles_to_remove.push((
-                            i,
-                            format!("{alt}({}/{})", forward[i_usize], reverse[i_usize]),
-                        ));
-                        continue;
-                    }
-                }
-            }
-        }
-    }
-
-    if !minor_alleles_to_remove.is_empty() {
-        // Remove bad minor alleles in reverse order to avoid index issues
-        for (allele, _) in minor_alleles_to_remove.iter().rev() {
-            record.remove_allele(*allele);
-        }
-
-        // Add to Info field
-        record.info.insert(
-            BAD_MINOR_ALLELE.to_string(),
-            crate::vcf::RecordValue::StringArray(
-                minor_alleles_to_remove
-                    .into_iter()
-                    .map(|(_, depth_str)| depth_str)
-                    .collect::<Vec<String>>(),
-            ),
-        );
     }
 }
 
@@ -478,14 +404,6 @@ pub fn filter_vcf(
 
     let mut new_header = header.clone();
     add_filters_to_header(&mut new_header, &params);
-    if params.minor_allele_params.is_some() {
-        new_header.add_info_line(
-            BAD_MINOR_ALLELE.to_owned(),
-            HeaderNumber::Unknown,
-            HeaderType::String,
-            DESCRIPTIONS[BAD_MINOR_ALLELE].to_owned(),
-        );
-    }
     let mut vcf_writer = VCFWriter::to_path(out_vcf, new_header)?;
 
     let std_filterer = Filterer::create_from_params(&params.parameters);
@@ -493,9 +411,6 @@ pub fn filter_vcf(
     let snp_filterer = Filterer::create_from_params(&params.snp_parameters);
     let indel_filterer = Filterer::create_from_params(&params.indel_parameters);
     let fix_gt: bool = params.fix_gt.unwrap_or(false);
-
-    // No point checking minor alleles on completely filtered records
-    let allowed_filters_for_minor_allele_filtering = [MIN_FRS, MIN_AF, MIN_IDV, MIN_IMF];
 
     if verbose {
         println!("Filtering VCF file");
@@ -522,15 +437,6 @@ pub fn filter_vcf(
 
         if new_filters.contains(INVALID_INDEL) {
             continue;
-        }
-
-        if let Some(minor_allele_params) = &params.minor_allele_params {
-            if new_filters
-                .iter()
-                .all(|x| allowed_filters_for_minor_allele_filtering.contains(&x.as_str()))
-            {
-                filter_minor_alleles(&mut record, minor_allele_params);
-            }
         }
 
         let mut new_filters: Vec<String> = new_filters.into_iter().collect();
@@ -707,34 +613,6 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_minor_alleles() {
-        let params = MinorAlleleParams {
-            threshold: 5,
-            min_frs: Some(0.05),
-            strand_bias: Some(0.01),
-        };
-        let std_header = standard_header();
-
-        // test both min_frs and strand_bias cause remaining minor allele to shift
-        let mut record: VariantRecord = VariantRecord::from_string(
-            &std_header,
-            "ref\t1\tid\tA\tC,G,T\t100\tPASS\tDP=246;ADF=100,20,3,10;ADR=100,0,3,10;MQ=53.0\tGT:AD\t0/0:200,20,6,20",
-        )
-        .unwrap();
-        filter_minor_alleles(&mut record, &params);
-        assert_eq!(record.to_string(), "ref\t1\tid\tA\tT\t100\tPASS\tDP=246;ADF=100,10;ADR=100,10;MQ=53.0;FILTERED_MINOR_ALLELES=C(20/0),G(3/3)\tGT:AD\t0/0:200,20");
-
-        // should skip alleles in gt, and work without strand depths
-        let mut record: VariantRecord = VariantRecord::from_string(
-            &std_header,
-            "ref\t1\tid\tA\tC,G,T\t100\tPASS\tDP=226;MQ=53.0\tGT:AD\t0/3:200,3,6,20",
-        )
-        .unwrap();
-        filter_minor_alleles(&mut record, &params);
-        assert_eq!(record.to_string(), "ref\t1\tid\tA\tC,T\t100\tPASS\tDP=226;MQ=53.0;FILTERED_MINOR_ALLELES=G(6)\tGT:AD\t0/2:200,3,20");
-    }
-
-    #[test]
     fn test_set_gt_to_highest_depth() {
         let std_header = standard_header();
 
@@ -819,24 +697,27 @@ mod tests {
             snp_parameters: None,
             indel_parameters: None,
             fix_gt: None,
-            ..Default::default()
         };
         add_filters_to_header(&mut header, &params);
         assert_eq!(header.filters().len(), 2);
         assert!(header.filters().contains_key(MIN_DP));
         assert!(header.filters().contains_key(MIN_QUAL));
         println!("{:?}", header.filters());
-        assert!(header
-            .filters()
-            .get(MIN_DP)
-            .unwrap()
-            .desc
-            .contains("10, 15"));
-        assert!(header
-            .filters()
-            .get(MIN_QUAL)
-            .unwrap()
-            .desc
-            .contains("20, 25"));
+        assert!(
+            header
+                .filters()
+                .get(MIN_DP)
+                .unwrap()
+                .desc
+                .contains("10, 15")
+        );
+        assert!(
+            header
+                .filters()
+                .get(MIN_QUAL)
+                .unwrap()
+                .desc
+                .contains("20, 25")
+        );
     }
 }

@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 ///
 /// e.g. `sites.extend_chrom("chr1", vec![1, 2, 3]);`
 pub trait ContigSet<T> {
+    #[allow(dead_code)]
     fn extend_chrom<I>(&mut self, chrom: &str, iter: I)
     where
         I: IntoIterator<Item = T>;

@@ -1,5 +1,5 @@
 # ---- Rust Build Stage ----
-FROM rust:1.88-slim AS chef
+FROM rust:1.94-slim AS chef
 
 RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-chef

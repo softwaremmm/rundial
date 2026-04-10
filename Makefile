@@ -22,3 +22,9 @@ pc:
 
 clippy:
 	cargo clippy --all --all-features --tests -- -D warnings
+
+clippy_fix:
+	cargo clippy --all --all-features --tests --fix --allow-dirty -- -D warnings
+
+release:
+	cargo build --release

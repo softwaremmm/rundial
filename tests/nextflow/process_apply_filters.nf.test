@@ -9,14 +9,14 @@ nextflow_process {
                 """
                 input[0] = ['sample', file("$projectDir/test_data/unfiltered.vcf")]
                 input[1] = file("$projectDir/test_data/filter_params.yml")
-                input[2] = ""
+                input[2] = "bcftools"
                 """
             }
         }
 
         then {
             assert process.success
-            with(process.out.alternate_bcftools_vcf) {
+            with(process.out.filtered_vcf) {
                 assert get(0)[1].contains('alternate-bcftools.vcf.gz')
                 assert path(get(0)[1]).md5 == path("$projectDir/test_data/filtered.vcf").md5
             }
@@ -30,7 +30,7 @@ nextflow_process {
                 """
                 input[0] = ['sample', file("$projectDir/test_data/not_exist.vcf")]
                 input[1] = file("$projectDir/test_data/filter_params.yml")
-                input[2] = ""
+                input[2] = "bcftools"
                 """
             }
         }

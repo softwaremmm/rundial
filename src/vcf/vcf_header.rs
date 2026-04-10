@@ -509,7 +509,7 @@ impl VCFHeader {
                     return Err(VCFError::InvalidHeader(
                         "Flag type but number suggests a list.".to_string(),
                     )
-                    .into())
+                    .into());
                 }
                 HeaderType::Integer => {
                     let values: Vec<_> = value
@@ -537,7 +537,7 @@ impl VCFHeader {
                     return Err(VCFError::InvalidHeader(
                         "Flag type but value is not empty.".to_string(),
                     )
-                    .into())
+                    .into());
                 }
                 (HeaderType::Integer, _) => return Ok(RecordValue::Integer(value.parse::<i32>()?)),
                 (HeaderType::Float, _) => return Ok(RecordValue::Float(value.parse::<f32>()?)),
@@ -552,7 +552,7 @@ impl VCFHeader {
             None => {
                 return Err(Box::new(VCFError::InvalidField(format!(
                     "No header found for key {key}. Value given: {value}"
-                ))))
+                ))));
             }
             Some(h) => h,
         };
@@ -572,7 +572,7 @@ impl VCFHeader {
             None => {
                 return Err(Box::new(VCFError::InvalidField(format!(
                     "No header found for key {key}. Value given: {value}"
-                ))))
+                ))));
             }
             Some(h) => h,
         };
@@ -857,8 +857,10 @@ mod tests {
             RecordValue::Missing
         );
 
-        assert!(header
-            .parse_info_value("MISSING", "42.0")
-            .is_err_and(|e| e.to_string().contains("No header found for key MISSING")));
+        assert!(
+            header
+                .parse_info_value("MISSING", "42.0")
+                .is_err_and(|e| e.to_string().contains("No header found for key MISSING"))
+        );
     }
 }
