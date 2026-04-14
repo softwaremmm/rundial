@@ -1,0 +1,15 @@
+{
+    "Sequencing Quality": {
+        "Reference genome length": 21,
+        "Null bases": 2,
+        "Deleted bases": 3,
+        "Fixed coverage": 90.47619047619048,
+        "Mixed calls": 2,
+        "Mixed snps": 1,
+        "Mixed snp clusters": 1,
+        "Isolated mixed snps": 1,
+        "Unmasked null bases": 1,
+        "Unmasked deleted bases": 3,
+        "Fixed coverage with mask": 95.23809523809523
+    }
+}

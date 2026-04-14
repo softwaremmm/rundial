@@ -1,3 +1,7 @@
+## New
+
+- script for recreating a genome creation report json incorporating a mask
+
 ## 1.0.0
 
 - add MIN_HQ_DP filter of 5 to clair3
