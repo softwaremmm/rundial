@@ -1,0 +1,31 @@
+nextflow_process {
+    name "Test Process Consensus"
+    script "process/consensus.nf"
+    process "reassess_genome_creation"
+
+    test("Process run successfully and produce consensus") {
+        when {
+            process{
+                """
+                input[0] = [
+                    'sample',
+                    file("$projectDir/test_data/reassess_genome_creation/input.fasta"),
+                    file("$projectDir/test_data/reassess_genome_creation/input.vcf"),
+                    file("$projectDir/test_data/reassess_genome_creation/mask.txt")]
+                input[1] = 5
+                input[2] = 5
+                input[3] = 0
+                input[4] = 12
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            with(process.out.report_json) {
+                assert path(get(0)[1]).md5 == path("$projectDir/test_data/reassess_genome_creation/report.json").md5
+            }
+        }
+    }
+
+}

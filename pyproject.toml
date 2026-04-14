@@ -12,9 +12,13 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 requires-python = ">=3.9,<4.0"
+dependencies = [
+    "pandas>=2.0",
+]
 
 [project.scripts]
 multithreaded_bcftools = "helper_scripts.multithreaded_bcftools:main"
+assess_genome_creation = "helper_scripts.assess_genome_creation:main"
 
 [project.optional-dependencies]
 dev = [

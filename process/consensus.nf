@@ -118,3 +118,37 @@ process make_clair3_consensus {
     sed -i "s/^>/>${sample_name}:/" final.variable_length.fasta
     """
 }
+
+
+process reassess_genome_creation {
+    publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
+    container {
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:0c50b02' : params.test_container_rundial
+    }
+    cpus 1
+
+    pod label: "name", value: "rundial:reassess_genome_creation"
+    pod label: "sample_id", value: "${params.sample_id}"
+    pod label: "run_id", value: "${params.run_id}"
+
+    input:
+    tuple val(sample_name), path(fasta), path(vcf), path(mask)
+    val min_allele_dp
+    val min_allele_pc
+    val min_strand_pc
+    val cluster_window
+
+    output:
+    tuple val(sample_name), path("updated_creation_report.json"), emit: report_json
+
+    script:
+    """
+    assess_genome_creation --fasta ${fasta} --vcf ${vcf} \
+        --mask ${mask} \
+        --min_allele_dp ${min_allele_dp} \
+        --min_allele_pc ${min_allele_pc} \
+        --min_strand_pc ${min_strand_pc} \
+        --cluster_window ${cluster_window} \
+        -o updated_creation_report.json
+    """
+}
