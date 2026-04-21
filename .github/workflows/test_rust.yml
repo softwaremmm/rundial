@@ -13,16 +13,14 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust 1.93
+        uses: dtolnay/rust-toolchain@1.93.0
         with:
-          toolchain: stable
-          profile: minimal
           components: clippy
 
       - name: Print versions
         run: |
-          rustc --version
+          rustc -Vv
           cargo --version
           cargo clippy --version
 
