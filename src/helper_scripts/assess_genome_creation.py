@@ -293,12 +293,16 @@ def count_deletions(vcf: pd.DataFrame) -> tuple[int, int]:
 
     def get_deletion_length(row):
         gt = row["SAMPLE"].split(":")[0]
-        if "/" not in gt:
-            return 0
-        part1, part2 = gt.split("/")
-        if part1 != part2 or part1 == "." or part1 == "0":
-            return 0
-        allele_index = int(part1) - 1
+        if "/" in gt:
+            part1, part2 = gt.split("/")
+            if part1 != part2 or part1 == "." or part1 == "0":
+                return 0
+            allele_index = int(part1) - 1
+        else:
+            if gt != "0" and gt != ".":
+                allele_index = int(gt) - 1
+            else:
+                return 0
 
         alt = row["ALT"].split(",")[allele_index]
         if len(alt) >= len(row["REF"]):
