@@ -198,10 +198,8 @@ fn mark_overlaps(records: &mut [(VariantRecord, Classification)], classifier: &C
                 if !record.filter.contains(&OVERLAP_FILTER.to_string()) {
                     record.filter.push(OVERLAP_FILTER.to_string());
                 }
-            } else {
-                if !other_r.filter.contains(&OVERLAP_FILTER.to_string()) {
-                    other_r.filter.push(OVERLAP_FILTER.to_string());
-                }
+            } else if !other_r.filter.contains(&OVERLAP_FILTER.to_string()) {
+                other_r.filter.push(OVERLAP_FILTER.to_string());
             }
         }
 
