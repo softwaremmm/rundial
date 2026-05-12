@@ -1,5 +1,5 @@
 nextflow_process {
-    name "Test Process Consensus"
+    name "Test Reassess Genome Creation"
     script "process/consensus.nf"
     process "reassess_genome_creation"
 

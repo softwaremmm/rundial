@@ -20,21 +20,28 @@ class HetSettings:
     min_strand_pc: float
 
 
-def read_fasta(path: str) -> str:
-    """Read fasta file and return sequence as a string"""
+def read_fasta(path: str) -> dict[str, str]:
+    """Read fasta file and return sequences as a dict of contig to sequence"""
+
+    sequences = {}
+
     with open(path, "r", encoding="utf-8") as file:
         lines = file.readlines()
-    # Remove the first line (header) and join the rest into a single string
-    num_contigs = sum(1 for line in lines if line.startswith(">"))
+        current_contig = None
+        current_sequence = []
+        for line in lines:
+            line = line.strip()
+            if line.startswith(">"):
+                if current_contig is not None:
+                    sequences[current_contig] = "".join(current_sequence)
+                current_contig = line[1:].split()[0]
+                current_sequence = []
+            else:
+                current_sequence.append(line)
+        if current_contig is not None:
+            sequences[current_contig] = "".join(current_sequence)
 
-    if num_contigs > 1:
-        raise ValueError("Only one contig is supported")
-    if num_contigs == 0:
-        raise ValueError("No contigs found in the fasta file")
-
-    sequence = "".join(line.strip() for line in lines[1:])
-    sequence = sequence.replace("-", "N")  # replace gaps with N
-    return sequence
+    return sequences
 
 
 def read_vcf(vcf_path: str) -> pd.DataFrame:
@@ -51,20 +58,37 @@ def read_vcf(vcf_path: str) -> pd.DataFrame:
         "FORMAT",
         "SAMPLE",
     ]
-    usecols = ["POS", "REF", "ALT", "FILTER", "INFO", "FORMAT", "SAMPLE"]
+    usecols = ["CHROM", "POS", "REF", "ALT", "FILTER", "INFO", "FORMAT", "SAMPLE"]
     df = pd.read_csv(vcf_path, sep="\t", comment="#", names=columns, usecols=usecols)
     return df
 
 
-def read_mask(mask_file: str, convert_to_1_indexed: bool = False) -> set[int]:
-    """Read mask file and return set of positions"""
-    mask: set[int] = set()
-    if mask_file:
-        with open(mask_file, encoding="utf-8") as f:
-            mask.update(int(line.strip()) for line in f)
+def read_mask(
+    mask_file: str, convert_to_1_indexed: bool, fasta_file: str
+) -> pd.DataFrame:
+    """Read mask file and return dataframe with cols: contig, position"""
+
+    # mask file may either have header with contig, position or just be a list of positions.
+    with open(mask_file, "r", encoding="utf-8") as f:
+        first_line = f.readline().strip()
+        if "\t" in first_line:
+            # assume tab-delimited with contig and position
+            df = pd.read_csv(mask_file, sep="\t")
+        else:
+            # assume just a list of positions
+            df = pd.read_csv(mask_file, header=None, names=["position"])
+            # use first contig from fasta as default contig for all positions
+            with open(fasta_file, "r", encoding="utf-8") as fasta_f:
+                for line in fasta_f:
+                    if line.startswith(">"):
+                        default_contig = line[1:].split()[0]
+                        break
+            df["contig"] = default_contig
+
     if convert_to_1_indexed:
-        mask = set(pos + 1 for pos in mask)
-    return mask
+        df["position"] = df["position"] + 1
+
+    return df[["contig", "position"]]
 
 
 def make_format_lookup(format_str: str, field_names: list[str]) -> dict[str, int]:
@@ -234,16 +258,18 @@ def set_is_filtered(vcf: pd.DataFrame) -> pd.DataFrame:
     return vcf
 
 
-def set_is_masked(vcf: pd.DataFrame, mask: set[int]) -> pd.DataFrame:
-    def in_mask(pos, mask, ref):
+def set_is_masked(vcf: pd.DataFrame, mask: pd.DataFrame) -> pd.DataFrame:
+    def in_mask(contig, pos, mask_set, ref):
         for i in range(len(ref)):
-            if pos + i in mask:
+            if (contig, pos + i) in mask_set:
                 return True
         return False
 
-    if mask:
+    mask_set = set(zip(mask["contig"], mask["position"]))
+
+    if mask_set:
         vcf["is_masked"] = vcf.apply(
-            lambda row: in_mask(row["POS"], mask, row["REF"]), axis=1
+            lambda row: in_mask(row["CHROM"], row["POS"], mask_set, row["REF"]), axis=1
         )
     else:
         vcf["is_masked"] = False
@@ -259,7 +285,9 @@ def report_het_stats(hets_df: pd.DataFrame, cluster_window: int) -> dict:
 
     # each row is a new cluster if it's more than cluster_window away from the previous row
     snps = snps.sort_values("POS")
-    stats["Mixed snp clusters"] = (snps["POS"].diff().fillna(cluster_window + 1) > cluster_window).sum()
+    stats["Mixed snp clusters"] = (
+        snps["POS"].diff().fillna(cluster_window + 1) > cluster_window
+    ).sum()
     stats["Isolated mixed snps"] = (
         (snps["POS"].diff().fillna(cluster_window + 1) > cluster_window)
         & (snps["POS"].diff(-1).fillna(cluster_window + 1).abs() > cluster_window)
@@ -270,7 +298,7 @@ def report_het_stats(hets_df: pd.DataFrame, cluster_window: int) -> dict:
 
 def annotate_vcf(
     vcf: pd.DataFrame,
-    mask: set[int],
+    mask: pd.DataFrame,
     het_settings: HetSettings,
 ) -> pd.DataFrame:
     vcf["indel_like"] = (vcf["REF"].str.len() != 1) | vcf["ALT"].fillna(".").apply(
@@ -315,21 +343,31 @@ def count_deletions(vcf: pd.DataFrame) -> tuple[int, int]:
     return total_deleted_bases, unmasked_deleted_bases
 
 
-def count_nulls(fasta_file: str, mask: set[int]) -> tuple[int, int, int]:
+def count_nulls(fasta_file: str, mask: pd.DataFrame) -> tuple[int, int, int]:
     """Count the number of null bases as total and unmasked, and return genome length"""
-    fasta_seq = read_fasta(fasta_file)
-    null_positions = set(
-        index + 1 for index, base in enumerate(fasta_seq) if base.upper() == "N"
-    )
-    total_nulls = len(null_positions)
-    unmasked_nulls = len(null_positions - mask)
-    return total_nulls, unmasked_nulls, len(fasta_seq)
+    fasta_seqs = read_fasta(fasta_file)
+    total_nulls = 0
+    unmasked_nulls = 0
+    genome_length = 0
+
+    for contig, fasta_seq in fasta_seqs.items():
+        contig_mask = set(mask[mask["contig"] == contig]["position"])
+        null_positions = set(
+            index + 1
+            for index, base in enumerate(fasta_seq)
+            if base.upper() == "N" or base == "-"
+        )
+        total_nulls += len(null_positions)
+        unmasked_nulls += len(null_positions - contig_mask)
+        genome_length += len(fasta_seq)
+
+    return total_nulls, unmasked_nulls, genome_length
 
 
 def vcf_file_to_stats(
     vcf_path: str,
     fasta_file: str,
-    mask: set[int],
+    mask: pd.DataFrame,
     het_settings: HetSettings,
     cluster_window: int,
 ) -> dict:
@@ -362,7 +400,7 @@ def vcf_file_to_stats(
         "Fixed coverage": 100 * fixed_coverage,
         **het_stats,
     }
-    if mask:
+    if len(mask) > 0:
         all_stats["Unmasked null bases"] = unmasked_real_nulls
         all_stats["Unmasked deleted bases"] = unmasked_dels
         all_stats["Fixed coverage with mask"] = 100 * unmasked_fixed_coverage
@@ -373,7 +411,7 @@ def vcf_file_to_stats(
 def process_sample(
     vcf_file: str,
     fasta_file: str,
-    mask: set[int],
+    mask: pd.DataFrame,
     het_settings: HetSettings,
     cluster_window: int,
 ) -> dict:
@@ -421,11 +459,14 @@ def main():
 
     het_settings = HetSettings(
         min_allele_dp=args.min_allele_dp,
-        min_allele_pc=args.min_allele_pc / 100 if args.min_allele_pc >= 1 else args.min_allele_pc,
+        min_allele_pc=args.min_allele_pc / 100
+        if args.min_allele_pc >= 1
+        else args.min_allele_pc,
         min_strand_pc=args.min_strand_pc,
     )
 
-    mask = read_mask(args.mask, convert_to_1_indexed=True)
+    # default contig is for TB, which only has one contig so historic mask is just a list of sites
+    mask = read_mask(args.mask, convert_to_1_indexed=True, fasta_file=args.fasta)
 
     stats = process_sample(
         args.vcf, args.fasta, mask, het_settings, args.cluster_window
