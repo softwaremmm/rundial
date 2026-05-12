@@ -64,7 +64,7 @@ def read_vcf(vcf_path: str) -> pd.DataFrame:
 
 
 def read_mask(
-    mask_file: str, convert_to_1_indexed: bool, default_contig: str
+    mask_file: str, convert_to_1_indexed: bool, fasta_file: str
 ) -> pd.DataFrame:
     """Read mask file and return dataframe with cols: contig, position"""
 
@@ -77,6 +77,12 @@ def read_mask(
         else:
             # assume just a list of positions
             df = pd.read_csv(mask_file, header=None, names=["position"])
+            # use first contig from fasta as default contig for all positions
+            with open(fasta_file, "r", encoding="utf-8") as fasta_f:
+                for line in fasta_f:
+                    if line.startswith(">"):
+                        default_contig = line[1:].split()[0]
+                        break
             df["contig"] = default_contig
 
     if convert_to_1_indexed:
@@ -263,7 +269,7 @@ def set_is_masked(vcf: pd.DataFrame, mask: pd.DataFrame) -> pd.DataFrame:
 
     if mask_set:
         vcf["is_masked"] = vcf.apply(
-            lambda row: in_mask(row["CHROM"], row["POS"], mask, row["REF"]), axis=1
+            lambda row: in_mask(row["CHROM"], row["POS"], mask_set, row["REF"]), axis=1
         )
     else:
         vcf["is_masked"] = False
@@ -347,7 +353,9 @@ def count_nulls(fasta_file: str, mask: pd.DataFrame) -> tuple[int, int, int]:
     for contig, fasta_seq in fasta_seqs.items():
         contig_mask = set(mask[mask["contig"] == contig]["position"])
         null_positions = set(
-            index + 1 for index, base in enumerate(fasta_seq) if base.upper() == "N"
+            index + 1
+            for index, base in enumerate(fasta_seq)
+            if base.upper() == "N" or base == "-"
         )
         total_nulls += len(null_positions)
         unmasked_nulls += len(null_positions - contig_mask)
@@ -458,7 +466,7 @@ def main():
     )
 
     # default contig is for TB, which only has one contig so historic mask is just a list of sites
-    mask = read_mask(args.mask, convert_to_1_indexed=True, default_contig="NC_000962.3")
+    mask = read_mask(args.mask, convert_to_1_indexed=True, fasta_file=args.fasta)
 
     stats = process_sample(
         args.vcf, args.fasta, mask, het_settings, args.cluster_window
