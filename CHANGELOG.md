@@ -1,4 +1,4 @@
-## New
+## 1.1.0
 
 - script for recreating a genome creation report json incorporating a mask
 

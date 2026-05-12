@@ -1,7 +1,7 @@
 process apply_filters {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:c009047' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.0' : params.test_container_rundial
     }
     cpus 1
 
@@ -29,7 +29,7 @@ process apply_filters {
 process make_consensus {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:c009047' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.0' : params.test_container_rundial
     }
     cpus 1
     memory "4 GB"
@@ -75,7 +75,7 @@ process make_consensus {
 process make_clair3_consensus {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:c009047' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.0' : params.test_container_rundial
     }
     cpus 1
     memory "3 GB"
@@ -123,7 +123,7 @@ process make_clair3_consensus {
 process reassess_genome_creation {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:c009047' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.0' : params.test_container_rundial
     }
     cpus 1
 
