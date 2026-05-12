@@ -8,6 +8,7 @@ data/clair3_models/
 results/
 
 */*egg-info
+__pycache__/
 
 work/
 .nextflow/
