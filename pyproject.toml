@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rundial"
-version = "1.1.0"
+version = "1.1.1"
 description = "Reference based assembly of ONT reads."
 classifiers = [
     "Environment :: Console",
@@ -37,7 +37,7 @@ version_scheme = "semver"
 version_provider = "pep621"
 
 [tool.version_bumper]
-active_version = "1.1.0"
+active_version = "1.1.1"
 version_files = [
     "process/variant_calling.nf",
     "process/consensus.nf",
