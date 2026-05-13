@@ -1,3 +1,7 @@
+## 1.1.1
+
+- fix for asseess_genome_creation when there are no indels
+
 ## 1.1.0
 
 - script for recreating a genome creation report json incorporating a mask

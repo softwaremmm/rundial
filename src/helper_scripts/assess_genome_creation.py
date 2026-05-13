@@ -319,6 +319,9 @@ def count_deletions(vcf: pd.DataFrame) -> tuple[int, int]:
     # Only count completely non-filtered indels
     indels = vcf[vcf["indel_like"] & vcf["FILTER"].isin([".", "PASS"])].copy()
 
+    if indels.empty:
+        return 0, 0
+
     def get_deletion_length(row):
         gt = row["SAMPLE"].split(":")[0]
         if "/" in gt:
