@@ -1,6 +1,10 @@
+## 1.1.2
+
+- fix for assess_genome_creation when vcf tables is empty
+
 ## 1.1.1
 
-- fix for asseess_genome_creation when there are no indels
+- fix for assess_genome_creation when there are no indels
 
 ## 1.1.0
 
