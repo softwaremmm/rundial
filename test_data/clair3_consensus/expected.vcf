@@ -1,5 +1,5 @@
 ##fileformat=VCFv4.2
-##rundial_consensus_version=1.1.1
+##rundial_consensus_version=1.1.2
 ##FILTER=<ID=LowQual,Description="Low quality variant">
 ##FILTER=<ID=RefCall,Description="Reference call">
 ##FILTER=<ID=PASS,Description="All filters passed">
