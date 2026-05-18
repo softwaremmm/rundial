@@ -203,9 +203,14 @@ def set_depth_columns(vcf: pd.DataFrame) -> pd.DataFrame:
             f"Could not find suitable depth fields for row with FORMAT {row['FORMAT']}.\nrow={row}"
         )
 
-    vcf[["ADF", "ADR", "COV", "HQ_DP"]] = vcf.apply(
-        get_depths, axis=1, result_type="expand"
-    )
+    if vcf.empty:
+        vcf[["ADF", "ADR", "COV", "HQ_DP"]] = pd.DataFrame(
+            [[None, None, [0], 0]], index=vcf.index
+        )
+    else:
+        vcf[["ADF", "ADR", "COV", "HQ_DP"]] = vcf.apply(
+            get_depths, axis=1, result_type="expand"
+        )
     return vcf
 
 
@@ -239,7 +244,10 @@ def set_het_flag(vcf: pd.DataFrame, het_settings: HetSettings) -> pd.DataFrame:
             return False
         return True
 
-    vcf["is_het"] = vcf.apply(is_het, axis=1)
+    if vcf.empty:
+        vcf["is_het"] = False
+    else:
+        vcf["is_het"] = vcf.apply(is_het, axis=1)
     return vcf
 
 
@@ -267,7 +275,7 @@ def set_is_masked(vcf: pd.DataFrame, mask: pd.DataFrame) -> pd.DataFrame:
 
     mask_set = set(zip(mask["contig"], mask["position"]))
 
-    if mask_set:
+    if mask_set and not vcf.empty:
         vcf["is_masked"] = vcf.apply(
             lambda row: in_mask(row["CHROM"], row["POS"], mask_set, row["REF"]), axis=1
         )
@@ -318,6 +326,9 @@ def count_deletions(vcf: pd.DataFrame) -> tuple[int, int]:
     """Count the number of deleted bases as total and unmasked"""
     # Only count completely non-filtered indels
     indels = vcf[vcf["indel_like"] & vcf["FILTER"].isin([".", "PASS"])].copy()
+
+    if indels.empty:
+        return 0, 0
 
     def get_deletion_length(row):
         gt = row["SAMPLE"].split(":")[0]
