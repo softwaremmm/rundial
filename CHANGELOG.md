@@ -1,3 +1,7 @@
+## 1.1.3
+
+- stop pushing to gpasltd
+
 ## 1.1.2
 
 - fix for assess_genome_creation when vcf tables is empty
