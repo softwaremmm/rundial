@@ -8,24 +8,11 @@ on:
 
 jobs:
   build_and_test:
-    runs-on: self-hosted # Uses https://github.com/GlobalPathogenAnalysisService/git_runners
+    runs-on: ubuntu-latest
 
     steps:
-      - name: clean up # nf-test needs to sudo to remove, so will fail automatic cleanup
-        run: |
-          ls -al
-          sudo rm -rf .nf-test || true
-          sudo rm -rf tests || true
-
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Login to OCR
-        uses: docker/login-action@v2
-        with:
-          registry: lhr.ocir.io
-          username: ${{ secrets.OCR_USERNAME }}
-          password: ${{ secrets.OCR_TOKEN }}
 
       - name: Build docker container
         run: |
@@ -34,16 +21,12 @@ jobs:
         run: |
           docker image inspect test_container_rundial
 
-      - name: symlink clair3 models
+      - name: Download Clair3 model
         run: |
-          ln -s /mnt/portal-sp3dev-knowledge/sundial/clair3_models data/clair3_models
+          mkdir -p data/clair3_models
+          wget \
+            -O data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz \
+            https://cdn.oxfordnanoportal.com/software/analysis/models/clair3/r1041_e82_400bps_sup_v430.tar.gz
 
       - name: Run nf-test
         run: nf-test test tests/nextflow/*nf.test --profile local_docker
-
-      - name: clean up 2 # nf-test needs to sudo to remove, so will fail automatic cleanup
-        if: always()
-        run: |
-          ls -al
-          sudo rm -rf .nf-test || true
-          sudo rm -rf tests || true
