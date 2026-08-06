@@ -32,7 +32,7 @@ process make_consensus {
         params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.3' : params.test_container_rundial
     }
     cpus 1
-    memory "4 GB"
+    memory {6.GB + (4.GB * task.attempt)} // high memory should only be required if not using clair3
 
     pod label: "name", value: "rundial:make_consensus"
     pod label: "sample_id", value: "${params.sample_id}"
