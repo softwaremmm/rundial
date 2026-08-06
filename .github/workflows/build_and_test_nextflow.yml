@@ -14,6 +14,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Nextflow
+        uses: nf-core/setup-nextflow@v1
+
+      - name: Install nf-test
+        run: |
+          wget -qO- https://get.nf-test.com | bash
+          sudo mv nf-test /usr/local/bin/
+
       - name: Build docker container
         run: |
           docker build -t test_container_rundial .
