@@ -1,3 +1,7 @@
+## 1.1.4
+
+- increase ram for consensus step
+
 ## 1.1.3
 
 - stop pushing to gpasltd
