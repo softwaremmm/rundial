@@ -7,7 +7,7 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/unfiltered.vcf")]
+                input[0] = ['sample', "ref", file("$projectDir/data/h37rv_20231215.fa.gz"), file("$projectDir/test_data/unfiltered.vcf")]
                 input[1] = file("$projectDir/test_data/filter_params.yml")
                 input[2] = "bcftools"
                 """
@@ -17,8 +17,8 @@ nextflow_process {
         then {
             assert process.success
             with(process.out.filtered_vcf) {
-                assert get(0)[1].contains('alternate-bcftools.vcf.gz')
-                assert path(get(0)[1]).md5 == path("$projectDir/test_data/filtered.vcf").md5
+                assert get(0)[3].contains('alternate-bcftools.vcf.gz')
+                assert path(get(0)[3]).md5 == path("$projectDir/test_data/filtered.vcf").md5
             }
         }
     }
@@ -28,7 +28,7 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/not_exist.vcf")]
+                input[0] = ['sample', "ref", file("$projectDir/data/h37rv_20231215.fa.gz"), file("$projectDir/test_data/not_exist.vcf")]
                 input[1] = file("$projectDir/test_data/filter_params.yml")
                 input[2] = "bcftools"
                 """
