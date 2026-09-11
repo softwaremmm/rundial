@@ -35,7 +35,7 @@ workflow {
     input_files = input_files
         .combine(ref)
         .map { it ->
-            tuple(it[0], it[2].baseName, it[2], it[1])
+            tuple(it[0], it[2].baseName, it[1], it[2])
         }
 
     input_files.take(3).view()
@@ -60,21 +60,22 @@ workflow {
 // ref_id is needed for joining channels, as the reference path can change
 workflow rundial {
     take:
-    input_files // (sample_name, ref_id, ref, fastq)
+    input_files // (sample_name, ref_id, fastq, ref)
     clair3_models_dir
     dorado_model
 
     main:
     clair3_model = get_clair3_model(dorado_model)
 
+    // swap fastq and ref to match the input of the clair3 process
     valid_model_ch = input_files
         .combine(clair3_model)
         .filter { it -> it[4] != "failed" }
-        .map { it -> tuple(it[0], it[1], it[2], it[3]) }
+        .map { it -> tuple(it[0], it[1], it[3], it[2]) }
     invalid_model_ch = input_files
         .combine(clair3_model)
         .filter { it -> it[4] == "failed" }
-        .map { it -> tuple(it[0], it[1], it[2], it[3]) }
+        .map { it -> tuple(it[0], it[1], it[3], it[2]) }
 
     valid_model_ch.take(1).view { "Appropriate Clair3 Model Found" }
     invalid_model_ch.take(1).view { "No appropriate Clair3 Model Found" }
