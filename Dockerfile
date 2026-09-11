@@ -20,8 +20,15 @@ COPY src ./src
 RUN cargo build --release
 
 # ---- Conda Build Stage ----
-FROM continuumio/miniconda3 AS conda_builder
+FROM anaconda/miniconda:26.7.1 AS conda_builder
+ENV CONDA_PLUGINS_AUTO_ACCEPT_TOS=true
+
 WORKDIR /app
+
+# Needed by nextflow
+RUN apt-get update && \
+    apt-get install -y procps git && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY env.yml /app/env.yml
 RUN conda env update -n base --file env.yml && conda clean -afy

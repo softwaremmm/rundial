@@ -14,11 +14,10 @@ process minimap2 {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(fq)
-    path reference
+    tuple val(sample_name), val(ref_id), path(reference), path(fq)
 
     output:
-    tuple val(sample_name), path("final.bam"), emit: sorted_alignment
+    tuple val(sample_name), val(ref_id), path(reference), path("final.bam"), emit: sorted_alignment
 
     script:
     """
@@ -43,11 +42,10 @@ process call_snps {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(sorted_alignment)
-    path reference
+    tuple val(sample_name), val(ref_id), path(reference), path(sorted_alignment)
 
     output:
-    tuple val(sample_name), path("calls.gvcf.gz"), emit: gvcf
+    tuple val(sample_name), val(ref_id), path(reference), path("calls.gvcf.gz"), emit: gvcf
 
     script:
     """
@@ -89,11 +87,10 @@ process call_all {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(sorted_alignment)
-    path reference
+    tuple val(sample_name), val(ref_id), path(reference), path(sorted_alignment)
 
     output:
-    tuple val(sample_name), path("calls.gvcf.gz"), emit: gvcf
+    tuple val(sample_name), val(ref_id), path(reference), path("calls.gvcf.gz"), emit: gvcf
 
     script:
     """
@@ -166,12 +163,11 @@ process clair3 {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(bam)
-    path reference
+    tuple val(sample_name), val(ref_id), path(reference), path(bam)
     path model
 
     output:
-    tuple val(sample_name), path("clair3.vcf.gz"), emit: vcf
+    tuple val(sample_name), val(ref_id), path(reference), path("clair3.vcf.gz"), emit: vcf
 
     script:
     """

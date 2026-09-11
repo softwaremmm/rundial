@@ -10,16 +10,15 @@ nextflow_process {
             }
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                input[0] = ['sample', "ref", file("$projectDir/data/h37rv_20231215.fa.gz"), file("$projectDir/test_data/assemblers/final.bam")]
                 """
             }
         }
 
         then {
             assert process.success
-            assert process.out.gvcf[0][1].contains('calls.gvcf.gz')
-            assert path(process.out.gvcf[0][1]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/snp_calls.gvcf.gz").linesGzip[40..-1]
+            assert process.out.gvcf[0][3].contains('calls.gvcf.gz')
+            assert path(process.out.gvcf[0][3]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/snp_calls.gvcf.gz").linesGzip[40..-1]
         }
     }
 
@@ -30,16 +29,15 @@ nextflow_process {
             }
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                input[0] = ['sample', "ref", file("$projectDir/data/h37rv_20231215.fa.gz"), file("$projectDir/test_data/assemblers/final.bam")]
                 """
             }
         }
 
         then {
             assert process.success
-            assert process.out.gvcf[0][1].contains('calls.gvcf.gz')
-            assert path(process.out.gvcf[0][1]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/snp_calls.gvcf.gz").linesGzip[40..-1]
+            assert process.out.gvcf[0][3].contains('calls.gvcf.gz')
+            assert path(process.out.gvcf[0][3]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/snp_calls.gvcf.gz").linesGzip[40..-1]
         }
     }
 
@@ -48,8 +46,7 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/not_exist.bam")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
+                input[0] = ['sample', "ref", file("$projectDir/data/h37rv_20231215.fa.gz"), file("$projectDir/test_data/assemblers/not_exist.bam")]
                 """
             }
         }
