@@ -1,4 +1,4 @@
-## New
+## 2.0.0
 
 - (breaking) The reference is included in all channels, enabling multiple refs to be possible.
 
