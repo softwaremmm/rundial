@@ -7,17 +7,16 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/final.bam")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
-                input[2] = "$projectDir/data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz"
+                input[0] = ['sample', "ref", file("$projectDir/data/h37rv_20231215.fa.gz"), file("$projectDir/test_data/assemblers/final.bam")]
+                input[1] = "$projectDir/data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz"
                 """
             }
         }
 
         then {
             assert process.success
-            assert process.out.vcf[0][1].contains('clair3.vcf.gz')
-            assert path(process.out.vcf[0][1]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/clair3_calls.vcf.gz").linesGzip[40..-1]
+            assert process.out.vcf[0][3].contains('clair3.vcf.gz')
+            assert path(process.out.vcf[0][3]).linesGzip[40..-1] == path("$projectDir/test_data/assemblers/clair3_calls.vcf.gz").linesGzip[40..-1]
         }
     }
 
@@ -25,9 +24,8 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/assemblers/non_exist.bam")]
-                input[1] = file("$projectDir/data/h37rv_20231215.fa.gz")
-                input[2] = "$projectDir/data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz"
+                input[0] = ['sample', "ref", file("$projectDir/data/h37rv_20231215.fa.gz"), file("$projectDir/test_data/assemblers/non_exist.bam")]
+                input[1] = "$projectDir/data/clair3_models/r1041_e82_400bps_sup_v430.tar.gz"
                 """
             }
         }

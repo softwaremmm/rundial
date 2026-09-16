@@ -7,9 +7,8 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/clair3_consensus/bcftools.vcf"), file("$projectDir/test_data/clair3_consensus/clair3.vcf")]
-                input[1] = file("$projectDir/test_data/clair3_consensus/ref.fasta.gz")
-                input[2] = file("$projectDir/test_data/clair3_consensus/consensus_params.yml")
+                input[0] = ['sample', "ref", file("$projectDir/test_data/clair3_consensus/ref.fasta.gz"), file("$projectDir/test_data/clair3_consensus/bcftools.vcf"), file("$projectDir/test_data/clair3_consensus/clair3.vcf")]
+                input[1] = file("$projectDir/test_data/clair3_consensus/consensus_params.yml")
                 """
             }
         }
@@ -17,12 +16,12 @@ nextflow_process {
         then {
             assert process.success
             with(process.out.final_fasta) {
-                assert get(0)[1].contains('final.fasta')
-                assert path(get(0)[1]).md5 == path("$projectDir/test_data/clair3_consensus/expected.fasta.renamed").md5
+                assert get(0)[2].contains('final.fasta')
+                assert path(get(0)[2]).md5 == path("$projectDir/test_data/clair3_consensus/expected.fasta.renamed").md5
             }
             with(process.out.all_calls_vcf) {
-                assert get(0)[1].contains('all_calls.vcf')
-                assert path(get(0)[1]).md5 == path("$projectDir/test_data/clair3_consensus/expected.vcf").md5
+                assert get(0)[2].contains('all_calls.vcf')
+                assert path(get(0)[2]).md5 == path("$projectDir/test_data/clair3_consensus/expected.vcf").md5
             }
         }
     }
@@ -31,9 +30,8 @@ nextflow_process {
         when {
             process{
                 """
-                input[0] = ['sample', file("$projectDir/test_data/non_existent.vcf")]
-                input[1] = file("$projectDir/test_data/test_ref.fasta.gz")
-                input[2] = file("$projectDir/test_data/clair3_consensus/consensus_params.yml")
+                input[0] = ['sample', "ref", file("$projectDir/test_data/test_ref.fasta.gz"), file("$projectDir/test_data/non_existent.vcf")]
+                input[1] = file("$projectDir/test_data/clair3_consensus/consensus_params.yml")
                 """
             }
         }

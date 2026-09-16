@@ -14,6 +14,15 @@ test_local:
 	docker build -t test_container_rundial .
 	nf-test test tests/nextflow/*.nf.test --profile local_docker
 
+run_example:
+	nextflow run . --workflow clair3 \
+		--input_dir test_data/assemblers \
+		--publish_dir results \
+		--ref-fasta data/h37rv_20231215.fa.gz \
+		--clair3_models_dir data/clair3_models \
+		--basecalling_model dna_r10.4.1_e8.2_400bps_sup@v4.3.0 \
+		-profile local_docker -resume
+
 container:
 	docker build -t test_container_rundial .
 

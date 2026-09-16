@@ -1,7 +1,7 @@
 process apply_filters {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.4' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:2.0.0' : params.test_container_rundial
     }
     cpus 1
 
@@ -10,12 +10,12 @@ process apply_filters {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(gvcf)
+    tuple val(sample_name), val(ref_id), path(_reference), path(gvcf)
     path filter_params
     val caller
 
     output:
-    tuple val(sample_name), path("alternate-${caller}.vcf.gz"), emit: filtered_vcf
+    tuple val(sample_name), val(ref_id), path(_reference), path("alternate-${caller}.vcf.gz"), emit: filtered_vcf
 
     script:
     """
@@ -29,26 +29,26 @@ process apply_filters {
 process make_consensus {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.4' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:2.0.0' : params.test_container_rundial
     }
     cpus 1
-    memory {6.GB + (4.GB * task.attempt)} // high memory should only be required if not using clair3
+    memory { 6.GB + (4.GB * task.attempt) }
+    // high memory should only be required if not using clair3
 
     pod label: "name", value: "rundial:make_consensus"
     pod label: "sample_id", value: "${params.sample_id}"
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(alternate_bcftools_vcf)
-    path reference
+    tuple val(sample_name), val(ref_id), path(reference), path(alternate_bcftools_vcf)
     path consensus_params
 
     output:
-    tuple val(sample_name), path("final.fasta"), emit: final_fasta
-    tuple val(sample_name), path("final.variable_length.fasta"), emit: variable_length_fasta
-    tuple val(sample_name), path("variants.vcf"), emit: variants_vcf
-    tuple val(sample_name), path("all_calls.vcf"), emit: all_calls_vcf
-    tuple val(sample_name), path("genome_creation_report.json"), emit: report_json
+    tuple val(sample_name), val(ref_id), path("final.fasta"), emit: final_fasta
+    tuple val(sample_name), val(ref_id), path("final.variable_length.fasta"), emit: variable_length_fasta
+    tuple val(sample_name), val(ref_id), path("variants.vcf"), emit: variants_vcf
+    tuple val(sample_name), val(ref_id), path("all_calls.vcf"), emit: all_calls_vcf
+    tuple val(sample_name), val(ref_id), path("genome_creation_report.json"), emit: report_json
 
     script:
     """
@@ -75,7 +75,7 @@ process make_consensus {
 process make_clair3_consensus {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.4' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:2.0.0' : params.test_container_rundial
     }
     cpus 1
     memory "3 GB"
@@ -85,16 +85,15 @@ process make_clair3_consensus {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path("alternate-bcftools.vcf.gz"), path("clair3.vcf.gz")
-    path reference
+    tuple val(sample_name), val(ref_id), path(reference), path("alternate-bcftools.vcf.gz"), path("clair3.vcf.gz")
     path consensus_params
 
     output:
-    tuple val(sample_name), path("final.fasta"), emit: final_fasta
-    tuple val(sample_name), path("final.variable_length.fasta"), emit: variable_length_fasta
-    tuple val(sample_name), path("variants.vcf"), emit: variants_vcf
-    tuple val(sample_name), path("all_calls.vcf"), emit: all_calls_vcf
-    tuple val(sample_name), path("genome_creation_report.json"), emit: report_json
+    tuple val(sample_name), val(ref_id), path("final.fasta"), emit: final_fasta
+    tuple val(sample_name), val(ref_id), path("final.variable_length.fasta"), emit: variable_length_fasta
+    tuple val(sample_name), val(ref_id), path("variants.vcf"), emit: variants_vcf
+    tuple val(sample_name), val(ref_id), path("all_calls.vcf"), emit: all_calls_vcf
+    tuple val(sample_name), val(ref_id), path("genome_creation_report.json"), emit: report_json
 
     script:
     """
@@ -123,7 +122,7 @@ process make_clair3_consensus {
 process reassess_genome_creation {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.4' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:2.0.0' : params.test_container_rundial
     }
     cpus 1
 

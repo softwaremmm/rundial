@@ -3,7 +3,7 @@ params.test_cpus = ""
 process minimap2 {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.4' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:2.0.0' : params.test_container_rundial
     }
     cpus {
         params.testing == "" ? 4 : params.test_cpus
@@ -14,11 +14,10 @@ process minimap2 {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(fq)
-    path reference
+    tuple val(sample_name), val(ref_id), path(reference), path(fq)
 
     output:
-    tuple val(sample_name), path("final.bam"), emit: sorted_alignment
+    tuple val(sample_name), val(ref_id), path(reference), path("final.bam"), emit: sorted_alignment
 
     script:
     """
@@ -32,7 +31,7 @@ process minimap2 {
 process call_snps {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.4' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:2.0.0' : params.test_container_rundial
     }
     cpus {
         params.testing == "" ? 4 : params.test_cpus
@@ -43,11 +42,10 @@ process call_snps {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(sorted_alignment)
-    path reference
+    tuple val(sample_name), val(ref_id), path(reference), path(sorted_alignment)
 
     output:
-    tuple val(sample_name), path("calls.gvcf.gz"), emit: gvcf
+    tuple val(sample_name), val(ref_id), path(reference), path("calls.gvcf.gz"), emit: gvcf
 
     script:
     """
@@ -78,7 +76,7 @@ process call_snps {
 process call_all {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.4' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:2.0.0' : params.test_container_rundial
     }
     cpus {
         params.testing == "" ? 4 : params.test_cpus
@@ -89,11 +87,10 @@ process call_all {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(sorted_alignment)
-    path reference
+    tuple val(sample_name), val(ref_id), path(reference), path(sorted_alignment)
 
     output:
-    tuple val(sample_name), path("calls.gvcf.gz"), emit: gvcf
+    tuple val(sample_name), val(ref_id), path(reference), path("calls.gvcf.gz"), emit: gvcf
 
     script:
     """
@@ -132,7 +129,7 @@ process call_all {
 
 process get_clair3_model {
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.4' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:2.0.0' : params.test_container_rundial
     }
 
     pod label: "name", value: "rundial:get_clair3_model"
@@ -155,7 +152,7 @@ process get_clair3_model {
 process clair3 {
     publishDir "${params.publish_dir}", enabled: params.publish_dir != "", mode: "copy", saveAs: { filename -> sample_name + "." + filename }
     container {
-        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:1.1.4' : params.test_container_rundial
+        params.test_container_rundial == "" ? params.container_prefix + '/gpas/rundial:2.0.0' : params.test_container_rundial
     }
     cpus {
         params.testing == "" ? 4 : params.test_cpus
@@ -166,12 +163,11 @@ process clair3 {
     pod label: "run_id", value: "${params.run_id}"
 
     input:
-    tuple val(sample_name), path(bam)
-    path reference
+    tuple val(sample_name), val(ref_id), path(reference), path(bam)
     path model
 
     output:
-    tuple val(sample_name), path("clair3.vcf.gz"), emit: vcf
+    tuple val(sample_name), val(ref_id), path(reference), path("clair3.vcf.gz"), emit: vcf
 
     script:
     """
